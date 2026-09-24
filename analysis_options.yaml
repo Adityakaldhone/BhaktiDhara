@@ -1,0 +1,6 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**          # Suppress errors from package test stubs in build/ios/SourcePackages/
+    - "**/*.g.dart"     # Generated files

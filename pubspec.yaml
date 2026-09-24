@@ -1,0 +1,62 @@
+name: nitya_aarti
+description: "BhaktiDhara: Aarti Sangrah"
+publish_to: 'none'
+version: 1.0.4+4
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Smooth auto-scrolling synced lyrics list
+  scrollable_positioned_list: ^0.3.8
+
+  # Keep screen awake during pooja (WakelockPlus.enable/disable)
+  wakelock_plus: ^1.2.0
+
+  # Monetisation — AdMob banners strictly on Dashboard only
+  # v9+ required for Gradle 8 compatibility (v5.x used removed configurations.all API)
+  google_mobile_ads: ^9.1.0
+
+  # Bell (ghanti) and conch (shankh) sound effects
+  audioplayers: ^6.1.0
+
+  # State Management (Clean Architecture)
+  flutter_riverpod: ^2.4.9
+
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
+  # Strict In-App Embedded Video Player
+  webview_flutter: ^4.10.0
+  flutter_launcher_icons: ^0.14.4
+  google_fonts: ^8.2.1
+  change_app_package_name: ^1.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - assets/devotional_catalog.json
+    - assets/app_logo/logo.png
+    - assets/decorations/
+    - shorebird.yaml
+    # Add ghanti.mp3 and shankh.mp3 under assets/sounds/ before production build
+    # - assets/sounds/ghanti.mp3
+    # - assets/sounds/shankh.mp3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_logo/logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true

@@ -1,0 +1,50 @@
+{
+  "_comment": "Devotional catalog reference schema. In-app data lives in lib/data/catalog.dart. This JSON is the offline-ready, immutable source of truth for CI/CD pipelines and potential future remote config.",
+  "version": "1.0.0",
+  "catalog": [
+    {
+      "id": "hanuman_chalisa",
+      "title": "Shree Hanuman Chalisa",
+      "deity": "Lord Hanuman",
+      "singer": "Shankar Mahadevan",
+      "youtubeVideoId": "AETFv445DXE",
+      "backupVideoIds": ["06bCdCvkzfs", "3IIR2Bmdvtg"],
+      "durationText": "9:48",
+      "accentColorHex": "#FF6F00",
+      "deityEmoji": "🙏"
+    },
+    {
+      "id": "ganesh_aarti",
+      "title": "Sukhkarta Dukhharta",
+      "deity": "Lord Ganesha",
+      "singer": "Traditional Devotional",
+      "youtubeVideoId": "M7XgIq7y7b0",
+      "backupVideoIds": ["EWPsRH9qKA8"],
+      "durationText": "4:20",
+      "accentColorHex": "#F57C00",
+      "deityEmoji": "🐘"
+    },
+    {
+      "id": "shiv_aarti",
+      "title": "Om Jai Shiv Omkara",
+      "deity": "Lord Shiva",
+      "singer": "Anuradha Paudwal",
+      "youtubeVideoId": "RV-TdShFEWo",
+      "backupVideoIds": ["Wbpuub7bMV8"],
+      "durationText": "5:12",
+      "accentColorHex": "#1565C0",
+      "deityEmoji": "🔱"
+    },
+    {
+      "id": "durga_aarti",
+      "title": "Jai Ambe Gauri",
+      "deity": "Goddess Durga",
+      "singer": "Narendra Chanchal",
+      "youtubeVideoId": "J1E4zT9COVE",
+      "backupVideoIds": ["JSwah1NCPZY"],
+      "durationText": "6:05",
+      "accentColorHex": "#AD1457",
+      "deityEmoji": "🌸"
+    }
+  ]
+}

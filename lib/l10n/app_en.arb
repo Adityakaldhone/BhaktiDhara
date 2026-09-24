@@ -1,0 +1,22 @@
+{
+  "appTitle": "BhaktiDhara",
+  "appSubtitle": "Aarti Sangrah",
+  "appTagline": "Stream of devotion, every home, every day",
+  "clearFilter": "Clear Filter",
+  "noAartiFound": "No Aarti found for this deity.",
+  "readAndPlay": "Read & Play",
+  "screenAwake": "Screen stays awake automatically",
+  "playBell": "Play Bell Sound",
+  "blowConch": "Blow Conch",
+  "bellPlayed": "🔔 Sacred Bell Chimed",
+  "conchBlown": "🐚 Shankh Naad Blown",
+  "loadingError": "Could not load catalog.\nPlease check your connection.",
+  "searchHint": "Search Aarti, Chalisa, Bhajan...",
+  "sacredCollection": "Sacred Collection",
+  "seeAll": "See All",
+  "filterAll": "All",
+  "navHome": "Home",
+  "navFavorites": "Favorites",
+  "navLanguage": "Language",
+  "navMore": "More"
+}

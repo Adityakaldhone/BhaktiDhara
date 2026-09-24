@@ -1,0 +1,22 @@
+{
+  "appTitle": "भक्तिधारा",
+  "appSubtitle": "आरती संग्रह",
+  "appTagline": "भक्ति की धारा, हर घर, हर दिन",
+  "clearFilter": "फ़िल्टर हटाएं",
+  "noAartiFound": "इस देवता के लिए कोई आरती नहीं मिली।",
+  "readAndPlay": "पढ़ें और बजाएं",
+  "screenAwake": "स्क्रीन हमेशा चालू रहेगी",
+  "playBell": "घंटी बजाएं",
+  "blowConch": "शंख बजाएं",
+  "bellPlayed": "🔔 पवित्र घंटी बजी",
+  "conchBlown": "🐚 शंखनाद हुआ",
+  "loadingError": "कैटलॉग लोड नहीं हो सका।\nकृपया अपना कनेक्शन जांचें।",
+  "searchHint": "खोजें आरती, चालीसा, भजन...",
+  "sacredCollection": "पवित्र संग्रह",
+  "seeAll": "सभी देखें",
+  "filterAll": "सभी",
+  "navHome": "मुख्य",
+  "navFavorites": "पसंदीदा",
+  "navLanguage": "भाषा",
+  "navMore": "अधिक"
+}
