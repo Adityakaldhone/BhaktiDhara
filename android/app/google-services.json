@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "72583369850",
+    "project_id": "bhaktidhara-app",
+    "storage_bucket": "bhaktidhara-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:72583369850:android:d6506f510ce6a02dd9d7c3",
+        "android_client_info": {
+          "package_name": "com.kaldhone.bhaktidhara"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLjq3SazIq_f-jn7VgwzEU2WWEGmxBrzQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

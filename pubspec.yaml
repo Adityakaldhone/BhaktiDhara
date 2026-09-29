@@ -42,6 +42,9 @@ dependencies:
   geolocator: ^14.0.3
   shared_preferences: ^2.5.4
   webview_flutter_web: ^0.2.3+4
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
+  flutter_local_notifications: ^22.3.1
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +61,8 @@ flutter:
     - assets/aarti_screen/
     - assets/aarti_list/
     - assets/sounds/
+    # One repetition per mantra for chant-along (currently TTS placeholders)
+    - assets/sounds/jaap/
     - shorebird.yaml
     # Add ghanti.mp3 and shankh.mp3 under assets/sounds/ before production build
     # - assets/sounds/ghanti.mp3

@@ -1,13 +1,17 @@
+import csv
+import hmac
+import io
 import os
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from pathlib import Path
+from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, Query, Header, HTTPException, status
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Query, Header, HTTPException, Depends, status
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 # pyrefly: ignore [missing-import]
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # pyrefly: ignore [missing-import]
@@ -19,17 +23,59 @@ from app.database import (
     save_cached_horoscope,
     get_cached_panchang,
     save_cached_panchang,
+    clear_cache,
+    increment_api_stat,
     record_device_ping,
+    record_events,
     get_admin_metrics,
+    get_overview,
+    get_retention,
+    list_users,
+    export_users,
+    get_user_detail,
+    update_user,
+    delete_user,
+    get_engagement,
+    list_announcements,
+    create_announcement,
+    update_announcement,
+    delete_announcement,
+    get_app_config,
+    save_app_config,
+    get_system_status,
+    log_admin_action,
+    save_push_token,
+    delete_push_tokens,
+    get_push_tokens_for,
+    estimate_push_reach,
+    create_push_campaign,
+    list_push_campaigns,
+    get_push_campaign,
+    get_due_push_campaign_ids,
+    claim_push_campaign,
+    record_push_result,
+    set_push_campaign_status,
+    delete_push_campaign,
+    get_push_stats,
 )
 from app.gemini_service import generate_horoscope, generate_panchang
 from app.cron import run_daily_precache_job, RASHI_NAMES
+from app.push_service import (
+    PushNotConfigured,
+    push_status,
+    build_topic_target,
+    send_to_topic_target,
+    send_to_tokens,
+)
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("bhaktidhara.api")
 
-ADMIN_SECRET = os.getenv("ADMIN_SECRET", "mandir_secret_2026")
+DEFAULT_ADMIN_SECRET = "mandir_secret_2026"
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", DEFAULT_ADMIN_SECRET)
+STATIC_DIR = Path(__file__).parent / "static"
+STARTED_AT = datetime.now(timezone.utc)
 scheduler = AsyncIOScheduler()
 
 
@@ -38,6 +84,8 @@ async def lifespan(app: FastAPI):
     # 1. Initialize SQLite Database
     await init_db()
     logger.info("SQLite Database initialized.")
+    if ADMIN_SECRET == DEFAULT_ADMIN_SECRET:
+        logger.warning("ADMIN_SECRET is still the default value. Set a strong secret in .env!")
 
     # 2. Schedule Nightly Precaching Cron Job at 00:05 AM IST (18:35 UTC)
     scheduler.add_job(
@@ -46,8 +94,18 @@ async def lifespan(app: FastAPI):
         id="nightly_vedic_precache",
         replace_existing=True,
     )
+    scheduler.add_job(
+        run_due_push_campaigns,
+        trigger="interval",
+        minutes=1,
+        id="push_campaign_dispatcher",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
     scheduler.start()
     logger.info("Nightly precaching scheduler started (00:05 AM IST).")
+    logger.info("Push notifications: %s", push_status())
 
     yield
 
@@ -58,7 +116,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="BhaktiDhara API",
     description="High-performance, privacy-first Vedic Astrology & Mandir telemetry backend for Hetzner VPS",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -70,6 +128,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Auth ─────────────────────────────────────────────────────────────────────
+
+def _secret_ok(candidate: Optional[str]) -> bool:
+    return bool(candidate) and hmac.compare_digest(candidate.encode(), ADMIN_SECRET.encode())
+
+
+async def require_admin(
+    x_admin_secret: Optional[str] = Header(None),
+    secret: Optional[str] = Query(None, description="Legacy: admin secret as query param"),
+):
+    if not (_secret_ok(x_admin_secret) or _secret_ok(secret)):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin secret")
 
 
 # ── Models ───────────────────────────────────────────────────────────────────
@@ -86,7 +158,72 @@ class DevicePingRequest(BaseModel):
     country: Optional[str] = None
 
 
-# ── Endpoints ────────────────────────────────────────────────────────────────
+class TelemetryEvent(BaseModel):
+    name: str
+    props: Dict[str, Any] = Field(default_factory=dict)
+    ts: Optional[str] = None
+
+
+class TelemetryEventBatch(BaseModel):
+    deviceId: str
+    events: List[TelemetryEvent]
+
+
+class UserUpdateRequest(BaseModel):
+    notes: Optional[str] = None
+    vipGranted: Optional[bool] = None
+    blocked: Optional[bool] = None
+    userName: Optional[str] = None
+
+
+class AnnouncementCreate(BaseModel):
+    title: str
+    body: str
+    locale: str = "all"
+    link: str = ""
+    expiresAt: Optional[str] = None
+
+
+class AnnouncementUpdate(BaseModel):
+    active: Optional[bool] = None
+
+
+class PushTokenRequest(BaseModel):
+    deviceId: str
+    token: str
+    enabled: bool = True
+    platform: str = "android"
+
+
+class PushTarget(BaseModel):
+    audience: str = Field("all", description="all, vip, free, dormant, user")
+    locale: str = ""
+    platform: str = ""
+    deviceId: str = ""
+    dormantDays: int = Field(7, ge=1, le=365)
+
+
+class PushCampaignCreate(PushTarget):
+    title: str
+    body: str
+    imageUrl: str = ""
+    route: str = Field("", description="'', aarti, panchang, jaap, horoscope, bhajan")
+    aartiId: str = ""
+    sendAt: Optional[str] = Field(None, description="ISO datetime; omit to send immediately")
+    repeat: str = Field("none", description="none, daily")
+
+
+class AppConfigUpdate(BaseModel):
+    min_supported_version: Optional[str] = None
+    latest_version: Optional[str] = None
+    update_url: Optional[str] = None
+    force_update: Optional[bool] = None
+    maintenance_mode: Optional[bool] = None
+    maintenance_message: Optional[str] = None
+    feature_flags: Optional[Dict[str, bool]] = None
+
+
+# ── Public Endpoints ─────────────────────────────────────────────────────────
 
 @app.get("/")
 @app.get("/api/health")
@@ -94,10 +231,9 @@ def health_check():
     return {
         "service": "BhaktiDhara Sacred API",
         "status": "healthy",
-        "version": "1.0.0",
+        "version": app.version,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-
 
 
 @app.get("/api/v1/horoscope")
@@ -118,6 +254,7 @@ async def get_horoscope_endpoint(
     if not force_refresh:
         cached = await get_cached_horoscope(today_str, rashi.lower(), period.lower(), lang.lower())
         if cached:
+            await increment_api_stat("horoscope_cache_hit")
             return {
                 "source": "cache",
                 "cachedDate": today_str,
@@ -143,6 +280,7 @@ async def get_horoscope_endpoint(
             lang_code=lang.lower(),
             data=fresh_reading,
         )
+        await increment_api_stat("horoscope_gemini")
         return {
             "source": "gemini_generated",
             "cachedDate": today_str,
@@ -150,6 +288,7 @@ async def get_horoscope_endpoint(
         }
     except Exception as e:
         logger.error(f"Failed to generate horoscope for {rashi}: {e}")
+        await increment_api_stat("gemini_error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unable to generate horoscope: {str(e)}",
@@ -179,6 +318,7 @@ async def get_panchang_endpoint(
     if not force_refresh:
         cached = await get_cached_panchang(date_str, clean_city_id, lang.lower())
         if cached:
+            await increment_api_stat("panchang_cache_hit")
             return {
                 "source": "cache",
                 "date": date_str,
@@ -198,6 +338,7 @@ async def get_panchang_endpoint(
             lang_code=lang.lower(),
             data=fresh_panchang,
         )
+        await increment_api_stat("panchang_gemini")
         return {
             "source": "gemini_generated",
             "date": date_str,
@@ -205,6 +346,7 @@ async def get_panchang_endpoint(
         }
     except Exception as e:
         logger.error(f"Failed to generate panchang for {city}: {e}")
+        await increment_api_stat("gemini_error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unable to generate panchang: {str(e)}",
@@ -216,209 +358,407 @@ async def anonymous_ping_endpoint(payload: DevicePingRequest):
     """
     Records an anonymous heartbeat ping from the app.
     Supports optional devotee user name and location if user granted permissions.
+    Returns admin-controlled flags (e.g. complimentary VIP) for this device.
     """
-    await record_device_ping(
-        device_id=payload.deviceId,
-        platform=payload.platform.lower(),
-        app_version=payload.appVersion,
-        locale=payload.locale.lower(),
+    flags = await record_device_ping(
+        device_id=payload.deviceId[:64],
+        platform=payload.platform.lower()[:16],
+        app_version=payload.appVersion[:20],
+        locale=payload.locale.lower()[:8],
         is_vip=payload.isVip,
         user_name=payload.userName,
         city=payload.city,
         state=payload.state,
         country=payload.country,
     )
+    return {"status": "ok", **flags}
+
+
+@app.post("/api/v1/telemetry/event")
+async def telemetry_event_endpoint(payload: TelemetryEventBatch):
+    """Records a batch of anonymous feature-usage events (aarti opened, jaap completed...)."""
+    await record_events(payload.deviceId[:64], [e.model_dump() for e in payload.events])
     return {"status": "ok"}
 
 
-@app.get("/api/v1/admin/stats")
-async def admin_stats_endpoint(
-    secret: str = Query(..., description="Admin authentication secret key"),
-):
-    """
-    Admin dashboard metric: Total downloads, DAU, MAU, VIP subscribers.
-    Password protected via secret key.
-    """
-    if secret != ADMIN_SECRET:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin secret")
+@app.post("/api/v1/telemetry/push-token")
+async def push_token_endpoint(payload: PushTokenRequest):
+    """Registers the device's FCM token so it can be targeted from the admin dashboard."""
+    await save_push_token(
+        payload.deviceId[:64], payload.token[:4096], payload.enabled, payload.platform.lower()[:16]
+    )
+    return {"status": "ok"}
 
-    metrics = await get_admin_metrics()
+
+@app.get("/api/v1/config")
+async def public_config_endpoint():
+    """Remote config the app reads on launch: force-update, maintenance mode, feature flags."""
+    return await get_app_config()
+
+
+@app.get("/api/v1/announcements")
+async def public_announcements_endpoint(locale: str = Query("", description="mr, hi, en")):
+    """Live in-app announcements for the given language."""
+    return {"announcements": await list_announcements(only_live=True, locale=locale.lower())}
+
+
+# ── Admin Dashboard (HTML) ───────────────────────────────────────────────────
+
+@app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/api/v1/admin/dashboard", response_class=HTMLResponse, include_in_schema=False)
+async def admin_dashboard_html():
+    """Single-page admin dashboard. Auth happens client-side via the X-Admin-Secret header."""
+    return FileResponse(STATIC_DIR / "admin.html", media_type="text/html")
+
+
+# ── Admin API ────────────────────────────────────────────────────────────────
+
+admin = [Depends(require_admin)]
+
+
+@app.get("/api/v1/admin/stats", dependencies=admin)
+async def admin_stats_endpoint():
+    """Legacy summary: total downloads, DAU, MAU, VIP subscribers."""
     return {
         "status": "success",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "metrics": metrics,
+        "metrics": await get_admin_metrics(),
     }
 
 
-@app.get("/admin", response_class=HTMLResponse)
-@app.get("/api/v1/admin/dashboard", response_class=HTMLResponse)
-async def admin_dashboard_html(
-    secret: str = Query(..., description="Admin authentication secret key"),
+@app.get("/api/v1/admin/overview", dependencies=admin)
+async def admin_overview_endpoint(days: int = Query(30, ge=7, le=180)):
+    return await get_overview(days)
+
+
+@app.get("/api/v1/admin/retention", dependencies=admin)
+async def admin_retention_endpoint(weeks: int = Query(8, ge=2, le=26)):
+    return await get_retention(weeks)
+
+
+@app.get("/api/v1/admin/users", dependencies=admin)
+async def admin_users_endpoint(
+    search: str = "",
+    platform: str = "",
+    locale: str = "",
+    tier: str = Query("", description="vip, paid, granted, free"),
+    status_filter: str = Query("", alias="status", description="active7d, dormant, new7d, blocked"),
+    sort: str = Query("last_seen", description="last_seen, first_seen, pings, name"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
 ):
-    """
-    Visual Web Dashboard for monitoring app installs, DAU, VIP subscribers,
-    user locations, and device activity.
-    """
-    if secret != ADMIN_SECRET:
-        return HTMLResponse(
-            status_code=401,
-            content="""
-            <!DOCTYPE html>
-            <html>
-            <head><title>BhaktiDhara Admin - Unauthorized</title></head>
-            <body style="font-family:sans-serif;background:#0d0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-                <div style="background:#1a192b;padding:40px;border-radius:12px;border:1px solid #ff9933;text-align:center;">
-                    <h2 style="color:#ff9933;">🔒 Access Denied</h2>
-                    <p>Invalid Admin Secret Key. Please pass ?secret=YOUR_KEY</p>
-                </div>
-            </body>
-            </html>
-            """,
-        )
+    return await list_users(search.strip(), platform, locale, tier, status_filter, sort, page, page_size)
 
-    metrics = await get_admin_metrics()
 
-    # Format cities HTML
-    cities_html = "".join(
-        f'<span style="background:rgba(255,153,51,0.15);border:1px solid rgba(255,153,51,0.4);color:#ffb84d;padding:6px 14px;border-radius:20px;font-size:13px;display:inline-block;margin:4px;">📍 {city} <b style="color:#fff;">({count})</b></span>'
-        for city, count in metrics.get("cities", {}).items()
-    ) or '<span style="color:#888;">No location data yet</span>'
-
-    # Format platforms HTML
-    platforms_html = "".join(
-        f'<span style="background:rgba(100,149,237,0.15);border:1px solid rgba(100,149,237,0.4);color:#87cefa;padding:6px 14px;border-radius:20px;font-size:13px;display:inline-block;margin:4px;">📱 {p.upper()}: <b style="color:#fff;">{cnt}</b></span>'
-        for p, cnt in metrics.get("platforms", {}).items()
+@app.get("/api/v1/admin/users/export.csv", dependencies=admin)
+async def admin_users_export_endpoint(
+    search: str = "",
+    platform: str = "",
+    locale: str = "",
+    tier: str = "",
+    status_filter: str = Query("", alias="status"),
+):
+    users = await export_users(
+        search=search.strip(), platform=platform, locale=locale, tier=tier, status=status_filter
+    )
+    buf = io.StringIO()
+    columns = ["deviceId", "userName", "city", "state", "country", "platform", "appVersion", "locale",
+               "isVip", "vipGranted", "blocked", "firstSeen", "lastSeen", "pingCount", "notes"]
+    writer = csv.DictWriter(buf, fieldnames=columns, extrasaction="ignore")
+    writer.writeheader()
+    for user in users:
+        # Neutralise spreadsheet formula injection from client-supplied names/cities.
+        writer.writerow({
+            k: ("'" + v if isinstance(v, str) and v[:1] in ("=", "+", "-", "@") else v)
+            for k, v in user.items()
+        })
+    await log_admin_action("export_users", f"{len(users)} rows")
+    filename = f"bhaktidhara_users_{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
-    # Format recent devices rows
-    rows_html = "".join(
-        f"""
-        <tr style="border-bottom:1px solid #222035;">
-            <td style="padding:12px;font-family:monospace;color:#ff9933;font-size:12px;">{d['deviceId'][:16]}...</td>
-            <td style="padding:12px;color:#fff;font-weight:600;">{d['userName']}</td>
-            <td style="padding:12px;color:#cbd5e1;">📍 {d['city']}</td>
-            <td style="padding:12px;color:#94a3b8;"><span style="text-transform:uppercase;background:#2d294a;padding:2px 8px;border-radius:6px;font-size:11px;">{d['platform']}</span> v{d['appVersion']}</td>
-            <td style="padding:12px;">{'<span style="color:#ffd700;font-weight:bold;background:rgba(255,215,0,0.15);padding:3px 10px;border-radius:12px;">⭐ VIP</span>' if d['isVip'] else '<span style="color:#64748b;font-size:12px;">Free</span>'}</td>
-            <td style="padding:12px;color:#94a3b8;font-size:12px;">{d['lastSeen'].replace('T', ' ')[:19]}</td>
-            <td style="padding:12px;color:#38bdf8;font-weight:bold;text-align:center;">{d['pingCount']}</td>
-        </tr>
-        """
-        for d in metrics.get("recent_devices", [])
-    ) or '<tr><td colspan="7" style="padding:20px;text-align:center;color:#64748b;">No devices recorded yet</td></tr>'
 
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>BhaktiDhara Telemetry & Mandir Admin</title>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-            * {{ margin:0; padding:0; box-sizing:border-box; font-family:'Outfit', sans-serif; }}
-            body {{ background:#0a0914; color:#e2e8f0; padding:24px; min-height:100vh; }}
-            .container {{ max-width:1200px; margin:0 auto; }}
-            .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; border-bottom:1px solid #1f1d33; padding-bottom:18px; }}
-            .title {{ font-size:26px; font-weight:700; color:#ff9933; display:flex; align-items:center; gap:10px; }}
-            .stats-grid {{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:18px; margin-bottom:28px; }}
-            .card {{ background:#131124; border:1px solid #23203d; border-radius:14px; padding:20px; position:relative; overflow:hidden; }}
-            .card::before {{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #ff9933, #ff5722); }}
-            .card-title {{ font-size:13px; text-transform:uppercase; color:#94a3b8; letter-spacing:0.5px; font-weight:600; margin-bottom:8px; }}
-            .card-value {{ font-size:36px; font-weight:700; color:#fff; }}
-            .badge-gold {{ color:#ffd700; }}
-            .section {{ background:#131124; border:1px solid #23203d; border-radius:14px; padding:24px; margin-bottom:28px; }}
-            .section-title {{ font-size:17px; font-weight:600; color:#ff9933; margin-bottom:16px; display:flex; align-items:center; gap:8px; }}
-            table {{ width:100%; border-collapse:collapse; text-align:left; }}
-            th {{ padding:12px; color:#94a3b8; font-size:12px; text-transform:uppercase; border-bottom:1px solid #23203d; }}
-            .refresh-btn {{ background:#ff9933; color:#0a0914; font-weight:700; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; text-decoration:none; font-size:13px; display:inline-block; }}
-            .refresh-btn:hover {{ background:#ffad5a; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <div>
-                    <div class="title">🚩 BhaktiDhara Devotee Telemetry</div>
-                    <p style="color:#64748b; font-size:13px; margin-top:4px;">Live App Installs, Active Users & Location Insights</p>
-                </div>
-                <div>
-                    <a href="?secret={secret}" class="refresh-btn">🔄 Refresh Stats</a>
-                </div>
-            </div>
-
-            <!-- Top KPI Cards -->
-            <div class="stats-grid">
-                <div class="card">
-                    <div class="card-title">Total Unique Installs</div>
-                    <div class="card-value">{metrics['total_installs']}</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Active Today (DAU)</div>
-                    <div class="card-value" style="color:#38bdf8;">{metrics['daily_active_users_dau']}</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Active 30 Days (MAU)</div>
-                    <div class="card-value" style="color:#a78bfa;">{metrics['monthly_active_users_mau']}</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">VIP Subscribers</div>
-                    <div class="card-value badge-gold">⭐ {metrics['vip_subscribers']}</div>
-                </div>
-            </div>
-
-            <!-- Breakdown Section -->
-            <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
-                <div class="section" style="margin-bottom:0;">
-                    <div class="section-title">📍 Top Devotee Locations</div>
-                    <div>{cities_html}</div>
-                </div>
-                <div class="section" style="margin-bottom:0;">
-                    <div class="section-title">📱 Platforms & Cache</div>
-                    <div>{platforms_html}</div>
-                    <p style="margin-top:12px; font-size:13px; color:#64748b;">
-                        Cached Today: <b>{metrics['cache_entries']['horoscope_count']}</b> Horoscopes, <b>{metrics['cache_entries']['panchang_count']}</b> Panchangs
-                    </p>
-                </div>
-            </div>
-
-            <!-- Recent Devices Table -->
-            <div class="section" style="margin-top:28px;">
-                <div class="section-title">📋 Recent Active Devotee Devices (Latest 25)</div>
-                <div style="overflow-x:auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Device ID</th>
-                                <th>Devotee Name</th>
-                                <th>Location</th>
-                                <th>Platform</th>
-                                <th>Tier</th>
-                                <th>Last Active</th>
-                                <th style="text-align:center;">Pings</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows_html}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content)
+@app.get("/api/v1/admin/users/{device_id}", dependencies=admin)
+async def admin_user_detail_endpoint(device_id: str):
+    detail = await get_user_detail(device_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail="User not found")
+    return detail
 
 
-@app.post("/api/v1/admin/trigger-precache")
-async def trigger_precache_endpoint(
-    secret: str = Query(..., description="Admin authentication secret key"),
-):
+@app.patch("/api/v1/admin/users/{device_id}", dependencies=admin)
+async def admin_user_update_endpoint(device_id: str, payload: UserUpdateRequest):
+    fields = payload.model_dump(exclude_none=True)
+    if not await update_user(device_id, fields):
+        raise HTTPException(status_code=404, detail="User not found or nothing to update")
+    await log_admin_action("update_user", f"{device_id[:12]}… {sorted(fields.keys())}")
+    return await get_user_detail(device_id)
+
+
+@app.delete("/api/v1/admin/users/{device_id}", dependencies=admin)
+async def admin_user_delete_endpoint(device_id: str):
+    if not await delete_user(device_id):
+        raise HTTPException(status_code=404, detail="User not found")
+    await log_admin_action("delete_user", device_id[:12] + "…")
+    return {"status": "deleted"}
+
+
+@app.get("/api/v1/admin/engagement", dependencies=admin)
+async def admin_engagement_endpoint(days: int = Query(7, ge=1, le=180), event: str = ""):
+    return await get_engagement(days, event)
+
+
+@app.get("/api/v1/admin/announcements", dependencies=admin)
+async def admin_announcements_list():
+    return {"announcements": await list_announcements()}
+
+
+@app.post("/api/v1/admin/announcements", dependencies=admin)
+async def admin_announcements_create(payload: AnnouncementCreate):
+    if not payload.title.strip() or not payload.body.strip():
+        raise HTTPException(status_code=400, detail="Title and body are required")
+    ann_id = await create_announcement(payload.title, payload.body, payload.locale, payload.link, payload.expiresAt)
+    await log_admin_action("create_announcement", payload.title[:80])
+    return {"id": ann_id}
+
+
+@app.patch("/api/v1/admin/announcements/{ann_id}", dependencies=admin)
+async def admin_announcements_update(ann_id: int, payload: AnnouncementUpdate):
+    if not await update_announcement(ann_id, payload.active):
+        raise HTTPException(status_code=404, detail="Announcement not found")
+    await log_admin_action("toggle_announcement", f"#{ann_id} active={payload.active}")
+    return {"status": "ok"}
+
+
+@app.delete("/api/v1/admin/announcements/{ann_id}", dependencies=admin)
+async def admin_announcements_delete(ann_id: int):
+    if not await delete_announcement(ann_id):
+        raise HTTPException(status_code=404, detail="Announcement not found")
+    await log_admin_action("delete_announcement", f"#{ann_id}")
+    return {"status": "deleted"}
+
+
+@app.get("/api/v1/admin/config", dependencies=admin)
+async def admin_config_get():
+    return await get_app_config()
+
+
+@app.put("/api/v1/admin/config", dependencies=admin)
+async def admin_config_put(payload: AppConfigUpdate):
+    updates = payload.model_dump(exclude_none=True)
+    config = await save_app_config(updates)
+    await log_admin_action("update_config", ", ".join(sorted(updates.keys())))
+    return config
+
+
+@app.get("/api/v1/admin/system", dependencies=admin)
+async def admin_system_endpoint():
+    data = await get_system_status()
+    job = scheduler.get_job("nightly_vedic_precache")
+    data["server"] = {
+        "version": app.version,
+        "started_at": STARTED_AT.isoformat(),
+        "uptime_seconds": int((datetime.now(timezone.utc) - STARTED_AT).total_seconds()),
+        "gemini_model": os.getenv("GEMINI_MODEL", ""),
+        "gemini_key_configured": bool(os.getenv("GEMINI_API_KEY")),
+        "default_admin_secret": ADMIN_SECRET == DEFAULT_ADMIN_SECRET,
+        "next_precache_run": job.next_run_time.isoformat() if job and job.next_run_time else None,
+    }
+    return data
+
+
+@app.post("/api/v1/admin/trigger-precache", dependencies=admin)
+async def trigger_precache_endpoint():
     """Manually triggers the precache job immediately."""
-    if secret != ADMIN_SECRET:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin secret")
-
-    # Run in background
-    scheduler.add_job(run_daily_precache_job, id="manual_precache_run")
+    scheduler.add_job(run_daily_precache_job, id="manual_precache_run", replace_existing=True)
+    await log_admin_action("trigger_precache")
     return {"status": "precache_job_started"}
 
+
+@app.post("/api/v1/admin/cache/clear", dependencies=admin)
+async def admin_cache_clear_endpoint(
+    older_than_days: Optional[int] = Query(None, ge=0, description="Omit to clear everything"),
+):
+    result = await clear_cache(older_than_days)
+    await log_admin_action(
+        "clear_cache", "all" if older_than_days is None else f"older than {older_than_days}d"
+    )
+    return result
+
+
+# ── Push notifications ───────────────────────────────────────────────────────
+
+PUSH_ROUTES = {"", "aarti", "panchang", "jaap", "horoscope", "bhajan"}
+PUSH_AUDIENCES = {"all", "vip", "free", "dormant", "user"}
+
+
+def _parse_iso_utc(value: str) -> datetime:
+    dt = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _next_daily_run(scheduled_at: Optional[str]) -> str:
+    now = datetime.now(timezone.utc)
+    base = _parse_iso_utc(scheduled_at) if scheduled_at else now
+    # The dispatcher can fire slightly before the stored time (SQLite compares whole seconds),
+    # so anything due within the next minute counts as today's run.
+    while base <= now + timedelta(minutes=1):
+        base += timedelta(days=1)
+    return base.isoformat()
+
+
+async def dispatch_push_campaign(campaign_id: int, allow_statuses: tuple = ("scheduled",)) -> Dict[str, Any]:
+    """Sends one campaign now. Returns the delivery result."""
+    if not await claim_push_campaign(campaign_id, allow_statuses):
+        return {"skipped": True}
+    c = await get_push_campaign(campaign_id)
+    next_run = _next_daily_run(c.get("scheduled_at")) if c.get("repeat") == "daily" else None
+    try:
+        if c["audience"] in ("user", "dormant"):
+            tokens = await get_push_tokens_for(
+                c["audience"], c["locale"], c["platform"], c["target_device_id"], c["dormant_days"]
+            )
+            result = await send_to_tokens(c, tokens)
+            await delete_push_tokens(result["invalid_tokens"])
+            reach = result["success"]
+        else:
+            target = build_topic_target(c["audience"], c["locale"], c["platform"])
+            result = await send_to_topic_target(c, target)
+            reach = await estimate_push_reach(c["audience"], c["locale"], c["platform"]) if result["success"] else 0
+    except PushNotConfigured as e:
+        result, reach = {"success": 0, "failure": 1, "error": str(e), "invalid_tokens": []}, 0
+    except Exception as e:
+        logger.exception("Push campaign %s failed", campaign_id)
+        result, reach = {"success": 0, "failure": 1, "error": str(e), "invalid_tokens": []}, 0
+
+    await record_push_result(campaign_id, result["success"], result["failure"], result["error"], next_run, reach)
+    logger.info("Push campaign %s: %s ok, %s failed", campaign_id, result["success"], result["failure"])
+    return {
+        "success": result["success"],
+        "failure": result["failure"],
+        "error": result["error"],
+        "reach": reach,
+        "removedInvalidTokens": len(result["invalid_tokens"]),
+        "nextRun": next_run,
+    }
+
+
+async def run_due_push_campaigns():
+    for campaign_id in await get_due_push_campaign_ids():
+        await dispatch_push_campaign(campaign_id)
+
+
+@app.get("/api/v1/admin/push/overview", dependencies=admin)
+async def admin_push_overview():
+    return {
+        "status": push_status(),
+        "stats": await get_push_stats(),
+        "campaigns": await list_push_campaigns(),
+    }
+
+
+@app.post("/api/v1/admin/push/estimate", dependencies=admin)
+async def admin_push_estimate(payload: PushTarget):
+    reach = await estimate_push_reach(
+        payload.audience, payload.locale, payload.platform, payload.deviceId.strip(), payload.dormantDays
+    )
+    target = (
+        {"tokens": True} if payload.audience in ("user", "dormant")
+        else build_topic_target(payload.audience, payload.locale, payload.platform)
+    )
+    return {"reach": reach, "target": target}
+
+
+@app.post("/api/v1/admin/push/campaigns", dependencies=admin)
+async def admin_push_create(payload: PushCampaignCreate):
+    if not payload.title.strip() or not payload.body.strip():
+        raise HTTPException(status_code=400, detail="Title and message are required")
+    if payload.audience not in PUSH_AUDIENCES:
+        raise HTTPException(status_code=400, detail="Unknown audience")
+    if payload.route not in PUSH_ROUTES:
+        raise HTTPException(status_code=400, detail="Unknown screen to open")
+    if payload.audience == "user" and not payload.deviceId.strip():
+        raise HTTPException(status_code=400, detail="Device ID is required for a single-user push")
+    if payload.route == "aarti" and not payload.aartiId.strip():
+        raise HTTPException(status_code=400, detail="Aarti ID is required to open an aarti")
+    if payload.repeat not in ("none", "daily"):
+        raise HTTPException(status_code=400, detail="Repeat must be 'none' or 'daily'")
+
+    now = datetime.now(timezone.utc)
+    try:
+        send_at = (_parse_iso_utc(payload.sendAt) if payload.sendAt else now).replace(microsecond=0)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid schedule date")
+    send_immediately = send_at <= now + timedelta(seconds=30)
+
+    campaign_id = await create_push_campaign({
+        "title": payload.title.strip()[:200],
+        "body": payload.body.strip()[:1000],
+        "image_url": payload.imageUrl.strip()[:500],
+        "route": payload.route,
+        "aarti_id": payload.aartiId.strip()[:120],
+        "audience": payload.audience,
+        "locale": payload.locale if payload.locale in ("mr", "hi", "en") else "",
+        "platform": payload.platform if payload.platform in ("android", "ios") else "",
+        "target_device_id": payload.deviceId.strip()[:64],
+        "dormant_days": payload.dormantDays,
+        "status": "scheduled",
+        "scheduled_at": send_at.isoformat(),
+        "repeat": payload.repeat,
+    })
+    await log_admin_action(
+        "push_create",
+        f"#{campaign_id} '{payload.title[:60]}' → {payload.audience}"
+        f"{'/' + payload.locale if payload.locale else ''} {'now' if send_immediately else send_at.isoformat()}"
+        f"{' daily' if payload.repeat == 'daily' else ''}",
+    )
+    if send_immediately:
+        result = await dispatch_push_campaign(campaign_id)
+        return {"id": campaign_id, "sent": True, **result}
+    return {"id": campaign_id, "sent": False, "scheduledAt": send_at.isoformat()}
+
+
+@app.post("/api/v1/admin/push/campaigns/{campaign_id}/send", dependencies=admin)
+async def admin_push_send_now(campaign_id: int):
+    campaign = await get_push_campaign(campaign_id)
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    result = await dispatch_push_campaign(campaign_id, ("scheduled", "sent", "failed", "cancelled"))
+    if result.get("skipped"):
+        raise HTTPException(status_code=409, detail="Campaign is already being sent")
+    await log_admin_action("push_send_now", f"#{campaign_id}")
+    return result
+
+
+@app.post("/api/v1/admin/push/campaigns/{campaign_id}/cancel", dependencies=admin)
+async def admin_push_cancel(campaign_id: int):
+    campaign = await get_push_campaign(campaign_id)
+    if not campaign or campaign["status"] != "scheduled":
+        raise HTTPException(status_code=400, detail="Only scheduled campaigns can be paused")
+    await set_push_campaign_status(campaign_id, "cancelled")
+    await log_admin_action("push_cancel", f"#{campaign_id}")
+    return {"status": "cancelled"}
+
+
+@app.post("/api/v1/admin/push/campaigns/{campaign_id}/resume", dependencies=admin)
+async def admin_push_resume(campaign_id: int):
+    campaign = await get_push_campaign(campaign_id)
+    if not campaign or campaign["status"] != "cancelled":
+        raise HTTPException(status_code=400, detail="Only paused campaigns can be resumed")
+    next_run = _next_daily_run(campaign["scheduled_at"]) if campaign["repeat"] == "daily" else None
+    await set_push_campaign_status(campaign_id, "scheduled", next_run)
+    await log_admin_action("push_resume", f"#{campaign_id}")
+    return {"status": "scheduled"}
+
+
+@app.delete("/api/v1/admin/push/campaigns/{campaign_id}", dependencies=admin)
+async def admin_push_delete(campaign_id: int):
+    if not await delete_push_campaign(campaign_id):
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    await log_admin_action("push_delete", f"#{campaign_id}")
+    return {"status": "deleted"}

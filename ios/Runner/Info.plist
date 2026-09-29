@@ -65,5 +65,11 @@
 	<string>BhaktiDhara uses speech recognition to help you search for devotional prayers using your voice.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>BhaktiDhara uses your location to compute accurate Vedic sunrise, sunset, and muhurat timings for your city.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>

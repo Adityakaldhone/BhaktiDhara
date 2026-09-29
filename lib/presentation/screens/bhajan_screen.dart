@@ -6,6 +6,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../core/theme/theme.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/backend_service.dart';
 import '../providers/bhajan_providers.dart';
 import '../providers/locale_provider.dart';
 import 'altar_screen.dart';
@@ -41,6 +42,7 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen> {
   @override
   void initState() {
     super.initState();
+    BackendService.trackEvent('bhajan_open');
     _initSpeech();
   }
 

@@ -118,49 +118,81 @@ void main() {
       expect(find.text('आज'), findsOneWidget);
       expect(find.text('उद्या'), findsOneWidget);
 
-      // Check Sun & Moon card
-      expect(find.text('सूर्य व चंद्र काल — पुणे'), findsOneWidget);
+      // Today card answers the key questions first
+      final todayCard = find.byKey(const Key('panchang-today-card'));
+      expect(todayCard, findsOneWidget);
+      expect(
+        find.descendant(of: todayCard, matching: find.text('सर्वोत्तम शुभ वेळ')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: todayCard, matching: find.text('ही वेळ टाळा')),
+        findsOneWidget,
+      );
+
+      // One schedule with every good and bad window
+      expect(find.text('शुभ व अशुभ वेळा'), findsOneWidget);
+      for (final name in [
+        'ब्रह्म मुहूर्त',
+        'अमृत काळ',
+        'विजय मुहूर्त',
+        'गोधूलि मुहूर्त',
+        'यमगंड',
+        'गुलिक काळ',
+        'दुर्मुहूर्त',
+        'भद्रा काळ',
+      ]) {
+        await tester.scrollUntilVisible(
+          find.text(name),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text(name), findsOneWidget);
+      }
+      expect(find.text('अभिजीत मुहूर्त'), findsWidgets);
+      expect(find.text('राहु काळ'), findsWidgets);
+
+      // Sun & Moon
+      await tester.scrollUntilVisible(
+        find.text('चंद्रास्त'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('सूर्य व चंद्र'), findsOneWidget);
       expect(find.text('सूर्योदय'), findsOneWidget);
       expect(find.text('सूर्यास्त'), findsOneWidget);
+      expect(find.text('चंद्रोदय'), findsOneWidget);
 
-      // Check 5 limbs header
-      expect(
-        find.text('पंचांग मुख्य ५ अंगे (Five Sacred Limbs)'),
-        findsOneWidget,
-      );
-      expect(find.text('तिथी (Tithi)'), findsOneWidget);
-      expect(find.text('वार (Day)'), findsOneWidget);
-      expect(find.text('नक्षत्र (Nakshatra)'), findsOneWidget);
-      expect(find.text('योग (Yoga)'), findsOneWidget);
-      expect(find.text('करण (Karana)'), findsOneWidget);
-
-      // Scroll down to reveal Shubh Muhurat
+      // Full Panchang stays one tap away and still shows every limb
       await tester.scrollUntilVisible(
-        find.text('शुभ मुहूर्त (Auspicious Timings)'),
+        find.text('संपूर्ण पंचांग पहा'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
+      expect(find.text('नक्षत्र'), findsNothing);
+      await tester.tap(find.text('संपूर्ण पंचांग पहा'));
       await tester.pumpAndSettle();
-
-      // Check Shubh Muhurat card & Abhijit
-      expect(find.text('शुभ मुहूर्त (Auspicious Timings)'), findsOneWidget);
-      expect(find.text('अभिजीत मुहूर्त'), findsOneWidget);
-
-      // Scroll down to reveal Ashubh Kaal
-      await tester.scrollUntilVisible(
-        find.text('अशुभ काळ / वर्ज्य वेळ (Inauspicious Windows)'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-
-      // Check Ashubh Kaal card & Rahu Kaal
-      expect(
-        find.text('अशुभ काळ / वर्ज्य वेळ (Inauspicious Windows)'),
-        findsOneWidget,
-      );
-      expect(find.text('राहु काळ (Rahu Kaal)'), findsOneWidget);
-
+      for (final label in [
+        'तिथी',
+        'वार',
+        'नक्षत्र',
+        'योग',
+        'करण',
+        'सूर्य राशी',
+        'चंद्र राशी',
+        'विक्रम संवत',
+        'शक संवत',
+        'संवत्सर',
+        'ऋतू',
+        'अयन',
+      ]) {
+        await tester.scrollUntilVisible(
+          find.text(label),
+          100,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text(label), findsOneWidget);
+      }
       // Tap City location pill to open City Selection Modal Sheet
       await tester.tap(find.text('पुणे (महाराष्ट्र)'));
       await tester.pumpAndSettle();
@@ -176,6 +208,51 @@ void main() {
       // Verify selected city updated
       expect(find.text('उज्जैन (महाकाल) (मध्य प्रदेश)'), findsOneWidget);
     });
+
+    for (final lang in ['mr', 'hi', 'en']) {
+      testWidgets('PanchangScreen fits a small phone in $lang',
+          (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(360, 740));
+        addTearDown(() async => await tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              localeProvider.overrideWith((ref) => Locale(lang)),
+              selectedPanchangCityProvider.overrideWith((ref) => kDefaultCity),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('en'), Locale('hi'), Locale('mr')],
+              locale: Locale(lang),
+              home: const PanchangScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final details = find.byKey(const Key('panchang-full-details'));
+        await tester.scrollUntilVisible(
+          details,
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(details);
+        await tester.pumpAndSettle();
+        await tester.drag(
+          find.byType(Scrollable).first,
+          const Offset(0, -3000),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+      });
+    }
 
     testWidgets('Dashboard bottom navigation switches to Panchang tab',
         (WidgetTester tester) async {

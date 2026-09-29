@@ -5,7 +5,7 @@ SERVER_IP="46.225.142.210"
 SERVER_PATH="/root/bhaktidhara-backend"
 
 echo "🚀 Syncing backend code to Hetzner ($SERVER_IP)..."
-rsync -avz --exclude '__pycache__' --exclude '*.pyc' --exclude '.env' "$(dirname "$0")/" "root@$SERVER_IP:$SERVER_PATH/"
+rsync -avz --exclude '__pycache__' --exclude '*.pyc' --exclude '.env' --exclude 'data/*.db*' "$(dirname "$0")/" "root@$SERVER_IP:$SERVER_PATH/"
 
 echo "🐳 Rebuilding and recreating container on server..."
 ssh root@$SERVER_IP "cd $SERVER_PATH && docker compose build && docker compose up -d --force-recreate"

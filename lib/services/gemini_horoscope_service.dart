@@ -18,6 +18,7 @@ class GeminiHoroscopeService {
     required String langCode,
     bool forceRefresh = false,
   }) async {
+    BackendService.trackEvent('horoscope_view', item: rashi.id, props: {'period': period});
     final cacheKey = '${rashi.id}_${period}_$langCode';
     if (!forceRefresh && _cache.containsKey(cacheKey)) {
       return _cache[cacheKey]!;

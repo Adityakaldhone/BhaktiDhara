@@ -10,6 +10,7 @@ import '../../core/theme/theme.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/locale_provider.dart';
+import '../widgets/jaap/jaap_dashboard_card.dart';
 import 'bhajan_screen.dart';
 import 'deity_aarti_list_screen.dart';
 import 'horoscope_screen.dart';
@@ -120,6 +121,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
             // ── Search Bar ───────────────────────────────────────────────
             _buildSearchBar(l10n, localeCode),
+
+            // ── Naam Jaap entry ──────────────────────────────────────────
+            const JaapDashboardCard(),
 
             // ── Section Title Row ────────────────────────────────────────
             Padding(

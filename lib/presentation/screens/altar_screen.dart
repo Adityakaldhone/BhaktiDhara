@@ -13,6 +13,7 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../../domain/entities/aarti_item.dart';
 import '../../services/audio_service.dart';
+import '../../services/backend_service.dart';
 import '../widgets/lyric_card.dart';
 
 /// App origin used as Referer so YouTube embeds avoid Error 153 /
@@ -66,6 +67,11 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    BackendService.trackEvent(
+      'aarti_open',
+      item: widget.aarti.title,
+      props: {'id': widget.aarti.id, 'deity': widget.aarti.deity},
+    );
     try {
       WakelockPlus.enable();
     } catch (_) {}

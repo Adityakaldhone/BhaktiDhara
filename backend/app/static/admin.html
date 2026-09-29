@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>BhaktiDhara Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0914; --panel: #131124; --panel-2: #1a1830; --border: #23203d;
+    --text: #e2e8f0; --muted: #94a3b8; --dim: #64748b;
+    --saffron: #ff9933; --saffron-2: #ff5722; --gold: #ffd700;
+    --blue: #38bdf8; --violet: #a78bfa; --green: #34d399; --red: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', system-ui, sans-serif; }
+  body { background: var(--bg); color: var(--text); min-height: 100vh; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: var(--saffron); }
+
+  /* Login */
+  #login { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 30%, #2a1a0a, var(--bg) 60%); z-index: 50; }
+  #login .box { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 36px; width: min(380px, 92vw); text-align: center; }
+  #login h1 { color: var(--saffron); font-size: 24px; margin-bottom: 6px; }
+  #login p { color: var(--dim); font-size: 13px; margin-bottom: 22px; }
+  #login .err { color: var(--red); font-size: 13px; min-height: 18px; margin-top: 10px; }
+
+  /* Layout */
+  .app { display: none; min-height: 100vh; }
+  .app.ready { display: flex; }
+  aside { width: 230px; background: var(--panel); border-right: 1px solid var(--border); padding: 22px 14px; position: sticky; top: 0; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; }
+  .brand { color: var(--saffron); font-weight: 700; font-size: 19px; padding: 0 10px 20px; }
+  .brand small { display: block; color: var(--dim); font-weight: 500; font-size: 12px; margin-top: 2px; }
+  nav button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; text-align: left; padding: 10px 12px; border-radius: 10px; color: var(--muted); cursor: pointer; font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  nav button:hover { background: var(--panel-2); color: var(--text); }
+  nav button.active { background: rgba(255,153,51,.14); color: var(--saffron); }
+  aside .foot { margin-top: auto; font-size: 12px; color: var(--dim); padding: 0 10px; }
+  main { flex: 1; padding: 26px 30px 60px; min-width: 0; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; gap: 12px; flex-wrap: wrap; }
+  .topbar h2 { font-size: 22px; font-weight: 700; }
+  .topbar .sub { color: var(--dim); font-size: 13px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  section.view { display: none; }
+  section.view.active { display: block; }
+
+  /* Components */
+  .btn { background: var(--saffron); color: #1a0f00; border: none; padding: 9px 16px; border-radius: 9px; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .btn:hover { filter: brightness(1.1); }
+  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .btn.danger { background: rgba(248,113,113,.15); color: var(--red); border: 1px solid rgba(248,113,113,.4); }
+  .btn.sm { padding: 6px 11px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  input.inp, select.inp, textarea.inp { background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; font-size: 13px; outline: none; }
+  input.inp:focus, select.inp:focus, textarea.inp:focus { border-color: var(--saffron); }
+  textarea.inp { resize: vertical; min-height: 80px; width: 100%; }
+  .grid { display: grid; gap: 16px; }
+  .kpis { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); margin-bottom: 18px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); margin-bottom: 18px; }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; position: relative; overflow: hidden; min-width: 0; }
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--saffron), var(--saffron-2)); }
+  .kpi .label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; }
+  .kpi .value { font-size: 30px; font-weight: 700; margin-top: 6px; }
+  .kpi .hint { font-size: 12px; color: var(--dim); margin-top: 2px; }
+  .up { color: var(--green); } .down { color: var(--red); }
+  .card h3 { font-size: 15px; font-weight: 600; color: var(--saffron); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .card h3 small { color: var(--dim); font-weight: 500; font-size: 12px; }
+  .chart { position: relative; height: 260px; }
+  .chart.sm { height: 220px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid #1c1a31; vertical-align: middle; }
+  tbody tr.click { cursor: pointer; }
+  tbody tr.click:hover { background: var(--panel-2); }
+  .scroll-x { overflow-x: auto; }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--saffron); }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #2d294a; color: var(--muted); text-transform: uppercase; }
+  .pill.vip { background: rgba(255,215,0,.14); color: var(--gold); }
+  .pill.granted { background: rgba(167,139,250,.16); color: var(--violet); }
+  .pill.blocked { background: rgba(248,113,113,.15); color: var(--red); }
+  .pill.live { background: rgba(52,211,153,.15); color: var(--green); }
+  .pill.ok { background: rgba(52,211,153,.15); color: var(--green); }
+  .pill.warn { background: rgba(255,153,51,.15); color: var(--saffron); }
+  .bars .bar { display: grid; grid-template-columns: 130px 1fr 50px; gap: 10px; align-items: center; font-size: 13px; margin-bottom: 8px; }
+  .bars .track { background: var(--bg); border-radius: 6px; height: 10px; overflow: hidden; }
+  .bars .fill { height: 100%; background: linear-gradient(90deg, var(--saffron), var(--saffron-2)); border-radius: 6px; }
+  .bars .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .bars .num { text-align: right; color: var(--muted); }
+  .empty { color: var(--dim); font-size: 13px; padding: 18px 0; text-align: center; }
+  .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .heat td { text-align: center; font-weight: 600; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  label.f { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 500; }
+  .switch { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #1c1a31; font-size: 14px; }
+  .switch:last-child { border-bottom: none; }
+  .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle span { position: absolute; inset: 0; background: #2d294a; border-radius: 24px; cursor: pointer; transition: .2s; }
+  .toggle span::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .toggle input:checked + span { background: var(--saffron); }
+  .toggle input:checked + span::before { transform: translateX(18px); }
+  .ann { border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; background: var(--panel-2); }
+  .ann .t { font-weight: 600; margin-bottom: 4px; }
+  .ann .b { color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+  .ann .m { font-size: 12px; color: var(--dim); margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .banner { background: rgba(255,153,51,.1); border: 1px solid rgba(255,153,51,.35); color: #ffc58a; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; }
+
+  /* Drawer */
+  #drawer-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; z-index: 30; }
+  #drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(520px, 100vw); background: var(--panel); border-left: 1px solid var(--border); transform: translateX(100%); transition: transform .25s; z-index: 31; overflow-y: auto; padding: 24px; }
+  #drawer.open { transform: none; }
+  #drawer-bg.open { display: block; }
+  .kv { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; font-size: 13px; margin: 14px 0 18px; }
+  .kv div:nth-child(odd) { color: var(--muted); }
+  .dots { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0 18px; }
+  .dots i { width: 12px; height: 12px; border-radius: 3px; background: #1f1c36; }
+  .dots i.on { background: var(--saffron); }
+  .timeline div { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #1c1a31; display: flex; justify-content: space-between; gap: 12px; }
+  .timeline span.when { color: var(--dim); font-size: 12px; white-space: nowrap; }
+
+  .phone { background: #05040b; border: 1px solid var(--border); border-radius: 28px; padding: 18px 14px 26px; max-width: 340px; margin: 0 auto; }
+  .phone .clock { text-align: center; color: #cbd5e1; font-size: 34px; font-weight: 600; margin: 4px 0 14px; }
+  .notif { background: rgba(38,35,62,.92); border-radius: 16px; padding: 12px 14px; display: grid; grid-template-columns: 34px 1fr; gap: 10px; }
+  .notif .ic { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--saffron), var(--saffron-2)); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .notif .app { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: .4px; }
+  .notif .tt { font-weight: 600; font-size: 14px; margin-top: 2px; word-break: break-word; }
+  .notif .bd { font-size: 13px; color: #cbd5e1; margin-top: 2px; white-space: pre-wrap; word-break: break-word; }
+  .notif img { width: 100%; border-radius: 10px; margin-top: 8px; max-height: 150px; object-fit: cover; grid-column: 1 / -1; }
+  .reach { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .reach b { display: block; font-size: 28px; color: var(--green); }
+  .tpl { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .hidden { display: none !important; }
+  .steps { margin: 8px 0 0 18px; line-height: 1.8; }
+
+  #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--border); padding: 10px 18px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 860px) {
+    .app.ready { flex-direction: column; }
+    aside { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; overflow-x: auto; padding: 10px; }
+    .brand { padding: 0 10px 0 4px; white-space: nowrap; }
+    .brand small, aside .foot { display: none; }
+    nav { display: flex; gap: 4px; }
+    nav button { white-space: nowrap; }
+    main { padding: 18px 14px 60px; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form class="box" id="login-form">
+    <h1>🚩 BhaktiDhara Admin</h1>
+    <p>Enter your admin secret to manage the app</p>
+    <input class="inp" id="secret-input" type="password" placeholder="Admin secret" style="width:100%;margin-bottom:12px" autocomplete="current-password" autofocus>
+    <label style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:13px;color:var(--muted);margin-bottom:16px">
+      <input type="checkbox" id="remember"> Remember on this device
+    </label>
+    <button class="btn" style="width:100%" type="submit">Unlock Dashboard</button>
+    <div class="err" id="login-err"></div>
+  </form>
+</div>
+
+<div class="app" id="app">
+  <aside>
+    <div class="brand">🚩 BhaktiDhara<small>Mandir Control Room</small></div>
+    <nav id="nav">
+      <button data-view="overview" class="active">📊 Overview</button>
+      <button data-view="users">👥 Users</button>
+      <button data-view="engagement">🔥 Engagement</button>
+      <button data-view="retention">🔁 Retention</button>
+      <button data-view="push">🔔 Push</button>
+      <button data-view="announcements">📢 Announcements</button>
+      <button data-view="config">🎛️ App Control</button>
+      <button data-view="system">🖥️ System</button>
+    </nav>
+    <div class="foot">
+      <div id="last-updated">—</div>
+      <a href="#" id="logout" style="display:inline-block;margin-top:8px">Log out</a>
+    </div>
+  </aside>
+
+  <main>
+    <!-- OVERVIEW -->
+    <section class="view active" id="view-overview">
+      <div class="topbar">
+        <div><h2>Overview</h2><div class="sub">Installs, active devotees and growth at a glance</div></div>
+        <div class="row">
+          <select class="inp" id="ov-days">
+            <option value="14">Last 14 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+          <label class="row" style="font-size:13px;color:var(--muted)"><input type="checkbox" id="auto-refresh" checked> Auto-refresh</label>
+          <button class="btn ghost" data-refresh="overview">🔄 Refresh</button>
+        </div>
+      </div>
+      <div id="ov-banner"></div>
+      <div class="grid kpis" id="ov-kpis"></div>
+      <div class="grid g2">
+        <div class="card"><h3>Daily active devotees vs new installs</h3><div class="chart"><canvas id="ch-active"></canvas></div></div>
+        <div class="card"><h3>Total downloads (cumulative)</h3><div class="chart"><canvas id="ch-cumulative"></canvas></div></div>
+      </div>
+      <div class="grid g3">
+        <div class="card"><h3>Platforms</h3><div class="chart sm"><canvas id="ch-platforms"></canvas></div></div>
+        <div class="card"><h3>Languages</h3><div class="chart sm"><canvas id="ch-locales"></canvas></div></div>
+        <div class="card"><h3>App versions</h3><div class="chart sm"><canvas id="ch-versions"></canvas></div></div>
+      </div>
+      <div class="grid g3">
+        <div class="card"><h3>Peak hours <small>IST · last 14 days</small></h3><div class="chart sm"><canvas id="ch-hours"></canvas></div></div>
+        <div class="card"><h3>Top cities</h3><div class="bars" id="ov-cities"></div></div>
+        <div class="card"><h3>Top states</h3><div class="bars" id="ov-states"></div></div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section class="view" id="view-users">
+      <div class="topbar">
+        <div><h2>Users</h2><div class="sub">Every anonymous device that has opened the app</div></div>
+        <div class="row">
+          <button class="btn ghost" id="u-export">⬇️ Export CSV</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="row">
+          <input class="inp" id="u-search" placeholder="Search name, city, device ID, notes…" style="flex:1;min-width:220px">
+          <select class="inp" id="u-platform"><option value="">All platforms</option><option value="android">Android</option><option value="ios">iOS</option><option value="web">Web</option></select>
+          <select class="inp" id="u-locale"><option value="">All languages</option><option value="mr">Marathi</option><option value="hi">Hindi</option><option value="en">English</option></select>
+          <select class="inp" id="u-tier"><option value="">All tiers</option><option value="vip">VIP (any)</option><option value="paid">VIP (paid)</option><option value="granted">VIP (granted)</option><option value="free">Free</option></select>
+          <select class="inp" id="u-status"><option value="">Any status</option><option value="active7d">Active last 7d</option><option value="new7d">New last 7d</option><option value="dormant">Dormant 30d+</option><option value="blocked">Blocked</option></select>
+          <select class="inp" id="u-sort"><option value="last_seen">Sort: last active</option><option value="first_seen">Sort: newest install</option><option value="pings">Sort: most sessions</option><option value="name">Sort: name</option></select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="scroll-x">
+          <table>
+            <thead><tr><th>Device</th><th>Devotee</th><th>Location</th><th>Platform</th><th>Lang</th><th>Tier</th><th>Installed</th><th>Last active</th><th style="text-align:right">Sessions</th></tr></thead>
+            <tbody id="u-rows"></tbody>
+          </table>
+        </div>
+        <div class="pager"><span id="u-count"></span><div class="row"><button class="btn ghost sm" id="u-prev">← Prev</button><span id="u-page"></span><button class="btn ghost sm" id="u-next">Next →</button></div></div>
+      </div>
+    </section>
+
+    <!-- ENGAGEMENT -->
+    <section class="view" id="view-engagement">
+      <div class="topbar">
+        <div><h2>Engagement</h2><div class="sub">Which features and aartis devotees actually use</div></div>
+        <div class="row">
+          <select class="inp" id="en-days">
+            <option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option>
+          </select>
+          <button class="btn ghost" data-refresh="engagement">🔄 Refresh</button>
+        </div>
+      </div>
+      <div class="grid kpis" id="en-kpis"></div>
+      <div class="grid g2">
+        <div class="card"><h3>Feature usage <small>events · unique users</small></h3><div class="chart"><canvas id="ch-features"></canvas></div></div>
+        <div class="card"><h3>Daily trend (top features)</h3><div class="chart"><canvas id="ch-feature-trend"></canvas></div></div>
+      </div>
+      <div class="card">
+        <h3>Most popular content <select class="inp" id="en-event" style="font-size:12px;padding:5px 8px"><option value="">All features</option></select></h3>
+        <div class="scroll-x"><table><thead><tr><th>#</th><th>Feature</th><th>Item</th><th style="text-align:right">Opens</th><th style="text-align:right">Unique users</th></tr></thead><tbody id="en-items"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- RETENTION -->
+    <section class="view" id="view-retention">
+      <div class="topbar">
+        <div><h2>Retention</h2><div class="sub">Do devotees come back after installing?</div></div>
+        <button class="btn ghost" data-refresh="retention">🔄 Refresh</button>
+      </div>
+      <div class="grid kpis" id="rt-kpis"></div>
+      <div class="card">
+        <h3>Weekly install cohorts <small>% of cohort active in week N after install</small></h3>
+        <div class="scroll-x"><table class="heat"><thead><tr><th style="text-align:left">Install week</th><th>Installs</th><th>Week 1</th><th>Week 2</th><th>Week 3</th><th>Week 4</th></tr></thead><tbody id="rt-rows"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- PUSH -->
+    <section class="view" id="view-push">
+      <div class="topbar">
+        <div><h2>Push Notifications</h2><div class="sub">Firebase Cloud Messaging — reminders, festivals and win-back campaigns</div></div>
+        <button class="btn ghost" data-refresh="push">🔄 Refresh</button>
+      </div>
+      <div id="push-banner"></div>
+      <div class="grid kpis" id="push-kpis"></div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Compose</h3>
+          <div class="tpl" id="push-templates"></div>
+          <form id="push-form" class="form-grid">
+            <label class="f full">Title<input class="inp" name="title" required maxlength="200" placeholder="🪔 सकाळची आरती"></label>
+            <label class="f full">Message<textarea class="inp" name="body" required maxlength="1000" placeholder="आजची आरती करूया 🙏"></textarea></label>
+            <label class="f full">Image URL (optional)<input class="inp" name="imageUrl" placeholder="https://… (JPG/PNG, under 1 MB)"></label>
+            <label class="f">Open screen on tap
+              <select class="inp" name="route">
+                <option value="">Home</option><option value="aarti">Specific aarti</option><option value="panchang">Panchang</option>
+                <option value="jaap">Jaap mala</option><option value="horoscope">Horoscope</option><option value="bhajan">Bhajans</option>
+              </select></label>
+            <label class="f" data-show="route=aarti">Aarti ID<input class="inp" name="aartiId" placeholder="e.g. ganpati_sukhakarta"></label>
+            <label class="f">Audience
+              <select class="inp" name="audience">
+                <option value="all">Everyone</option><option value="vip">VIP members</option><option value="free">Free users</option>
+                <option value="dormant">Inactive users (win-back)</option><option value="user">Single device (test)</option>
+              </select></label>
+            <label class="f" data-show="audience=dormant">Inactive for at least (days)<input class="inp" type="number" name="dormantDays" value="7" min="1" max="365"></label>
+            <label class="f" data-show="audience=user">Device ID<input class="inp" name="deviceId" placeholder="Paste from Users tab"></label>
+            <label class="f">Language
+              <select class="inp" name="locale"><option value="">All languages</option><option value="mr">Marathi</option><option value="hi">Hindi</option><option value="en">English</option></select></label>
+            <label class="f">Platform
+              <select class="inp" name="platform"><option value="">All platforms</option><option value="android">Android</option><option value="ios">iOS</option></select></label>
+            <label class="f">When
+              <select class="inp" name="when"><option value="now">Send now</option><option value="later">Schedule</option></select></label>
+            <label class="f" data-show="when=later">Send at (your local time)<input class="inp" type="datetime-local" name="sendAt"></label>
+            <label class="f row" data-show="when=later" style="flex-direction:row;align-items:center;gap:8px;color:var(--text);font-size:13px"><input type="checkbox" name="repeatDaily"> Repeat every day at this time</label>
+            <div class="full row"><button class="btn" type="submit" id="push-submit">🔔 Send notification</button><span id="push-hint" style="font-size:12px;color:var(--dim)"></span></div>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Preview</h3>
+          <div class="phone">
+            <div class="clock" id="pv-clock">6:30</div>
+            <div class="notif">
+              <div class="ic">🚩</div>
+              <div><div class="app"><span>BhaktiDhara</span><span>now</span></div><div class="tt" id="pv-title">Notification title</div><div class="bd" id="pv-body">Your message will appear here</div></div>
+              <img id="pv-img" class="hidden" alt="">
+            </div>
+          </div>
+          <div class="reach">Estimated reach<b id="pv-reach">—</b><span id="pv-target"></span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Campaigns <small>opens are tracked when devotees tap the notification</small></h3>
+        <div class="scroll-x"><table>
+          <thead><tr><th>Notification</th><th>Audience</th><th>Schedule</th><th>Status</th><th style="text-align:right">Delivered</th><th style="text-align:right">Reach</th><th style="text-align:right">Opens</th><th style="text-align:right">Open rate</th><th></th></tr></thead>
+          <tbody id="push-rows"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ANNOUNCEMENTS -->
+    <section class="view" id="view-announcements">
+      <div class="topbar">
+        <div><h2>Announcements</h2><div class="sub">In-app messages for festivals, new aartis and updates</div></div>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>New announcement</h3>
+          <form id="ann-form" class="form-grid">
+            <label class="f full">Title<input class="inp" name="title" required maxlength="200" placeholder="🪔 Happy Navratri!"></label>
+            <label class="f full">Message<textarea class="inp" name="body" required maxlength="2000" placeholder="New Durga aartis are now available…"></textarea></label>
+            <label class="f">Audience language<select class="inp" name="locale"><option value="all">Everyone</option><option value="mr">Marathi</option><option value="hi">Hindi</option><option value="en">English</option></select></label>
+            <label class="f">Expires (optional)<input class="inp" type="datetime-local" name="expiresAt"></label>
+            <label class="f full">Link (optional)<input class="inp" name="link" placeholder="https://…"></label>
+            <div class="full"><button class="btn" type="submit">📢 Publish</button></div>
+          </form>
+        </div>
+        <div class="card"><h3>All announcements</h3><div id="ann-list"></div></div>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section class="view" id="view-config">
+      <div class="topbar">
+        <div><h2>App Control</h2><div class="sub">Remote config served at <span class="mono">/api/v1/config</span></div></div>
+        <button class="btn" id="cfg-save">💾 Save changes</button>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Versions & updates</h3>
+          <div class="form-grid">
+            <label class="f">Latest version<input class="inp" id="cfg-latest" placeholder="1.0.4"></label>
+            <label class="f">Minimum supported version<input class="inp" id="cfg-min" placeholder="1.0.0"></label>
+            <label class="f full">Store / update URL<input class="inp" id="cfg-url" placeholder="https://play.google.com/store/apps/details?id=…"></label>
+          </div>
+          <div class="switch" style="margin-top:8px"><span>Force update below minimum version</span><label class="toggle"><input type="checkbox" id="cfg-force"><span></span></label></div>
+          <h3 style="margin-top:18px">Maintenance</h3>
+          <div class="switch"><span>Maintenance mode <small style="color:var(--dim)">(show message instead of online features)</small></span><label class="toggle"><input type="checkbox" id="cfg-maint"><span></span></label></div>
+          <label class="f" style="margin-top:10px">Maintenance message<textarea class="inp" id="cfg-maint-msg" placeholder="We are upgrading the mandir servers. Back soon 🙏"></textarea></label>
+        </div>
+        <div class="card"><h3>Feature flags</h3><div id="cfg-flags"></div></div>
+      </div>
+    </section>
+
+    <!-- SYSTEM -->
+    <section class="view" id="view-system">
+      <div class="topbar">
+        <div><h2>System</h2><div class="sub">Server health, Gemini usage, cache and jobs</div></div>
+        <div class="row">
+          <button class="btn ghost" id="sys-precache">⚡ Run precache now</button>
+          <button class="btn ghost" id="sys-clear-old">🧹 Clear cache older than 7d</button>
+          <button class="btn danger" id="sys-clear-all">Clear all cache</button>
+        </div>
+      </div>
+      <div id="sys-banner"></div>
+      <div class="grid kpis" id="sys-kpis"></div>
+      <div class="grid g2">
+        <div class="card"><h3>API traffic <small>last 14 days</small></h3><div class="chart"><canvas id="ch-api"></canvas></div></div>
+        <div class="card"><h3>Job runs</h3><div class="scroll-x"><table><thead><tr><th>Job</th><th>Started</th><th>Status</th><th>Detail</th></tr></thead><tbody id="sys-jobs"></tbody></table></div></div>
+      </div>
+      <div class="card"><h3>Admin activity log</h3><div class="timeline" id="sys-audit"></div></div>
+    </section>
+  </main>
+</div>
+
+<div id="drawer-bg"></div>
+<div id="drawer"></div>
+<div id="toast"></div>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = (n) => n == null ? '—' : Number(n).toLocaleString('en-IN');
+  const PALETTE = ['#ff9933', '#38bdf8', '#a78bfa', '#34d399', '#f472b6', '#ffd700', '#f87171', '#94a3b8', '#fb923c', '#22d3ee'];
+  const LANG = { mr: 'Marathi', hi: 'Hindi', en: 'English' };
+  const charts = {};
+  let secret = sessionStorage.getItem('bd_admin') || localStorage.getItem('bd_admin') || '';
+  let currentView = 'overview';
+  let refreshTimer = null;
+
+  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.borderColor = '#23203d';
+  Chart.defaults.font.family = 'Outfit, system-ui, sans-serif';
+
+  // ── helpers ────────────────────────────────────────────────
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, {
+      ...opts,
+      headers: { 'X-Admin-Secret': secret, ...(opts.body ? { 'Content-Type': 'application/json' } : {}), ...(opts.headers || {}) },
+    });
+    if (res.status === 401) { logout('Session expired or wrong secret'); throw new Error('unauthorized'); }
+    if (!res.ok) {
+      let detail = res.statusText;
+      try { detail = (await res.json()).detail || detail; } catch (_) {}
+      toast('⚠️ ' + detail);
+      throw new Error(detail);
+    }
+    const type = res.headers.get('content-type') || '';
+    return type.includes('application/json') ? res.json() : res;
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso); const s = (Date.now() - d.getTime()) / 1000;
+    if (isNaN(s)) return esc(iso);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    if (s < 86400 * 30) return Math.floor(s / 86400) + 'd ago';
+    return d.toLocaleDateString('en-IN');
+  }
+  const dateIN = (iso) => iso ? new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+  const shortDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+  function kpi(label, value, hint = '', color = '') {
+    return `<div class="card kpi"><div class="label">${esc(label)}</div><div class="value" ${color ? `style="color:${color}"` : ''}>${value}</div><div class="hint">${hint}</div></div>`;
+  }
+
+  function bars(el, map, labeler = (k) => k) {
+    const entries = Object.entries(map || {});
+    if (!entries.length) { el.innerHTML = '<div class="empty">No data yet</div>'; return; }
+    const max = Math.max(...entries.map(e => e[1]));
+    el.innerHTML = entries.map(([k, v]) => `
+      <div class="bar"><span class="name" title="${esc(labeler(k))}">${esc(labeler(k))}</span>
+      <div class="track"><div class="fill" style="width:${(v / max * 100).toFixed(1)}%"></div></div>
+      <span class="num">${fmt(v)}</span></div>`).join('');
+  }
+
+  function chart(id, config) {
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(document.getElementById(id), {
+      ...config,
+      options: { responsive: true, maintainAspectRatio: false, ...(config.options || {}) },
+    });
+  }
+
+  function doughnut(id, map, labeler = (k) => k) {
+    const keys = Object.keys(map || {});
+    chart(id, {
+      type: 'doughnut',
+      data: { labels: keys.map(k => labeler(k)), datasets: [{ data: keys.map(k => map[k]), backgroundColor: PALETTE, borderWidth: 0 }] },
+      options: { cutout: '62%', plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } } },
+    });
+  }
+
+  function tierPills(u) {
+    const out = [];
+    if (u.isVip) out.push('<span class="pill vip">⭐ VIP</span>');
+    else if (u.vipGranted) out.push('<span class="pill granted">🎁 Granted</span>');
+    else out.push('<span class="pill">Free</span>');
+    if (u.blocked) out.push(' <span class="pill blocked">Blocked</span>');
+    return out.join('');
+  }
+
+  function stamp() { $('#last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN'); }
+
+  // ── auth ───────────────────────────────────────────────────
+  function logout(msg) {
+    secret = ''; sessionStorage.removeItem('bd_admin'); localStorage.removeItem('bd_admin');
+    $('#app').classList.remove('ready'); $('#login').style.display = 'flex';
+    $('#login-err').textContent = msg || '';
+    clearInterval(refreshTimer);
+  }
+
+  async function tryLogin(candidate, remember) {
+    const res = await fetch('/api/v1/admin/stats', { headers: { 'X-Admin-Secret': candidate } });
+    if (!res.ok) { $('#login-err').textContent = res.status === 401 ? 'Invalid admin secret' : 'Server error: ' + res.status; return false; }
+    secret = candidate;
+    (remember ? localStorage : sessionStorage).setItem('bd_admin', candidate);
+    $('#login').style.display = 'none'; $('#app').classList.add('ready');
+    show(location.hash.slice(1) || 'overview');
+    startAutoRefresh();
+    return true;
+  }
+
+  $('#login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    tryLogin($('#secret-input').value.trim(), $('#remember').checked);
+  });
+  $('#logout').addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+  // ── navigation ─────────────────────────────────────────────
+  const loaders = {};
+  function show(view) {
+    if (!loaders[view]) view = 'overview';
+    currentView = view;
+    $$('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    $$('section.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + view));
+    history.replaceState(null, '', '#' + view);
+    loaders[view]().catch(err => console.error(err));
+  }
+  $('#nav').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-refresh]'); if (b) loaders[b.dataset.refresh]().then(() => toast('Refreshed')); });
+
+  function startAutoRefresh() {
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => {
+      if (currentView === 'overview' && $('#auto-refresh').checked && !document.hidden) loaders.overview();
+    }, 60000);
+  }
+
+  // ── overview ───────────────────────────────────────────────
+  loaders.overview = async () => {
+    const days = $('#ov-days').value;
+    const data = await api('/api/v1/admin/overview?days=' + days);
+    const k = data.kpis;
+    const growth = k.new_7d_growth_pct == null ? 'vs prev week: —'
+      : `<span class="${k.new_7d_growth_pct >= 0 ? 'up' : 'down'}">${k.new_7d_growth_pct >= 0 ? '▲' : '▼'} ${Math.abs(k.new_7d_growth_pct)}%</span> vs prev week`;
+    $('#ov-kpis').innerHTML = [
+      kpi('Total downloads', fmt(k.total_installs), `${fmt(k.new_today)} new today`),
+      kpi('New installs (7d)', fmt(k.new_7d), growth),
+      kpi('Active today (DAU)', fmt(k.dau), `${fmt(k.sessions_today)} sessions · ${k.avg_sessions_per_dau}/user`, 'var(--blue)'),
+      kpi('Active 7 days (WAU)', fmt(k.wau), '', 'var(--violet)'),
+      kpi('Active 30 days (MAU)', fmt(k.mau), `Stickiness DAU/MAU: <b>${k.stickiness_pct}%</b>`, 'var(--violet)'),
+      kpi('VIP members', '⭐ ' + fmt(k.vip_paid + k.vip_granted), `${fmt(k.vip_paid)} paid · ${fmt(k.vip_granted)} granted · ${k.vip_conversion_pct}% conv.`, 'var(--gold)'),
+      kpi('Dormant (30d+)', fmt(k.dormant_30d), k.total_installs ? `${(k.dormant_30d / k.total_installs * 100).toFixed(1)}% of installs` : '', 'var(--red)'),
+    ].join('');
+
+    const labels = data.series.days.map(shortDay);
+    chart('ch-active', {
+      type: 'bar',
+      data: { labels, datasets: [
+        { type: 'line', label: 'Active devotees', data: data.series.active, borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,.15)', fill: true, tension: .35, pointRadius: 0, yAxisID: 'y' },
+        { type: 'bar', label: 'New installs', data: data.series.installs, backgroundColor: 'rgba(255,153,51,.7)', borderRadius: 4, yAxisID: 'y' },
+      ] },
+      options: { interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+    chart('ch-cumulative', {
+      type: 'line',
+      data: { labels, datasets: [{ label: 'Total downloads', data: data.series.cumulative_installs, borderColor: '#ff9933', backgroundColor: 'rgba(255,153,51,.15)', fill: true, tension: .3, pointRadius: 0 }] },
+      options: { plugins: { legend: { display: false } }, interaction: { mode: 'index', intersect: false }, scales: { y: { ticks: { precision: 0 } } } },
+    });
+    const b = data.breakdowns;
+    doughnut('ch-platforms', b.platforms, (p) => ({ android: 'Android', ios: 'iOS', web: 'Web' }[p] || p));
+    doughnut('ch-locales', b.locales, (l) => LANG[l] || l);
+    chart('ch-versions', {
+      type: 'bar',
+      data: { labels: Object.keys(b.versions).map(v => 'v' + v), datasets: [{ data: Object.values(b.versions), backgroundColor: '#a78bfa', borderRadius: 4 }] },
+      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } },
+    });
+    chart('ch-hours', {
+      type: 'bar',
+      data: { labels: [...Array(24).keys()].map(h => (h % 12 || 12) + (h < 12 ? 'a' : 'p')), datasets: [{ data: data.hourly_activity, backgroundColor: data.hourly_activity.map((v, i) => i >= 4 && i <= 8 || i >= 18 && i <= 21 ? '#ff9933' : '#3b3566'), borderRadius: 3 }] },
+      options: { plugins: { legend: { display: false }, tooltip: { callbacks: { title: (i) => i[0].label + ' IST' } } }, scales: { y: { ticks: { precision: 0 } } } },
+    });
+    bars($('#ov-cities'), b.cities);
+    bars($('#ov-states'), b.states);
+    stamp();
+  };
+  $('#ov-days').addEventListener('change', () => loaders.overview());
+
+  // ── users ──────────────────────────────────────────────────
+  const uState = { page: 1, pageSize: 25, total: 0 };
+  function userQuery() {
+    const p = new URLSearchParams({
+      search: $('#u-search').value.trim(), platform: $('#u-platform').value, locale: $('#u-locale').value,
+      tier: $('#u-tier').value, status: $('#u-status').value, sort: $('#u-sort').value,
+    });
+    return p;
+  }
+  loaders.users = async () => {
+    const p = userQuery(); p.set('page', uState.page); p.set('page_size', uState.pageSize);
+    const data = await api('/api/v1/admin/users?' + p);
+    uState.total = data.total;
+    $('#u-rows').innerHTML = data.users.map(u => `
+      <tr class="click" data-id="${esc(u.deviceId)}">
+        <td class="mono">${esc(u.deviceId.slice(0, 10))}…</td>
+        <td style="font-weight:600">${esc(u.userName) || '<span style="color:var(--dim);font-weight:400">Anonymous</span>'}</td>
+        <td>${esc([u.city, u.state].filter(Boolean).join(', ')) || '<span style="color:var(--dim)">—</span>'}</td>
+        <td><span class="pill">${esc(u.platform)}</span> <span style="color:var(--dim);font-size:12px">v${esc(u.appVersion)}</span></td>
+        <td>${esc(LANG[u.locale] || u.locale)}</td>
+        <td>${tierPills(u)}</td>
+        <td style="color:var(--muted)">${timeAgo(u.firstSeen)}</td>
+        <td style="color:var(--muted)">${timeAgo(u.lastSeen)}</td>
+        <td style="text-align:right;color:var(--blue);font-weight:600">${fmt(u.pingCount)}</td>
+      </tr>`).join('') || '<tr><td colspan="9" class="empty">No users match these filters</td></tr>';
+    const pages = Math.max(1, Math.ceil(data.total / uState.pageSize));
+    $('#u-count').textContent = `${fmt(data.total)} users`;
+    $('#u-page').textContent = `Page ${uState.page} / ${pages}`;
+    $('#u-prev').disabled = uState.page <= 1;
+    $('#u-next').disabled = uState.page >= pages;
+    stamp();
+  };
+  let searchDebounce;
+  $('#u-search').addEventListener('input', () => { clearTimeout(searchDebounce); searchDebounce = setTimeout(() => { uState.page = 1; loaders.users(); }, 300); });
+  ['#u-platform', '#u-locale', '#u-tier', '#u-status', '#u-sort'].forEach(s => $(s).addEventListener('change', () => { uState.page = 1; loaders.users(); }));
+  $('#u-prev').addEventListener('click', () => { uState.page--; loaders.users(); });
+  $('#u-next').addEventListener('click', () => { uState.page++; loaders.users(); });
+  $('#u-rows').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) openUser(tr.dataset.id); });
+  $('#u-export').addEventListener('click', async () => {
+    const res = await api('/api/v1/admin/users/export.csv?' + userQuery());
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `bhaktidhara_users_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  // ── user drawer ────────────────────────────────────────────
+  function closeDrawer() { $('#drawer').classList.remove('open'); $('#drawer-bg').classList.remove('open'); }
+  $('#drawer-bg').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+  async function openUser(id) {
+    const d = await api('/api/v1/admin/users/' + encodeURIComponent(id));
+    renderDrawer(d);
+    $('#drawer').classList.add('open'); $('#drawer-bg').classList.add('open');
+  }
+
+  function renderDrawer(d) {
+    const u = d.user;
+    const activeSet = new Set(d.activeDays.map(a => a.date));
+    const today = new Date();
+    const dots = [...Array(60).keys()].reverse().map(i => {
+      const dt = new Date(today.getTime() + 5.5 * 3600e3 - i * 86400e3).toISOString().slice(0, 10);
+      return `<i class="${activeSet.has(dt) ? 'on' : ''}" title="${dt}"></i>`;
+    }).join('');
+    const feats = Object.entries(d.topFeatures);
+    $('#drawer').innerHTML = `
+      <div class="row" style="justify-content:space-between">
+        <h2 style="font-size:20px">${esc(u.userName) || 'Anonymous devotee'}</h2>
+        <button class="btn ghost sm" id="dr-close">✕</button>
+      </div>
+      <div style="margin-top:6px">${tierPills(u)}</div>
+      <div class="kv">
+        <div>Device ID</div><div class="mono" style="word-break:break-all">${esc(u.deviceId)}</div>
+        <div>Location</div><div>${esc([u.city, u.state, u.country].filter(Boolean).join(', ')) || '—'}</div>
+        <div>Platform</div><div>${esc(u.platform)} · v${esc(u.appVersion)}</div>
+        <div>Language</div><div>${esc(LANG[u.locale] || u.locale)}</div>
+        <div>Installed</div><div>${dateIN(u.firstSeen)}</div>
+        <div>Last active</div><div>${dateIN(u.lastSeen)} (${timeAgo(u.lastSeen)})</div>
+        <div>Sessions</div><div>${fmt(u.pingCount)} total · ${d.activeDays.length} active days (60d)</div>
+      </div>
+      <div class="label" style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600">Activity · last 60 days</div>
+      <div class="dots">${dots}</div>
+      <div class="card" style="background:var(--panel-2);margin-bottom:16px">
+        <div class="switch"><span>🎁 Grant complimentary VIP</span><label class="toggle"><input type="checkbox" id="dr-vip" ${u.vipGranted ? 'checked' : ''}><span></span></label></div>
+        <div class="switch"><span>🚫 Block device <small style="color:var(--dim)">(flag returned to app)</small></span><label class="toggle"><input type="checkbox" id="dr-block" ${u.blocked ? 'checked' : ''}><span></span></label></div>
+        <label class="f" style="margin-top:10px">Admin notes<textarea class="inp" id="dr-notes" placeholder="e.g. Temple trustee, gave feedback on Marathi lyrics">${esc(u.notes)}</textarea></label>
+        <div class="row" style="margin-top:10px;justify-content:space-between">
+          <div class="row"><button class="btn sm" id="dr-save">Save</button><button class="btn ghost sm" id="dr-push">🔔 Test push</button></div>
+          <button class="btn danger sm" id="dr-delete">Delete user data</button>
+        </div>
+      </div>
+      <h3 style="font-size:15px;color:var(--saffron);margin-bottom:8px">Favourite features</h3>
+      <div class="bars" id="dr-feats"></div>
+      <h3 style="font-size:15px;color:var(--saffron);margin:16px 0 4px">Recent activity</h3>
+      <div class="timeline">${d.events.map(e => `<div><span>${esc(prettyEvent(e.name))}${e.item ? ' · <b>' + esc(e.item) + '</b>' : ''}</span><span class="when">${timeAgo(e.at)}</span></div>`).join('') || '<div class="empty">No feature events yet</div>'}</div>
+    `;
+    bars($('#dr-feats'), Object.fromEntries(feats), prettyEvent);
+    $('#dr-close').onclick = closeDrawer;
+    $('#dr-save').onclick = async () => {
+      const updated = await api('/api/v1/admin/users/' + encodeURIComponent(u.deviceId), {
+        method: 'PATCH',
+        body: JSON.stringify({ vipGranted: $('#dr-vip').checked, blocked: $('#dr-block').checked, notes: $('#dr-notes').value }),
+      });
+      renderDrawer(updated); toast('✅ Saved'); loaders.users();
+    };
+    $('#dr-push').onclick = async () => {
+      const r = await api('/api/v1/admin/push/campaigns', { method: 'POST', body: JSON.stringify({
+        audience: 'user', deviceId: u.deviceId, title: '🙏 Test notification', body: 'BhaktiDhara push notifications are working!',
+      }) });
+      toast(r.success ? '🔔 Test push sent' : `⚠️ ${r.error || 'Failed'}`);
+    };
+    $('#dr-delete').onclick = async () => {
+      if (!confirm('Permanently delete all data for this device? This cannot be undone.')) return;
+      await api('/api/v1/admin/users/' + encodeURIComponent(u.deviceId), { method: 'DELETE' });
+      closeDrawer(); toast('🗑️ Deleted'); loaders.users();
+    };
+  }
+
+  const EVENT_NAMES = {
+    aarti_open: '🪔 Aarti opened', bhajan_open: '🎵 Bhajans opened', jaap_open: '📿 Jaap opened', jaap_mala_complete: '📿 Mala completed',
+    horoscope_view: '♈ Horoscope viewed', panchang_open: '📅 Panchang opened', vip_unlock: '⭐ VIP unlocked', paywall_view: '🔒 Paywall viewed',
+    share: '📤 Shared', app_open: '📱 App opened',
+  };
+  const prettyEvent = (n) => EVENT_NAMES[n] || n.replace(/_/g, ' ');
+
+  // ── engagement ─────────────────────────────────────────────
+  loaders.engagement = async () => {
+    const days = $('#en-days').value;
+    const ev = $('#en-event').value;
+    const data = await api(`/api/v1/admin/engagement?days=${days}&event=${encodeURIComponent(ev)}`);
+    const total = data.features.reduce((s, f) => s + f.count, 0);
+    const conv = data.funnel.paywall_views ? (data.funnel.vip_unlocks / data.funnel.paywall_views * 100).toFixed(1) + '%' : '—';
+    $('#en-kpis').innerHTML = [
+      kpi('Feature events', fmt(total), `${data.features.length} distinct features`),
+      kpi('Top feature', data.features[0] ? fmt(data.features[0].users) : '—', data.features[0] ? `users · ${esc(prettyEvent(data.features[0].name))}` : ''),
+      kpi('Paywall views', fmt(data.funnel.paywall_views), 'unique devices', 'var(--violet)'),
+      kpi('VIP unlocks', fmt(data.funnel.vip_unlocks), `Paywall → VIP: <b>${conv}</b>`, 'var(--gold)'),
+    ].join('');
+
+    const sel = $('#en-event'); const prev = sel.value;
+    sel.innerHTML = '<option value="">All features</option>' + data.features.map(f => `<option value="${esc(f.name)}">${esc(prettyEvent(f.name))}</option>`).join('');
+    sel.value = prev;
+
+    chart('ch-features', {
+      type: 'bar',
+      data: { labels: data.features.slice(0, 10).map(f => prettyEvent(f.name)), datasets: [
+        { label: 'Events', data: data.features.slice(0, 10).map(f => f.count), backgroundColor: '#ff9933', borderRadius: 4 },
+        { label: 'Unique users', data: data.features.slice(0, 10).map(f => f.users), backgroundColor: '#38bdf8', borderRadius: 4 },
+      ] },
+      options: { indexAxis: 'y', scales: { x: { ticks: { precision: 0 } } } },
+    });
+    chart('ch-feature-trend', {
+      type: 'line',
+      data: { labels: data.trend.days.map(shortDay), datasets: Object.entries(data.trend.series).map(([n, vals], i) => ({
+        label: prettyEvent(n), data: vals, borderColor: PALETTE[i % PALETTE.length], tension: .3, pointRadius: 0,
+      })) },
+      options: { interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+    $('#en-items').innerHTML = data.items.map((it, i) => `
+      <tr><td style="color:var(--dim)">${i + 1}</td><td>${esc(prettyEvent(it.event))}</td><td style="font-weight:600">${esc(it.item)}</td>
+      <td style="text-align:right">${fmt(it.count)}</td><td style="text-align:right;color:var(--blue)">${fmt(it.users)}</td></tr>`).join('')
+      || '<tr><td colspan="5" class="empty">No content events yet — update the app to start tracking</td></tr>';
+    stamp();
+  };
+  $('#en-days').addEventListener('change', () => loaders.engagement());
+  $('#en-event').addEventListener('change', () => loaders.engagement());
+
+  // ── retention ──────────────────────────────────────────────
+  loaders.retention = async () => {
+    const data = await api('/api/v1/admin/retention?weeks=8');
+    const r = (x, label, hint) => kpi(label, x.eligible ? x.pct + '%' : '—', `${fmt(x.retained)} of ${fmt(x.eligible)} ${hint}`,
+      x.pct >= 40 ? 'var(--green)' : x.pct >= 20 ? 'var(--saffron)' : 'var(--red)');
+    $('#rt-kpis').innerHTML = [
+      r(data.d1, 'Day 1 retention', 'came back next day'),
+      r(data.d7, 'Day 7 retention', 'active in week 2'),
+      r(data.d30, 'Day 30 retention', 'active after a month'),
+    ].join('');
+    const cell = (v) => v == null ? '<td style="color:var(--dim)">·</td>'
+      : `<td style="background:rgba(255,153,51,${Math.min(0.85, 0.08 + v / 100)});color:${v > 45 ? '#1a0f00' : '#fff'}">${v}%</td>`;
+    $('#rt-rows').innerHTML = data.cohorts.slice().reverse().map(c => `
+      <tr><td style="text-align:left">${shortDay(c.week)}</td><td>${fmt(c.size)}</td>${c.weeks.map(cell).join('')}</tr>`).join('');
+    stamp();
+  };
+
+  // ── push notifications ─────────────────────────────────────
+  const AUDIENCE_LABELS = { all: 'Everyone', vip: 'VIP', free: 'Free users', dormant: 'Inactive', user: 'Single device' };
+  const ROUTE_LABELS = { '': 'Home', aarti: 'Aarti', panchang: 'Panchang', jaap: 'Jaap', horoscope: 'Horoscope', bhajan: 'Bhajans' };
+  const pf = $('#push-form');
+  const pe = pf.elements;
+
+  function nextLocalTime(hh, mm) {
+    const d = new Date(); d.setHours(hh, mm, 0, 0);
+    if (d <= new Date()) d.setDate(d.getDate() + 1);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(hh)}:${pad(mm)}`;
+  }
+
+  const PUSH_TEMPLATES = [
+    { label: '🌅 Morning aarti (daily)', title: '🪔 सकाळची आरती', body: 'शुभ प्रभात! आजची आरती करूया — एका टॅपवर आरती सुरू करा 🙏', route: '', when: 'later', at: [6, 30], daily: true },
+    { label: '📅 Daily panchang', title: '📅 आजचे पंचांग', body: 'आजची तिथी, शुभ मुहूर्त आणि राहुकाल पहा.', route: 'panchang', when: 'later', at: [7, 0], daily: true },
+    { label: '📿 Evening jaap', title: '📿 आजचा जप पूर्ण झाला का?', body: 'फक्त ५ मिनिटे — १०८ जप पूर्ण करून आपली साखळी कायम ठेवा 🔥', route: 'jaap', when: 'later', at: [20, 0], daily: true },
+    { label: '🎉 Festival', title: '🎉 गणेश चतुर्थीच्या हार्दिक शुभेच्छा!', body: 'गणपती बाप्पा मोरया! आजच्या खास आरत्या ऐका 🐘', route: '', when: 'now' },
+    { label: '💤 Win-back', title: '🙏 बाप्पा तुमची वाट पाहत आहेत', body: 'बऱ्याच दिवसांपासून आरती केली नाही — आज एक आरती करूया?', route: '', when: 'now', audience: 'dormant' },
+  ];
+  $('#push-templates').innerHTML = PUSH_TEMPLATES.map((t, i) => `<button type="button" class="btn ghost sm" data-tpl="${i}">${esc(t.label)}</button>`).join('');
+  $('#push-templates').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tpl]'); if (!b) return;
+    const t = PUSH_TEMPLATES[+b.dataset.tpl];
+    pe.title.value = t.title; pe.body.value = t.body; pe.route.value = t.route;
+    pe.audience.value = t.audience || 'all'; pe.when.value = t.when;
+    pe.repeatDaily.checked = !!t.daily;
+    if (t.at) pe.sendAt.value = nextLocalTime(...t.at);
+    updatePushForm();
+  });
+
+  function pushTarget() {
+    return {
+      audience: pe.audience.value, locale: pe.locale.value, platform: pe.platform.value,
+      deviceId: pe.deviceId.value.trim(), dormantDays: +pe.dormantDays.value || 7,
+    };
+  }
+
+  let estimateTimer;
+  function updatePushForm() {
+    $$('[data-show]', pf).forEach(el => {
+      const [k, v] = el.dataset.show.split('=');
+      el.classList.toggle('hidden', pe[k].value !== v);
+    });
+    $('#pv-title').textContent = pe.title.value || 'Notification title';
+    $('#pv-body').textContent = pe.body.value || 'Your message will appear here';
+    const img = pe.imageUrl.value.trim();
+    $('#pv-img').classList.toggle('hidden', !/^https?:\/\//.test(img));
+    if (/^https?:\/\//.test(img)) $('#pv-img').src = img;
+    const later = pe.when.value === 'later';
+    $('#pv-clock').textContent = later && pe.sendAt.value ? pe.sendAt.value.slice(11, 16) : new Date().toTimeString().slice(0, 5);
+    $('#push-submit').textContent = later ? (pe.repeatDaily.checked ? '🔁 Schedule daily' : '⏰ Schedule') : '🔔 Send now';
+    clearTimeout(estimateTimer);
+    estimateTimer = setTimeout(async () => {
+      try {
+        const r = await api('/api/v1/admin/push/estimate', { method: 'POST', body: JSON.stringify(pushTarget()) });
+        $('#pv-reach').textContent = fmt(r.reach) + ' devices';
+        $('#pv-target').textContent = r.target.tokens ? 'sent device-by-device' : 'via ' + (r.target.topic ? `topic "${r.target.topic}"` : r.target.condition);
+      } catch (_) {}
+    }, 300);
+  }
+  pf.addEventListener('input', updatePushForm);
+  pf.addEventListener('change', updatePushForm);
+
+  pf.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const later = pe.when.value === 'later';
+    if (later && !pe.sendAt.value) { toast('Pick a date and time'); return; }
+    const payload = {
+      ...pushTarget(), title: pe.title.value, body: pe.body.value, imageUrl: pe.imageUrl.value.trim(),
+      route: pe.route.value, aartiId: pe.aartiId.value.trim(),
+      sendAt: later ? new Date(pe.sendAt.value).toISOString() : null,
+      repeat: later && pe.repeatDaily.checked ? 'daily' : 'none',
+    };
+    if (!later && payload.audience !== 'user' && !confirm(`Send "${payload.title}" to ${$('#pv-reach').textContent} now?`)) return;
+    $('#push-submit').disabled = true;
+    try {
+      const r = await api('/api/v1/admin/push/campaigns', { method: 'POST', body: JSON.stringify(payload) });
+      if (r.sent) toast(r.success ? `🔔 Sent — reaching ~${fmt(r.reach)} devices` : `⚠️ Failed: ${r.error || 'unknown error'}`);
+      else toast('⏰ Scheduled for ' + dateIN(r.scheduledAt));
+      if (r.sent ? r.success : true) { pf.reset(); updatePushForm(); }
+      loaders.push();
+    } finally { $('#push-submit').disabled = false; }
+  });
+
+  function pushStatus(c) {
+    const cls = { sent: 'ok', scheduled: 'live', sending: 'warn', failed: 'blocked', cancelled: '' }[c.status] || '';
+    const label = c.status === 'cancelled' ? 'paused' : c.status;
+    return `<span class="pill ${cls}">${esc(label)}</span>`;
+  }
+
+  loaders.push = async () => {
+    const d = await api('/api/v1/admin/push/overview');
+    const s = d.stats;
+    $('#push-banner').innerHTML = d.status.configured ? '' : `<div class="banner">
+      ⚠️ <b>Push sending is not configured on the server yet.</b> ${esc(d.status.error || '')}
+      <ol class="steps">
+        <li>Open <a href="https://console.firebase.google.com/project/bhaktidhara-app/settings/serviceaccounts/adminsdk" target="_blank" rel="noopener">Firebase console → Service accounts</a> and click <b>Generate new private key</b>.</li>
+        <li>Upload it to the server as <span class="mono">/root/bhaktidhara-backend/data/firebase-service-account.json</span>.</li>
+        <li>Restart: <span class="mono">docker compose up -d --force-recreate</span></li>
+      </ol></div>`;
+    const plat = s.by_platform || {};
+    $('#push-kpis').innerHTML = [
+      kpi('Reachable devices', fmt(s.tokens_enabled), `${fmt(plat.android || 0)} Android · ${fmt(plat.ios || 0)} iOS`, 'var(--green)'),
+      kpi('Notification opt-in', s.opt_in_pct + '%', `of ${fmt(s.tokens_total)} registered tokens`),
+      kpi('Pushes sent (30d)', fmt(s.campaigns_sent_30d), `${fmt(s.scheduled)} scheduled`, 'var(--violet)'),
+      kpi('Taps (30d)', fmt(s.opens_30d), 'notification opens', 'var(--saffron)'),
+      kpi('Sender', d.status.configured ? '<span class="pill ok" style="font-size:14px">● Ready</span>' : '<span class="pill blocked" style="font-size:14px">Not set up</span>', esc(d.status.project_id || 'bhaktidhara-app')),
+    ].join('');
+    $('#push-rows').innerHTML = d.campaigns.map(c => {
+      const aud = [AUDIENCE_LABELS[c.audience] || c.audience, c.audience === 'dormant' ? `${c.dormant_days}d+` : '', c.locale ? (LANG[c.locale] || c.locale) : '', c.platform].filter(Boolean).join(' · ');
+      const sched = c.repeat === 'daily'
+        ? `🔁 Daily ${new Date(c.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}${c.status === 'scheduled' ? '<br><small style="color:var(--dim)">next ' + timeAgo(c.scheduled_at).replace(' ago', '') + '</small>' : ''}`
+        : (c.status === 'scheduled' ? '⏰ ' + dateIN(c.scheduled_at) : (c.last_sent_at ? timeAgo(c.last_sent_at) : '—'));
+      const actions = [
+        `<button class="btn ghost sm" data-push-act="send" data-id="${c.id}" title="Send again now">Send now</button>`,
+        c.status === 'scheduled' ? `<button class="btn ghost sm" data-push-act="cancel" data-id="${c.id}">Pause</button>` : '',
+        c.status === 'cancelled' ? `<button class="btn ghost sm" data-push-act="resume" data-id="${c.id}">Resume</button>` : '',
+        `<button class="btn danger sm" data-push-act="delete" data-id="${c.id}">✕</button>`,
+      ].join(' ');
+      return `<tr>
+        <td style="max-width:280px"><b>${esc(c.title)}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.body)}</div>
+          <small style="color:var(--dim)">→ ${esc(ROUTE_LABELS[c.route] || c.route)}${c.aarti_id ? ' ' + esc(c.aarti_id) : ''}</small>
+          ${c.last_error ? `<div style="color:var(--red);font-size:11px" title="${esc(c.last_error)}">⚠ ${esc(c.last_error.slice(0, 80))}</div>` : ''}</td>
+        <td>${esc(aud)}</td><td style="font-size:12px">${sched}</td><td>${pushStatus(c)}</td>
+        <td style="text-align:right">${fmt(c.success_count)}${c.failure_count ? ` <span style="color:var(--red)">/ ${fmt(c.failure_count)}✕</span>` : ''}</td>
+        <td style="text-align:right">${fmt(c.total_reach)}</td>
+        <td style="text-align:right;color:var(--saffron);font-weight:600">${fmt(c.opens)}</td>
+        <td style="text-align:right">${c.open_rate_pct == null ? '—' : c.open_rate_pct + '%'}</td>
+        <td style="white-space:nowrap">${actions}</td></tr>`;
+    }).join('') || '<tr><td colspan="9" class="empty">No push campaigns yet — try a template above</td></tr>';
+    updatePushForm();
+    stamp();
+  };
+
+  $('#push-rows').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-push-act]'); if (!b) return;
+    const { pushAct: act, id } = b.dataset;
+    if (act === 'delete' && !confirm('Delete this campaign and its history?')) return;
+    if (act === 'send' && !confirm('Send this notification again right now?')) return;
+    const r = await api(`/api/v1/admin/push/campaigns/${id}${act === 'delete' ? '' : '/' + act}`, { method: act === 'delete' ? 'DELETE' : 'POST' });
+    if (act === 'send') toast(r.success ? `🔔 Sent — ~${fmt(r.reach)} devices` : `⚠️ ${r.error || 'Failed'}`);
+    loaders.push();
+  });
+
+  // ── announcements ──────────────────────────────────────────
+  loaders.announcements = async () => {
+    const { announcements } = await api('/api/v1/admin/announcements');
+    const now = Date.now();
+    $('#ann-list').innerHTML = announcements.map(a => {
+      const expired = a.expiresAt && new Date(a.expiresAt).getTime() < now;
+      const state = !a.active ? '<span class="pill">Paused</span>' : expired ? '<span class="pill warn">Expired</span>' : '<span class="pill live">Live</span>';
+      return `<div class="ann">
+        <div class="t">${esc(a.title)}</div><div class="b">${esc(a.body)}</div>
+        <div class="m">${state}<span class="pill">${a.locale === 'all' ? 'Everyone' : esc(LANG[a.locale] || a.locale)}</span>
+          <span>${timeAgo(a.createdAt)}</span>${a.expiresAt ? `<span>· expires ${dateIN(a.expiresAt)}</span>` : ''}
+          ${a.link ? `<a href="${esc(a.link)}" target="_blank" rel="noopener">link</a>` : ''}
+          <span style="flex:1"></span>
+          <button class="btn ghost sm" data-ann-toggle="${a.id}" data-active="${a.active}">${a.active ? 'Pause' : 'Resume'}</button>
+          <button class="btn danger sm" data-ann-del="${a.id}">Delete</button>
+        </div></div>`;
+    }).join('') || '<div class="empty">No announcements yet</div>';
+    stamp();
+  };
+  $('#ann-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const expires = f.get('expiresAt');
+    await api('/api/v1/admin/announcements', { method: 'POST', body: JSON.stringify({
+      title: f.get('title'), body: f.get('body'), locale: f.get('locale'), link: f.get('link'),
+      expiresAt: expires ? new Date(expires).toISOString() : null,
+    }) });
+    e.target.reset(); toast('📢 Published'); loaders.announcements();
+  });
+  $('#ann-list').addEventListener('click', async (e) => {
+    const t = e.target.closest('[data-ann-toggle]'); const d = e.target.closest('[data-ann-del]');
+    if (t) {
+      await api('/api/v1/admin/announcements/' + t.dataset.annToggle, { method: 'PATCH', body: JSON.stringify({ active: t.dataset.active !== 'true' }) });
+      loaders.announcements();
+    } else if (d && confirm('Delete this announcement?')) {
+      await api('/api/v1/admin/announcements/' + d.dataset.annDel, { method: 'DELETE' });
+      loaders.announcements();
+    }
+  });
+
+  // ── config ─────────────────────────────────────────────────
+  const FLAG_LABELS = {
+    horoscope: '♈ Horoscope (Rashi bhavishya)', panchang: '📅 Panchang', jaap: '📿 Jaap mala counter',
+    bhajan: '🎵 Bhajans', ads: '📺 Show ads', premium_paywall: '⭐ Premium paywall',
+  };
+  loaders.config = async () => {
+    const c = await api('/api/v1/admin/config');
+    $('#cfg-latest').value = c.latest_version || '';
+    $('#cfg-min').value = c.min_supported_version || '';
+    $('#cfg-url').value = c.update_url || '';
+    $('#cfg-force').checked = !!c.force_update;
+    $('#cfg-maint').checked = !!c.maintenance_mode;
+    $('#cfg-maint-msg').value = c.maintenance_message || '';
+    $('#cfg-flags').innerHTML = Object.entries(c.feature_flags || {}).map(([k, v]) => `
+      <div class="switch"><span>${esc(FLAG_LABELS[k] || k)}</span><label class="toggle"><input type="checkbox" data-flag="${esc(k)}" ${v ? 'checked' : ''}><span></span></label></div>`).join('');
+    stamp();
+  };
+  $('#cfg-save').addEventListener('click', async () => {
+    const flags = Object.fromEntries($$('[data-flag]').map(i => [i.dataset.flag, i.checked]));
+    await api('/api/v1/admin/config', { method: 'PUT', body: JSON.stringify({
+      latest_version: $('#cfg-latest').value.trim(), min_supported_version: $('#cfg-min').value.trim(),
+      update_url: $('#cfg-url').value.trim(), force_update: $('#cfg-force').checked,
+      maintenance_mode: $('#cfg-maint').checked, maintenance_message: $('#cfg-maint-msg').value,
+      feature_flags: flags,
+    }) });
+    toast('✅ Config saved — apps pick it up on next launch');
+  });
+
+  // ── system ─────────────────────────────────────────────────
+  const METRIC_LABELS = {
+    horoscope_cache_hit: 'Horoscope (cache)', horoscope_gemini: 'Horoscope (Gemini)', panchang_cache_hit: 'Panchang (cache)',
+    panchang_gemini: 'Panchang (Gemini)', precache_gemini: 'Nightly precache (Gemini)', gemini_error: 'Gemini errors',
+  };
+  loaders.system = async () => {
+    const s = await api('/api/v1/admin/system');
+    const sv = s.server;
+    const up = sv.uptime_seconds; const upText = up > 86400 ? Math.floor(up / 86400) + 'd ' + Math.floor(up % 86400 / 3600) + 'h' : Math.floor(up / 3600) + 'h ' + Math.floor(up % 3600 / 60) + 'm';
+    const warnings = [];
+    if (sv.default_admin_secret) warnings.push('⚠️ ADMIN_SECRET is still the default value — change it in <span class="mono">.env</span> on the server.');
+    if (!sv.gemini_key_configured) warnings.push('⚠️ GEMINI_API_KEY is not configured — horoscope/panchang generation will fail.');
+    $('#sys-banner').innerHTML = warnings.map(w => `<div class="banner">${w}</div>`).join('');
+    const t = s.api.today;
+    const geminiToday = (t.horoscope_gemini || 0) + (t.panchang_gemini || 0) + (t.precache_gemini || 0);
+    $('#sys-kpis').innerHTML = [
+      kpi('Server', '<span class="pill ok" style="font-size:14px">● Healthy</span>', `v${esc(sv.version)} · up ${upText}`),
+      kpi('Cache hit rate today', s.cache.hit_rate_today_pct == null ? '—' : s.cache.hit_rate_today_pct + '%', 'requests served without Gemini', 'var(--green)'),
+      kpi('Gemini calls today', fmt(geminiToday), `${fmt(t.gemini_error || 0)} errors · ${esc(sv.gemini_model || 'default model')}`, 'var(--violet)'),
+      kpi('Cached today', fmt(s.cache.horoscope_today + s.cache.panchang_today), `${s.cache.horoscope_today} horoscope · ${s.cache.panchang_today} panchang`),
+      kpi('Database', (s.db.size_bytes / 1048576).toFixed(1) + ' MB', `${fmt(s.db.events_total)} events stored`),
+      kpi('Next precache', sv.next_precache_run ? new Date(sv.next_precache_run).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', sv.next_precache_run ? dateIN(sv.next_precache_run) : ''),
+    ].join('');
+    chart('ch-api', {
+      type: 'bar',
+      data: { labels: s.api.days.map(shortDay), datasets: Object.entries(s.api.series).map(([m, vals], i) => ({
+        label: METRIC_LABELS[m] || m, data: vals, backgroundColor: m === 'gemini_error' ? '#f87171' : PALETTE[i % PALETTE.length], borderRadius: 3,
+      })) },
+      options: { interaction: { mode: 'index', intersect: false }, scales: { x: { stacked: true }, y: { stacked: true, ticks: { precision: 0 } } } },
+    });
+    $('#sys-jobs').innerHTML = s.jobs.map(j => `<tr><td>${esc(j.job)}</td><td style="color:var(--muted)">${timeAgo(j.startedAt)}</td>
+      <td><span class="pill ${j.status === 'success' ? 'ok' : j.status === 'running' ? '' : 'warn'}">${esc(j.status)}</span></td>
+      <td style="color:var(--muted);font-size:12px">${esc(j.detail)}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">No job runs recorded yet</td></tr>';
+    $('#sys-audit').innerHTML = s.audit.map(a => `<div><span><b>${esc(a.action.replace(/_/g, ' '))}</b> ${esc(a.detail)}</span><span class="when">${timeAgo(a.at)}</span></div>`).join('') || '<div class="empty">No admin actions yet</div>';
+    stamp();
+  };
+  $('#sys-precache').addEventListener('click', async () => {
+    if (!confirm('Run the Gemini precache job now? (~36 Gemini calls)')) return;
+    await api('/api/v1/admin/trigger-precache', { method: 'POST' });
+    toast('⚡ Precache started — check job runs in a minute');
+    setTimeout(() => currentView === 'system' && loaders.system(), 3000);
+  });
+  $('#sys-clear-old').addEventListener('click', async () => {
+    const r = await api('/api/v1/admin/cache/clear?older_than_days=7', { method: 'POST' });
+    toast(`🧹 Removed ${r.horoscope_deleted + r.panchang_deleted} old entries`); loaders.system();
+  });
+  $('#sys-clear-all').addEventListener('click', async () => {
+    if (!confirm('Clear ALL cached horoscopes and panchangs? The next requests will call Gemini again.')) return;
+    const r = await api('/api/v1/admin/cache/clear', { method: 'POST' });
+    toast(`Removed ${r.horoscope_deleted + r.panchang_deleted} entries`); loaders.system();
+  });
+
+  // ── boot ───────────────────────────────────────────────────
+  if (secret) tryLogin(secret, !!localStorage.getItem('bd_admin')).catch(() => logout());
+})();
+</script>
+</body>
+</html>

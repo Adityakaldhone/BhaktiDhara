@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,15 +9,24 @@ import 'package:intl/intl.dart';
 import '../../core/theme/theme.dart';
 import '../../domain/entities/panchang.dart';
 import '../../domain/entities/panchang_city.dart';
-// import '../../services/gemini_horoscope_service.dart';
+import '../../domain/logic/panchang_timing.dart';
+import '../../services/backend_service.dart';
+import '../panchang/panchang_strings.dart';
 import '../providers/locale_provider.dart';
 import '../providers/panchang_provider.dart';
-// import '../providers/premium_provider.dart';
-// import '../widgets/premium_blurred_gate.dart';
 
-/// Screen displaying an authentic, aesthetic Vedic Panchang (दैनिक पंचांग)
-/// calibrated for the user's specific city / geographic coordinates,
-/// powered by Google Gemini AI with high-precision offline astronomical calculations.
+const _goodColor = Color(0xFF2E7D32);
+const _goodDark = Color(0xFF1B5E20);
+const _goodBg = Color(0xFFF1F8F1);
+const _badColor = Color(0xFFC62828);
+const _badDark = Color(0xFFB71C1C);
+const _badBg = Color(0xFFFFF4F4);
+const _cardBorder = Color(0xFFEDDBC2);
+const _brownText = Color(0xFF755034);
+
+/// Daily Vedic Panchang for the user's city, arranged so the most useful
+/// answers (what is happening now, when is a good time, what to avoid) come
+/// first and the technical Panchang details stay one tap away.
 class PanchangScreen extends ConsumerStatefulWidget {
   const PanchangScreen({super.key});
 
@@ -24,23 +35,27 @@ class PanchangScreen extends ConsumerStatefulWidget {
 }
 
 class _PanchangScreenState extends ConsumerState<PanchangScreen> {
+  Timer? _minuteTicker;
+
   @override
   void initState() {
     super.initState();
-    // Auto-detect user's current city via GPS/IP in the background
+    BackendService.trackEvent('panchang_open');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(autoDetectLocationProvider);
     });
+    _minuteTicker = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
-  // Note: Gemini API key is configured directly in code; dialog preserved for reference
-  // void _showApiKeyDialog(BuildContext context) { ... }
+  @override
+  void dispose() {
+    _minuteTicker?.cancel();
+    super.dispose();
+  }
 
-  void _showCitySelectionSheet(
-    BuildContext context,
-    PanchangCity currentCity,
-    String langCode,
-  ) {
+  void _showCitySelectionSheet(PanchangCity currentCity, String langCode) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -52,7 +67,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
     );
   }
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectDate() async {
     final currentDate = ref.read(selectedPanchangDateProvider);
     final picked = await showDatePicker(
       context: context,
@@ -91,181 +106,40 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
         DateTime(now.year, now.month, now.day);
   }
 
+  void _refresh() {
+    ref.read(panchangRefreshTriggerProvider.notifier).state++;
+  }
+
   @override
   Widget build(BuildContext context) {
     final panchangAsync = ref.watch(currentPanchangDataProvider);
     final selectedDate = ref.watch(selectedPanchangDateProvider);
     final selectedCity = ref.watch(selectedPanchangCityProvider);
     final langCode = ref.watch(localeProvider).languageCode;
+    final s = PanchangStrings(langCode);
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final isToday = selectedDate.year == today.year &&
-        selectedDate.month == today.month &&
-        selectedDate.day == today.day;
+    final isToday = selectedDate.year == now.year &&
+        selectedDate.month == now.month &&
+        selectedDate.day == now.day;
 
     return Scaffold(
       backgroundColor: MandirTheme.backgroundCream,
       body: SafeArea(
         child: Column(
           children: [
-            // ── Top Spiritual App Bar ─────────────────────────────────────
-            _buildAppBar(context),
-
-            // ── Location / City Selector Strip ────────────────────────────
-            _buildCitySelectorBar(context, selectedCity, langCode),
-
-            // ── Date Navigation Controls ──────────────────────────────────
-            _buildDateSelector(context, selectedDate, isToday, langCode),
-
-            // ── Main Panchang Content ─────────────────────────────────────
+            _buildAppBar(s),
+            _buildCitySelectorBar(selectedCity, langCode, s),
+            _buildDateSelector(selectedDate, isToday, s),
             Expanded(
               child: panchangAsync.when(
-                loading: () => const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(
-                        color: MandirTheme.primarySaffron,
-                      ),
-                      SizedBox(height: 14),
-                      Text(
-                        'स्थान-विशिष्ट वैदिक पंचांग गणना सुरू आहे...',
-                        style: TextStyle(
-                          color: MandirTheme.textDark,
-                          fontSize: 17,
-                        ),
-                      ),
-                    ],
-                  ),
+                loading: () => _buildLoading(s),
+                error: (err, _) => _buildError(s),
+                data: (panchang) => _buildContent(
+                  panchang,
+                  s,
+                  isToday: isToday,
+                  nowMinute: now.hour * 60 + now.minute,
                 ),
-                error: (err, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 48,
-                          color: MandirTheme.primarySaffron,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'पंचांग माहिती लोड करता आली नाही.',
-                          style: GoogleFonts.mukta(
-                            fontSize: 18,
-                            color: MandirTheme.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton.icon(
-                          onPressed: () => ref
-                              .read(panchangRefreshTriggerProvider.notifier)
-                              .state++,
-                          icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text('पुन्हा प्रयत्न करा'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: MandirTheme.primarySaffron,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                data: (panchang) {
-                  return RefreshIndicator(
-                    color: MandirTheme.primarySaffron,
-                    backgroundColor: const Color(0xFFFFFBF2),
-                    onRefresh: () async {
-                      ref.read(panchangRefreshTriggerProvider.notifier).state++;
-                    },
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        // 1. Hero Calendar Card (Samvat, Tithi, Day, City)
-                        _buildHeroCard(panchang, selectedCity, langCode),
-                        const SizedBox(height: 16),
-
-                        // 2. Surya & Chandra Astronomical Card
-                        _buildSunMoonCard(panchang, selectedCity, langCode),
-                        const SizedBox(height: 16),
-
-                        // 3. The 5 Limbs of Panchang (पंच-अंग)
-                        _buildPanchangLimbsGrid(panchang, langCode),
-                        const SizedBox(height: 16),
-
-                        // [Future Release: Premium Blurred Gate]
-                        // PremiumBlurredGate(
-                        //   langCode: langCode,
-                        //   title: langCode == 'en'
-                        //       ? 'Unlock Complete Panchang & Muhurats'
-                        //       : (langCode == 'hi'
-                        //           ? 'सटीक पंचांग व शुभ मुहूर्त अनलॉक करें'
-                        //           : 'सविस्तर पंचांग व शुभ मुहूर्त अनलॉक करा'),
-                        //   subtitle: langCode == 'en'
-                        //       ? 'Accurate Abhijit Muhurat, Rahu Kaal, Yamaganda, Gulika, and Daily Vedic Mantras for your city.'
-                        //       : (langCode == 'hi'
-                        //           ? 'अपने शहर के लिए सटीक अभिजित मुहूर्त, राहु काल, यमघंट, गुलिक व दैनिक वैदिक मंत्र प्राप्त करें।'
-                        //           : 'आपल्या शहरासाठी अचूक अभिजीत मुहूर्त, राहु काळ, यमघंट, गुलिक काळ व दैनिक वैदिक मंत्र मिळवा.'),
-                        //   child: Column(
-                        //     children: [
-                        //       _buildShubhMuhuratCard(panchang, langCode),
-                        //       const SizedBox(height: 16),
-                        //       _buildAshubhKaalCard(panchang, langCode),
-                        //       const SizedBox(height: 16),
-                        //       _buildFestivalCard(panchang, langCode),
-                        //       const SizedBox(height: 16),
-                        //       _buildDailyGuidanceCard(panchang, langCode),
-                        //       const SizedBox(height: 20),
-                        //       Center(
-                        //         child: Text(
-                        //           '॥ शुभं भवतु • सर्वं श्रीकृष्णार्पणमस्तु ॥',
-                        //           style: GoogleFonts.mukta(
-                        //             fontSize: 14,
-                        //             fontWeight: FontWeight.w600,
-                        //             color: const Color(0xFF9E7B5A),
-                        //             letterSpacing: 1.0,
-                        //           ),
-                        //         ),
-                        //       ),
-                        //       const SizedBox(height: 12),
-                        //     ],
-                        //   ),
-                        // ),
-                        // 4. Shubh Muhurat (शुभ मुहूर्त)
-                        _buildShubhMuhuratCard(panchang, langCode),
-                        const SizedBox(height: 16),
-
-                        // 5. Ashubh Kaal (अशुभ काळ - वर्ज्य वेळ)
-                        _buildAshubhKaalCard(panchang, langCode),
-                        const SizedBox(height: 16),
-
-                        // 6. Today's Festival & Vrat (सण, उत्सव व व्रत)
-                        _buildFestivalCard(panchang, langCode),
-                        const SizedBox(height: 16),
-
-                        // 7. Daily Guidance & Mantra
-                        _buildDailyGuidanceCard(panchang, langCode),
-                        const SizedBox(height: 20),
-
-                        // Footer Vedic Signature
-                        Center(
-                          child: Text(
-                            '॥ शुभं भवतु • सर्वं श्रीकृष्णार्पणमस्तु ॥',
-                            style: GoogleFonts.mukta(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF9E7B5A),
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                    ),
-                  );
-                },
               ),
             ),
           ],
@@ -274,10 +148,125 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
     );
   }
 
+  Widget _buildLoading(PanchangStrings s) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(color: MandirTheme.primarySaffron),
+          const SizedBox(height: 14),
+          Text(
+            s.loading,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.mukta(fontSize: 17, color: MandirTheme.textDark),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(PanchangStrings s) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.calendar_today_outlined,
+              size: 48,
+              color: MandirTheme.primarySaffron,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              s.loadError,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.mukta(fontSize: 18, color: MandirTheme.textDark),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text(s.retry),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: MandirTheme.primarySaffron,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    PanchangData panchang,
+    PanchangStrings s, {
+    required bool isToday,
+    required int nowMinute,
+  }) {
+    final slots = panchangSlots(panchang);
+    final nowStatus = isToday ? panchangNow(slots, nowMinute) : null;
+    final hasFestival = panchang.festivalName.isNotEmpty ||
+        panchang.festivalDescription.isNotEmpty ||
+        panchang.dailyMantra.isNotEmpty;
+
+    return RefreshIndicator(
+      color: MandirTheme.primarySaffron,
+      backgroundColor: const Color(0xFFFFFBF2),
+      onRefresh: () async => _refresh(),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          _TodayCard(panchang: panchang, slots: slots, now: nowStatus, s: s),
+          const SizedBox(height: 16),
+          _ScheduleCard(
+            slots: slots,
+            s: s,
+            nowMinute: isToday ? nowMinute : null,
+          ),
+          if (hasFestival) ...[
+            const SizedBox(height: 16),
+            _FestivalCard(panchang: panchang, s: s),
+          ],
+          const SizedBox(height: 16),
+          _SunMoonCard(panchang: panchang, s: s),
+          const SizedBox(height: 16),
+          _FullPanchangCard(panchang: panchang, s: s),
+          const SizedBox(height: 20),
+          Center(
+            child: Text(
+              '॥ शुभं भवतु • सर्वं श्रीकृष्णार्पणमस्तु ॥',
+              style: GoogleFonts.mukta(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF9E7B5A),
+                letterSpacing: 1.0,
+              ),
+            ),
+          ),
+          if (panchang.isAiGenerated) ...[
+            const SizedBox(height: 6),
+            Center(
+              child: Text(
+                s.aiSource,
+                style: GoogleFonts.mukta(
+                  fontSize: 13,
+                  color: MandirTheme.textMuted,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
-  //  TOP BAR
+  //  TOP BAR, CITY & DATE
   // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(PanchangStrings s) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -292,7 +281,6 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
       ),
       child: Row(
         children: [
-          // Om Symbol
           Container(
             width: 38,
             height: 38,
@@ -319,7 +307,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'दैनिक पंचांग',
+                  s.title,
                   style: GoogleFonts.mukta(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -328,7 +316,9 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                   ),
                 ),
                 Text(
-                  'वैदिक कालनिर्णय व मुहूर्त दर्शन',
+                  s.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.mukta(
                     fontSize: 14.5,
                     color: MandirTheme.textMuted,
@@ -338,73 +328,6 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
               ],
             ),
           ),
-
-          // [Future Release: Premium Badge / Button]
-          // Builder(
-          //   builder: (ctx) {
-          //     final isPremium = ref.watch(isPremiumProvider);
-          //     final langCode = ref.watch(localeProvider).languageCode;
-          //     return GestureDetector(
-          //       onTap: () => showPremiumPaywallSheet(context, ref, langCode),
-          //       child: Container(
-          //         padding:
-          //             const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          //         margin: const EdgeInsets.only(right: 4),
-          //         decoration: BoxDecoration(
-          //           gradient: LinearGradient(
-          //             colors: isPremium
-          //                 ? const [Color(0xFFFFF3D6), Color(0xFFFFD54F)]
-          //                 : const [Color(0xFF8B1D18), Color(0xFFE65100)],
-          //           ),
-          //           borderRadius: BorderRadius.circular(16),
-          //           border: Border.all(
-          //             color: const Color(0xFFD4AF37),
-          //             width: 1,
-          //           ),
-          //           boxShadow: [
-          //             BoxShadow(
-          //               color: (isPremium
-          //                       ? const Color(0xFFD4AF37)
-          //                       : const Color(0xFF8B1D18))
-          //                   .withValues(alpha: 0.25),
-          //               blurRadius: 4,
-          //               offset: const Offset(0, 1),
-          //             ),
-          //           ],
-          //         ),
-          //         child: Row(
-          //           mainAxisSize: MainAxisSize.min,
-          //           children: [
-          //             Icon(
-          //               isPremium
-          //                   ? Icons.stars_rounded
-          //                   : Icons.workspace_premium_rounded,
-          //               color: isPremium
-          //                   ? const Color(0xFF8B1D18)
-          //                   : Colors.white,
-          //               size: 15,
-          //             ),
-          //             const SizedBox(width: 4),
-          //             Text(
-          //               isPremium
-          //                   ? (langCode == 'en' ? 'VIP' : 'प्रीमियम')
-          //                   : (langCode == 'en' ? '₹20' : '₹२०'),
-          //               style: GoogleFonts.mukta(
-          //                 fontSize: 12,
-          //                 fontWeight: FontWeight.bold,
-          //                 color: isPremium
-          //                     ? const Color(0xFF7A0C08)
-          //                     : Colors.white,
-          //               ),
-          //             ),
-          //           ],
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-
-          // Refresh button
           IconButton(
             tooltip: 'Refresh Panchang',
             icon: const Icon(
@@ -413,11 +336,11 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
               size: 24,
             ),
             onPressed: () {
-              ref.read(panchangRefreshTriggerProvider.notifier).state++;
+              _refresh();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('पंचांग अद्यतन केले जात आहे...'),
-                  duration: Duration(seconds: 1),
+                SnackBar(
+                  content: Text(s.refreshing),
+                  duration: const Duration(seconds: 1),
                   backgroundColor: MandirTheme.secondaryMaroon,
                 ),
               );
@@ -428,21 +351,16 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  CITY SELECTOR BAR
-  // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildCitySelectorBar(
-    BuildContext context,
     PanchangCity currentCity,
     String langCode,
+    PanchangStrings s,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
       decoration: const BoxDecoration(
         color: Color(0xFFFBF4E8),
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFEEDCC7), width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFEEDCC7))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -457,7 +375,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
               ),
               const SizedBox(width: 5),
               Text(
-                langCode == 'en' ? 'Location:' : 'पंचांग स्थान:',
+                s.location,
                 style: GoogleFonts.mukta(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -469,8 +387,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
           const SizedBox(width: 8),
           Flexible(
             child: InkWell(
-              onTap: () =>
-                  _showCitySelectionSheet(context, currentCity, langCode),
+              onTap: () => _showCitySelectionSheet(currentCity, langCode),
               borderRadius: BorderRadius.circular(20),
               child: Container(
                 padding:
@@ -480,13 +397,6 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                   borderRadius: BorderRadius.circular(20),
                   border:
                       Border.all(color: const Color(0xFFD4AF37), width: 1.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -519,71 +429,70 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  DATE SELECTOR BAR (◀ Yesterday | Today | Tomorrow ▶ + Calendar Picker)
-  // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildDateSelector(
-    BuildContext context,
     DateTime selectedDate,
     bool isToday,
-    String langCode,
+    PanchangStrings s,
   ) {
+    Widget sideButton({
+      required String label,
+      required IconData icon,
+      required bool iconFirst,
+      required VoidCallback onTap,
+    }) {
+      final iconWidget = Icon(icon, size: 18, color: MandirTheme.textDark);
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE5CFB0)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (iconFirst) iconWidget,
+              Text(
+                label,
+                style: GoogleFonts.mukta(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: MandirTheme.textDark,
+                ),
+              ),
+              if (!iconFirst) iconWidget,
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       color: const Color(0xFFF7EFE1),
       child: Row(
         children: [
-          // Previous Day Button
-          InkWell(
+          sideButton(
+            label: s.prev,
+            icon: Icons.chevron_left,
+            iconFirst: true,
             onTap: () => _shiftDate(-1),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE5CFB0)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.chevron_left,
-                    size: 18,
-                    color: MandirTheme.textDark,
-                  ),
-                  Text(
-                    langCode == 'en' ? 'Prev' : 'काल',
-                    style: GoogleFonts.mukta(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: MandirTheme.textDark,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
           const SizedBox(width: 8),
-
-          // Today / Center Badge
           Expanded(
             child: InkWell(
-              onTap: isToday ? () => _selectDate(context) : _goToToday,
+              onTap: isToday ? _selectDate : _goToToday,
               borderRadius: BorderRadius.circular(10),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isToday
-                        ? [
-                            MandirTheme.primarySaffron,
-                            const Color(0xFFE65100),
-                          ]
-                        : [
-                            const Color(0xFFFFF7E6),
-                            const Color(0xFFFFECC8),
-                          ],
+                        ? const [MandirTheme.primarySaffron, Color(0xFFE65100)]
+                        : const [Color(0xFFFFF7E6), Color(0xFFFFECC8)],
                   ),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
@@ -592,18 +501,9 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                         : const Color(0xFFD4AF37),
                     width: 1.2,
                   ),
-                  boxShadow: isToday
-                      ? [
-                          BoxShadow(
-                            color: MandirTheme.primarySaffron
-                                .withValues(alpha: 0.25),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
                 ),
-                child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -616,7 +516,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                       const SizedBox(width: 6),
                       Text(
                         isToday
-                            ? (langCode == 'en' ? 'Today' : 'आज')
+                            ? s.today
                             : DateFormat('dd MMM yyyy').format(selectedDate),
                         style: GoogleFonts.mukta(
                           fontSize: 16,
@@ -627,7 +527,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                       if (!isToday) ...[
                         const SizedBox(width: 4),
                         Text(
-                          langCode == 'en' ? '(Go Today)' : '(आजवर जा)',
+                          s.goToday,
                           style: GoogleFonts.mukta(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -642,43 +542,15 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Next Day Button
-          InkWell(
+          sideButton(
+            label: s.next,
+            icon: Icons.chevron_right,
+            iconFirst: false,
             onTap: () => _shiftDate(1),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE5CFB0)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    langCode == 'en' ? 'Next' : 'उद्या',
-                    style: GoogleFonts.mukta(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: MandirTheme.textDark,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: MandirTheme.textDark,
-                  ),
-                ],
-              ),
-            ),
           ),
           const SizedBox(width: 8),
-
-          // Calendar Picker Button
           InkWell(
-            onTap: () => _selectDate(context),
+            onTap: _selectDate,
             borderRadius: BorderRadius.circular(8),
             child: Container(
               padding: const EdgeInsets.all(7),
@@ -698,24 +570,164 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
       ),
     );
   }
+}
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  HERO CARD (Tithi, Paksha, Samvat, Date Headline)
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildHeroCard(
-    PanchangData panchang,
-    PanchangCity city,
-    String langCode,
-  ) {
+// ═════════════════════════════════════════════════════════════════════════════
+//  SHARED PIECES
+// ═════════════════════════════════════════════════════════════════════════════
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: MandirTheme.surfaceWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _CardTitle extends StatelessWidget {
+  const _CardTitle(this.icon, this.text, {this.color = MandirTheme.primarySaffron});
+
+  final IconData icon;
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.mukta(
+              fontSize: 19,
+              fontWeight: FontWeight.bold,
+              color: MandirTheme.textDark,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag(this.text, {required this.color, this.filled = true});
+
+  final String text;
+  final Color color;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+      decoration: BoxDecoration(
+        color: filled ? color : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.mukta(
+          fontSize: 12.5,
+          fontWeight: FontWeight.bold,
+          color: filled ? Colors.white : color,
+        ),
+      ),
+    );
+  }
+}
+
+/// Start time on top, end time below, so long ranges never squeeze the name.
+class _TimeRange extends StatelessWidget {
+  const _TimeRange(this.slot, {required this.color});
+
+  final PanchangSlot slot;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = slot.rangeParts;
+    final style = GoogleFonts.mukta(
+      fontSize: 16,
+      fontWeight: FontWeight.w800,
+      color: color,
+      height: 1.2,
+    );
+    if (parts == null) {
+      return Text(slot.raw, style: style, textAlign: TextAlign.end);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(parts.$1, style: style),
+        Text(
+          '– ${parts.$2}',
+          style: style.copyWith(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  1. TODAY AT A GLANCE
+// ═════════════════════════════════════════════════════════════════════════════
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({
+    required this.panchang,
+    required this.slots,
+    required this.now,
+    required this.s,
+  });
+
+  final PanchangData panchang;
+  final List<PanchangSlot> slots;
+  final PanchangNow? now;
+  final PanchangStrings s;
+
+  PanchangSlot? _slot(PanchangSlotKind kind) {
+    for (final slot in slots) {
+      if (slot.kind == kind) return slot;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final best = _slot(PanchangSlotKind.abhijit);
+    final avoid = _slot(PanchangSlotKind.rahu);
+
+    return Container(
+      key: const Key('panchang-today-card'),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFF9EC),
-            Color(0xFFFBEFD7),
-          ],
+          colors: [Color(0xFFFFF9EC), Color(0xFFFBEFD7)],
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE3C594), width: 1.5),
@@ -729,7 +741,6 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
       ),
       child: Stack(
         children: [
-          // Background Mandala Watermark
           Positioned(
             right: -15,
             top: -15,
@@ -739,66 +750,24 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                 'assets/decorations/corner_mandala.png',
                 width: 140,
                 height: 140,
-                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Row: Formatted Date & AI / City Badge
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        panchang.formattedDate,
-                        style: GoogleFonts.mukta(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w600,
-                          color: MandirTheme.secondaryMaroon,
-                        ),
-                      ),
-                    ),
-                    if (panchang.isAiGenerated)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF81C784)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.auto_awesome,
-                              size: 13,
-                              color: Color(0xFF2E7D32),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Gemini AI',
-                              style: GoogleFonts.mukta(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2E7D32),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+                Text(
+                  panchang.formattedDate,
+                  style: GoogleFonts.mukta(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: MandirTheme.secondaryMaroon,
+                  ),
                 ),
-                const SizedBox(height: 8),
-
-                // Main Headline: Maas + Paksha + Tithi
+                const SizedBox(height: 4),
                 Text(
                   '${panchang.maas} ${panchang.paksha} ${panchang.tithi}',
                   style: GoogleFonts.mukta(
@@ -808,79 +777,59 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                     height: 1.15,
                   ),
                 ),
-                const SizedBox(height: 4),
-
-                // End Time & City Badge
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.schedule_rounded,
-                      size: 16,
-                      color: MandirTheme.goldenAccent,
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        'तिथी समाप्ती: ${panchang.tithiEndTime}',
-                        style: GoogleFonts.mukta(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF755034),
+                if (panchang.festivalName.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('🪔', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          panchang.festivalName,
+                          style: GoogleFonts.mukta(
+                            fontSize: 17.5,
+                            fontWeight: FontWeight.bold,
+                            color: MandirTheme.primarySaffron,
+                            height: 1.25,
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ],
+                if (now != null) ...[
+                  const SizedBox(height: 14),
+                  _NowBanner(now: now!, s: s),
+                ],
+                if (best != null || avoid != null) ...[
+                  const SizedBox(height: 14),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (best != null)
+                          Expanded(
+                            child: _KeyTimeTile(
+                              label: s.bestTime,
+                              slot: best,
+                              s: s,
+                            ),
+                          ),
+                        if (best != null && avoid != null)
+                          const SizedBox(width: 10),
+                        if (avoid != null)
+                          Expanded(
+                            child: _KeyTimeTile(
+                              label: s.avoidTime,
+                              slot: avoid,
+                              s: s,
+                            ),
+                          ),
+                      ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFBE4D2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '📍 ${city.localizedName(langCode)}',
-                        style: GoogleFonts.mukta(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.bold,
-                          color: MandirTheme.primarySaffron,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                const Divider(color: Color(0xFFE8D3B0), height: 1),
-                const SizedBox(height: 10),
-
-                // Samvat & Vedic Details Badges
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    _buildPillBadge(
-                      'विक्रम संवत ${panchang.vikramSamvat}',
-                      const Color(0xFF8D4004),
-                      const Color(0xFFFBE7D0),
-                    ),
-                    _buildPillBadge(
-                      'शक संवत ${panchang.shakaSamvat}',
-                      const Color(0xFF5D4037),
-                      const Color(0xFFEFEBE9),
-                    ),
-                    _buildPillBadge(
-                      'संवत्सर: ${panchang.samvatsara}',
-                      const Color(0xFF455A64),
-                      const Color(0xFFECEFF1),
-                    ),
-                    _buildPillBadge(
-                      '${panchang.ritu} • ${panchang.ayana}',
-                      const Color(0xFF1B5E20),
-                      const Color(0xFFE8F5E9),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -888,319 +837,59 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
       ),
     );
   }
+}
 
-  Widget _buildPillBadge(String text, Color textColor, Color bgColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.mukta(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: textColor,
+class _NowBanner extends StatelessWidget {
+  const _NowBanner({required this.now, required this.s});
+
+  final PanchangNow now;
+  final PanchangStrings s;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = s.slotName(now.slot.kind);
+    final parts = now.slot.rangeParts;
+    final start = parts?.$1 ?? now.slot.raw;
+    final end = parts?.$2 ?? now.slot.raw;
+
+    final (IconData icon, Color color, Color bg, String title, String sub) =
+        switch (now.kind) {
+      PanchangNowKind.avoid => (
+          Icons.do_not_disturb_on_rounded,
+          _badColor,
+          const Color(0xFFFFEBEE),
+          s.nowAvoid(name),
+          s.nowAvoidSub(end),
         ),
-      ),
-    );
-  }
+      PanchangNowKind.good => (
+          Icons.check_circle_rounded,
+          _goodColor,
+          const Color(0xFFE8F5E9),
+          s.nowGood(name),
+          s.until(end),
+        ),
+      PanchangNowKind.nextGood => (
+          Icons.schedule_rounded,
+          const Color(0xFF8D5A00),
+          const Color(0xFFFFF3D6),
+          s.nextGood(name),
+          s.from(start),
+        ),
+    };
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  SURYA & CHANDRA CARD (Sun & Moon Timings)
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildSunMoonCard(
-    PanchangData panchang,
-    PanchangCity city,
-    String langCode,
-  ) {
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: MandirTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDDBC2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.wb_sunny_rounded,
-                color: Color(0xFFE65100),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'सूर्य व चंद्र काल — ${city.localizedName(langCode)}',
-                  style: GoogleFonts.mukta(
-                    fontSize: 18.5,
-                    fontWeight: FontWeight.bold,
-                    color: MandirTheme.textDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              // Surya Column
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8EC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFE0B2)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text('☀️', style: TextStyle(fontSize: 18)),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              'सूर्य (Surya)',
-                              style: GoogleFonts.mukta(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: const Color(0xFFBF360C),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      _buildTimingRow('सूर्योदय', panchang.sunrise),
-                      _buildTimingRow('सूर्यास्त', panchang.sunset),
-                      _buildTimingRow('सूर्य राशी', panchang.suryaRashi),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // Chandra Column
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F7FA),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFCFD8DC)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text('🌙', style: TextStyle(fontSize: 18)),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              'चंद्र (Chandra)',
-                              style: GoogleFonts.mukta(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: const Color(0xFF263238),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      _buildTimingRow('चंद्रोदय', panchang.moonrise),
-                      _buildTimingRow('चंद्रास्त', panchang.moonset),
-                      _buildTimingRow('चंद्र राशी', panchang.chandraRashi),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimingRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.mukta(
-                fontSize: 14,
-                color: MandirTheme.textMuted,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            value,
-            style: GoogleFonts.mukta(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: MandirTheme.textDark,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  THE FIVE LIMBS OF PANCHANG (पंच-अंग)
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildPanchangLimbsGrid(PanchangData panchang, String langCode) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: MandirTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDDBC2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.auto_stories_rounded,
-                color: MandirTheme.primarySaffron,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'पंचांग मुख्य ५ अंगे (Five Sacred Limbs)',
-                  style: GoogleFonts.mukta(
-                    fontSize: 18.5,
-                    fontWeight: FontWeight.bold,
-                    color: MandirTheme.textDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // 1. Tithi
-          _buildLimbTile(
-            number: '१',
-            title: 'तिथी (Tithi)',
-            value: '${panchang.paksha} ${panchang.tithi}',
-            subtitle: 'समाप्ती: ${panchang.tithiEndTime}',
-            icon: Icons.nightlight_outlined,
-            accentColor: const Color(0xFFC2410C),
-          ),
-          const SizedBox(height: 8),
-
-          // 2. Vaar
-          _buildLimbTile(
-            number: '२',
-            title: 'वार (Day)',
-            value: panchang.vaar,
-            subtitle: 'स्वामी ग्रह: ${panchang.vaarGraha}',
-            icon: Icons.calendar_today_rounded,
-            accentColor: const Color(0xFFB45309),
-          ),
-          const SizedBox(height: 8),
-
-          // 3. Nakshatra
-          _buildLimbTile(
-            number: '३',
-            title: 'नक्षत्र (Nakshatra)',
-            value: panchang.nakshatra,
-            subtitle: 'समाप्ती: ${panchang.nakshatraEndTime}',
-            icon: Icons.star_border_rounded,
-            accentColor: const Color(0xFF4338CA),
-          ),
-          const SizedBox(height: 8),
-
-          // 4. Yoga
-          _buildLimbTile(
-            number: '४',
-            title: 'योग (Yoga)',
-            value: panchang.yoga,
-            subtitle: 'समाप्ती: ${panchang.yogaEndTime}',
-            icon: Icons.all_inclusive_rounded,
-            accentColor: const Color(0xFF047857),
-          ),
-          const SizedBox(height: 8),
-
-          // 5. Karana
-          _buildLimbTile(
-            number: '५',
-            title: 'करण (Karana)',
-            value: panchang.karana,
-            subtitle: 'समाप्ती: ${panchang.karanaEndTime}',
-            icon: Icons.hourglass_bottom_rounded,
-            accentColor: const Color(0xFF6D28D9),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLimbTile({
-    required String number,
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color accentColor,
-  }) {
-    return Container(
+      key: const Key('panchang-now-banner'),
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF9),
+        color: bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF1E4D0)),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1.3),
       ),
       child: Row(
         children: [
-          // Number + Icon Badge
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(
-              child: Icon(icon, color: accentColor, size: 20),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Titles
+          Icon(icon, color: color, size: 30),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1208,575 +897,97 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                 Text(
                   title,
                   style: GoogleFonts.mukta(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: MandirTheme.textMuted,
+                    fontSize: 17.5,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    height: 1.2,
                   ),
                 ),
                 Text(
-                  value,
+                  sub,
                   style: GoogleFonts.mukta(
-                    fontSize: 18.5,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: _brownText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KeyTimeTile extends StatelessWidget {
+  const _KeyTimeTile({required this.label, required this.slot, required this.s});
+
+  final String label;
+  final PanchangSlot slot;
+  final PanchangStrings s;
+
+  @override
+  Widget build(BuildContext context) {
+    final good = slot.isGood;
+    final color = good ? _goodDark : _badDark;
+    final parts = slot.rangeParts;
+    final timeStyle = GoogleFonts.mukta(
+      fontSize: 18,
+      fontWeight: FontWeight.w800,
+      color: color,
+      height: 1.2,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: good ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: good ? const Color(0xFF81C784) : const Color(0xFFEF9A9A),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                good ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                color: color,
+                size: 20,
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.mukta(
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: MandirTheme.textDark,
+                    color: color,
                     height: 1.15,
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // Subtitle (End time / deity)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5EFE6),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              subtitle,
-              style: GoogleFonts.mukta(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF755034),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  SHUBH MUHURAT (शुभ मुहूर्त)
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildShubhMuhuratCard(PanchangData panchang, String langCode) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FDF9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC8E6C9), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4CAF50).withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.check_circle_outline_rounded,
-                color: Color(0xFF2E7D32),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'शुभ मुहूर्त (Auspicious Timings)',
-                  style: GoogleFonts.mukta(
-                    fontSize: 18.5,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1B5E20),
-                  ),
-                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-
-          // Highlighted Abhijit Muhurat
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF81C784)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.stars_rounded,
-                            color: Color(0xFF2E7D32),
-                            size: 22,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              'अभिजीत मुहूर्त',
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.mukta(
-                                fontSize: 17.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1B5E20),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2E7D32),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'सर्वोत्तम',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      panchang.abhijitMuhurat,
-                      style: GoogleFonts.mukta(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1B5E20),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'दिवसातील सर्वात मंगल मुहूर्त (नवीन कामांसाठी उत्तम)',
-                  style: GoogleFonts.mukta(
-                    fontSize: 13.5,
-                    color: const Color(0xFF33691E),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          _buildMuhuratLine('अमृत काळ', panchang.amritKaal, 'अमृतमयी सिद्धावस्था'),
-          _buildMuhuratLine(
-            'ब्रह्म मुहूर्त',
-            panchang.brahmaMuhurat,
-            'ध्यान, साधना व पूजेसाठी उत्तम',
-          ),
-          _buildMuhuratLine('विजय मुहूर्त', panchang.vijayaMuhurat, 'कार्यारंभ यशदायक'),
-          _buildMuhuratLine('गोधूलि मुहूर्त', panchang.godhuliMuhurat, 'संध्या दीप प्रज्वलन'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMuhuratLine(String label, String timing, String desc) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.mukta(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w700,
-                    color: MandirTheme.textDark,
-                  ),
-                ),
-                Text(
-                  desc,
-                  style: GoogleFonts.mukta(
-                    fontSize: 13,
-                    color: MandirTheme.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
+          const SizedBox(height: 4),
           Text(
-            timing,
+            s.slotName(slot.kind),
             style: GoogleFonts.mukta(
-              fontSize: 15.5,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF2E7D32),
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: _brownText,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  ASHUBH KAAL (अशुभ काळ - वर्ज्य वेळ)
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildAshubhKaalCard(PanchangData panchang, String langCode) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7F7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFFCDD2), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFE53935).withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.warning_amber_rounded,
-                color: Color(0xFFC62828),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'अशुभ काळ / वर्ज्य वेळ (Inauspicious Windows)',
-                  style: GoogleFonts.mukta(
-                    fontSize: 18.5,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFFB71C1C),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Prominent Rahu Kaal Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFEBEE),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFEF9A9A)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'राहु काळ (Rahu Kaal)',
-                        style: GoogleFonts.mukta(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFC62828),
-                        ),
-                      ),
-                      Text(
-                        'या काळात नवीन व शुभ कार्य टाळावे',
-                        style: GoogleFonts.mukta(
-                          fontSize: 13.5,
-                          color: const Color(0xFF755034),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  panchang.rahuKaal,
-                  style: GoogleFonts.mukta(
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFFB71C1C),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          _buildAshubhLine('यमगंड', panchang.yamaganda),
-          _buildAshubhLine('गुलिक काळ', panchang.gulikaKaal),
-          _buildAshubhLine('दुर्मुहूर्त', panchang.durmuhurat),
-          _buildAshubhLine('भद्रा काळ', panchang.bhadra),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAshubhLine(String label, String timing) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.mukta(
-                fontSize: 15.5,
-                fontWeight: FontWeight.w600,
-                color: MandirTheme.textDark,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            timing,
-            style: GoogleFonts.mukta(
-              fontSize: 15.5,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFFC62828),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  TODAY'S FESTIVAL & VRAT (सण, उत्सव व व्रत)
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildFestivalCard(PanchangData panchang, String langCode) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFF3E0),
-            Color(0xFFFFE0B2),
+          const Spacer(),
+          if (parts == null)
+            Text(slot.raw, style: timeStyle)
+          else ...[
+            Text(parts.$1, style: timeStyle),
+            Text('– ${parts.$2}', style: timeStyle),
           ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFFB74D), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: MandirTheme.primarySaffron.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.festival_rounded,
-                  color: MandirTheme.primarySaffron,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'आजचे सण, उत्सव व व्रत',
-                    style: GoogleFonts.mukta(
-                      fontSize: 18.5,
-                      fontWeight: FontWeight.bold,
-                      color: MandirTheme.secondaryMaroon,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Festival Title
-            Text(
-              panchang.festivalName,
-              style: GoogleFonts.mukta(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: MandirTheme.textDark,
-                height: 1.2,
-              ),
-            ),
-            if (panchang.vrat.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: MandirTheme.primarySaffron.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'व्रत: ${panchang.vrat}',
-                  style: GoogleFonts.mukta(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.bold,
-                    color: MandirTheme.primarySaffron,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-
-            // Description
-            Text(
-              panchang.festivalDescription,
-              style: GoogleFonts.mukta(
-                fontSize: 16,
-                color: const Color(0xFF5D4037),
-                height: 1.45,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  DAILY GUIDANCE & MANTRA
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildDailyGuidanceCard(PanchangData panchang, String langCode) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: MandirTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDDBC2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.lightbulb_outline_rounded,
-                color: MandirTheme.goldenAccent,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'आजचा मंत्र व मार्गदर्शन',
-                  style: GoogleFonts.mukta(
-                    fontSize: 18.5,
-                    fontWeight: FontWeight.bold,
-                    color: MandirTheme.textDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Daily Mantra Box
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF9EC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE8D3A7)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '॥ आजचा सिद्ध मंत्र ॥',
-                  style: GoogleFonts.mukta(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: MandirTheme.goldenAccent,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  panchang.dailyMantra,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.mukta(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    color: MandirTheme.secondaryMaroon,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                InkWell(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: panchang.dailyMantra));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('मंत्र कॉपी केला!'),
-                        duration: Duration(seconds: 1),
-                        backgroundColor: MandirTheme.primarySaffron,
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.copy_rounded,
-                          size: 15,
-                          color: MandirTheme.textMuted,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          'मंत्र कॉपी करा',
-                          style: GoogleFonts.mukta(
-                            fontSize: 13.5,
-                            color: MandirTheme.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          if (panchang.specialGuidance.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(
-                '💡 टीप: ${panchang.specialGuidance}',
-                style: GoogleFonts.mukta(
-                  fontSize: 15.5,
-                  fontStyle: FontStyle.italic,
-                  color: const Color(0xFF6D5545),
-                  height: 1.45,
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -1784,7 +995,526 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  MODAL SHEET FOR CITY SELECTION & GPS AUTO-DETECTION
+//  2. GOOD & BAD TIMES, IN ORDER OF THE DAY
+// ═════════════════════════════════════════════════════════════════════════════
+class _ScheduleCard extends StatelessWidget {
+  const _ScheduleCard({
+    required this.slots,
+    required this.s,
+    required this.nowMinute,
+  });
+
+  final List<PanchangSlot> slots;
+  final PanchangStrings s;
+
+  /// Only set when the selected date is today.
+  final int? nowMinute;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(Icons.schedule_rounded, s.scheduleTitle),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: _goodColor, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                s.good,
+                style: GoogleFonts.mukta(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: _goodColor,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Icon(Icons.cancel_rounded, color: _badColor, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                s.avoid,
+                style: GoogleFonts.mukta(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: _badColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final slot in slots) _slotRow(slot),
+        ],
+      ),
+    );
+  }
+
+  Widget _slotRow(PanchangSlot slot) {
+    final good = slot.isGood;
+    final color = good ? _goodColor : _badColor;
+    final minute = nowMinute;
+    final window = slot.window;
+    final isNow = minute != null && window != null && window.contains(minute);
+    final isOver = minute != null && window != null && window.isOverAt(minute);
+
+    return Opacity(
+      opacity: isOver ? 0.5 : 1,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: good ? _goodBg : _badBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isNow ? color : color.withValues(alpha: 0.18),
+            width: isNow ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              good ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              color: color,
+              size: 26,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        s.slotName(slot.kind),
+                        style: GoogleFonts.mukta(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: MandirTheme.textDark,
+                          height: 1.2,
+                        ),
+                      ),
+                      if (isNow)
+                        _Tag(s.now, color: color)
+                      else if (isOver)
+                        _Tag(s.over, color: MandirTheme.textMuted, filled: false)
+                      else if (slot.isBest)
+                        _Tag(good ? s.best : s.most, color: color),
+                    ],
+                  ),
+                  Text(
+                    s.slotMeaning(slot.kind),
+                    style: GoogleFonts.mukta(
+                      fontSize: 14,
+                      color: MandirTheme.textMuted,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            _TimeRange(slot, color: good ? _goodDark : _badDark),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  3. FESTIVAL, VRAT & MANTRA
+// ═════════════════════════════════════════════════════════════════════════════
+class _FestivalCard extends StatelessWidget {
+  const _FestivalCard({required this.panchang, required this.s});
+
+  final PanchangData panchang;
+  final PanchangStrings s;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF6E8), Color(0xFFFFE9C7)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFB74D), width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(Icons.festival_rounded, s.festivalTitle),
+          if (panchang.festivalName.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              panchang.festivalName,
+              style: GoogleFonts.mukta(
+                fontSize: 21,
+                fontWeight: FontWeight.w800,
+                color: MandirTheme.textDark,
+                height: 1.2,
+              ),
+            ),
+          ],
+          if (panchang.vrat.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: MandirTheme.primarySaffron.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '${s.vrat}: ${panchang.vrat}',
+                style: GoogleFonts.mukta(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: MandirTheme.primarySaffron,
+                ),
+              ),
+            ),
+          ],
+          if (panchang.festivalDescription.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              panchang.festivalDescription,
+              style: GoogleFonts.mukta(
+                fontSize: 16.5,
+                color: const Color(0xFF5D4037),
+                height: 1.45,
+              ),
+            ),
+          ],
+          if (panchang.dailyMantra.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _mantraBox(context),
+          ],
+          if (panchang.specialGuidance.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              '💡 ${s.tip}: ${panchang.specialGuidance}',
+              style: GoogleFonts.mukta(
+                fontSize: 16,
+                color: const Color(0xFF6D5545),
+                height: 1.45,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _mantraBox(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8D3A7)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            s.mantra,
+            style: GoogleFonts.mukta(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: MandirTheme.goldenAccent,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            panchang.dailyMantra,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.mukta(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: MandirTheme.secondaryMaroon,
+            ),
+          ),
+          const SizedBox(height: 4),
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: panchang.dailyMantra));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(s.mantraCopied),
+                  duration: const Duration(seconds: 1),
+                  backgroundColor: MandirTheme.primarySaffron,
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy_rounded, size: 16),
+            label: Text(s.copyMantra, style: GoogleFonts.mukta(fontSize: 14.5)),
+            style: TextButton.styleFrom(foregroundColor: MandirTheme.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  4. SUN & MOON
+// ═════════════════════════════════════════════════════════════════════════════
+class _SunMoonCard extends StatelessWidget {
+  const _SunMoonCard({required this.panchang, required this.s});
+
+  final PanchangData panchang;
+  final PanchangStrings s;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget tile(String emoji, String label, String value, Color bg) {
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.mukta(
+                        fontSize: 14.5,
+                        color: MandirTheme.textMuted,
+                        height: 1.1,
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        value,
+                        style: GoogleFonts.mukta(
+                          fontSize: 17.5,
+                          fontWeight: FontWeight.w800,
+                          color: MandirTheme.textDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    const sunBg = Color(0xFFFFF4E0);
+    const moonBg = Color(0xFFF0F4F8);
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(
+            Icons.wb_sunny_rounded,
+            s.sunMoonTitle,
+            color: const Color(0xFFE65100),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              tile('🌅', s.sunrise, panchang.sunrise, sunBg),
+              const SizedBox(width: 10),
+              tile('🌇', s.sunset, panchang.sunset, sunBg),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              tile('🌙', s.moonrise, panchang.moonrise, moonBg),
+              const SizedBox(width: 10),
+              tile('🌘', s.moonset, panchang.moonset, moonBg),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  5. FULL PANCHANG (one tap away)
+// ═════════════════════════════════════════════════════════════════════════════
+class _FullPanchangCard extends StatelessWidget {
+  const _FullPanchangCard({required this.panchang, required this.s});
+
+  final PanchangData panchang;
+  final PanchangStrings s;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = panchang;
+    return Material(
+      color: MandirTheme.surfaceWhite,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: _cardBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: const Key('panchang-full-details'),
+          tilePadding: const EdgeInsets.fromLTRB(14, 6, 10, 6),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          iconColor: MandirTheme.primarySaffron,
+          collapsedIconColor: MandirTheme.primarySaffron,
+          leading: const Icon(
+            Icons.auto_stories_rounded,
+            color: MandirTheme.primarySaffron,
+            size: 26,
+          ),
+          title: Text(
+            s.detailsTitle,
+            style: GoogleFonts.mukta(
+              fontSize: 19,
+              fontWeight: FontWeight.bold,
+              color: MandirTheme.textDark,
+            ),
+          ),
+          subtitle: Text(
+            s.detailsHint,
+            style: GoogleFonts.mukta(
+              fontSize: 14,
+              color: MandirTheme.textMuted,
+            ),
+          ),
+          children: [
+            _section(s.limbsSection),
+            _row(s.tithi, s.tithiMeaning, '${p.paksha} ${p.tithi}', p.tithiEndTime),
+            _row(s.vaar, s.vaarMeaning(p.vaarGraha), p.vaar, null),
+            _row(s.nakshatra, s.nakshatraMeaning, p.nakshatra, p.nakshatraEndTime),
+            _row(s.yoga, s.yogaMeaning, p.yoga, p.yogaEndTime),
+            _row(s.karana, s.karanaMeaning, p.karana, p.karanaEndTime),
+            _section(s.rashiSection),
+            _row(s.suryaRashi, null, p.suryaRashi, null),
+            _row(s.chandraRashi, null, p.chandraRashi, null),
+            _section(s.yearSection),
+            _row(s.maas, null, p.maas, null),
+            _row(s.paksha, null, p.paksha, null),
+            _row(s.vikramSamvat, null, p.vikramSamvat, null),
+            _row(s.shakaSamvat, null, p.shakaSamvat, null),
+            _row(s.samvatsara, null, p.samvatsara, null),
+            _row(s.ritu, null, p.ritu, null),
+            _row(s.ayana, null, p.ayana, null),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _section(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 4),
+      child: Row(
+        children: [
+          Text(
+            text,
+            style: GoogleFonts.mukta(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: MandirTheme.primarySaffron,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Expanded(child: Divider(color: Color(0xFFEBD9BD))),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String label, String? meaning, String value, String? ends) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.mukta(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: MandirTheme.textDark,
+                    height: 1.2,
+                  ),
+                ),
+                if (meaning != null)
+                  Text(
+                    meaning,
+                    style: GoogleFonts.mukta(
+                      fontSize: 13.5,
+                      color: MandirTheme.textMuted,
+                      height: 1.2,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: GoogleFonts.mukta(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w800,
+                    color: MandirTheme.textDark,
+                    height: 1.2,
+                  ),
+                ),
+                if (ends != null && ends.isNotEmpty)
+                  Text(
+                    ends,
+                    textAlign: TextAlign.end,
+                    style: GoogleFonts.mukta(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: _brownText,
+                      height: 1.2,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  CITY SELECTION SHEET
 // ═════════════════════════════════════════════════════════════════════════════
 class _CitySelectionSheet extends ConsumerStatefulWidget {
   final PanchangCity currentCity;
@@ -1805,6 +1535,8 @@ class _CitySelectionSheetState extends ConsumerState<_CitySelectionSheet> {
   bool _isLocating = false;
   String _filter = '';
 
+  PanchangStrings get s => PanchangStrings(widget.langCode);
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -1822,7 +1554,9 @@ class _CitySelectionSheetState extends ConsumerState<_CitySelectionSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '📍 स्थान शोधले: ${detected.localizedName(widget.langCode)} (${detected.stateOrCountry})',
+              s.locationFound(
+                '${detected.localizedName(widget.langCode)} (${detected.stateOrCountry})',
+              ),
             ),
             backgroundColor: MandirTheme.secondaryMaroon,
             duration: const Duration(seconds: 2),
@@ -1833,8 +1567,8 @@ class _CitySelectionSheetState extends ConsumerState<_CitySelectionSheet> {
       if (mounted) {
         setState(() => _isLocating = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('स्थान शोधण्यात अडचण आली. कृपया सूचीमधून निवडा.'),
+          SnackBar(
+            content: Text(s.locationFailed),
             backgroundColor: MandirTheme.secondaryMaroon,
           ),
         );
@@ -1860,236 +1594,223 @@ class _CitySelectionSheetState extends ConsumerState<_CitySelectionSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         clipBehavior: Clip.antiAlias,
         child: Column(
-        children: [
-          // Drag Handle
-          const SizedBox(height: 10),
-          Container(
-            width: 42,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.location_city_rounded,
-                  color: MandirTheme.primarySaffron,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  widget.langCode == 'en'
-                      ? 'Select City / Location'
-                      : 'स्थान / शहर निवडा',
-                  style: GoogleFonts.mukta(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: MandirTheme.textDark,
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.location_city_rounded,
+                    color: MandirTheme.primarySaffron,
+                    size: 22,
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Use Current Location (GPS) Button
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: InkWell(
-              onTap: _isLocating ? null : _useCurrentLocation,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF81C784)),
-                ),
-                child: Row(
-                  children: [
-                    _isLocating
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Color(0xFF2E7D32),
-                            ),
-                          )
-                        : const Icon(
-                            Icons.my_location_rounded,
-                            color: Color(0xFF2E7D32),
-                            size: 20,
-                          ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.langCode == 'en'
-                                ? 'Use Current Location (GPS)'
-                                : 'सध्याचे स्थान वापरा (GPS)',
-                            style: GoogleFonts.mukta(
-                              fontSize: 16.5,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF1B5E20),
-                            ),
-                          ),
-                          Text(
-                            widget.langCode == 'en'
-                                ? 'Auto-detect exact sunrise, sunset & muhurat'
-                                : 'स्थानिक सूर्योदय, सूर्यास्त व मुहूर्त स्वयंचलित सेट करा',
-                            style: GoogleFonts.mukta(
-                              fontSize: 13.5,
-                              color: const Color(0xFF2E7D32),
-                            ),
-                          ),
-                        ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      s.selectCity,
+                      style: GoogleFonts.mukta(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: MandirTheme.textDark,
                       ),
                     ),
-                    const Icon(
-                      Icons.chevron_right,
-                      size: 18,
-                      color: Color(0xFF2E7D32),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) => setState(() => _filter = val.trim()),
-              style: const TextStyle(fontSize: 15.5),
-              decoration: InputDecoration(
-                hintText: widget.langCode == 'en'
-                    ? 'Search city (e.g. Pune, Mumbai, Kashi)...'
-                    : 'शहर शोधा (उदा. पुणे, मुंबई, काशी, अयोध्या)...',
-                prefixIcon: const Icon(
-                  Icons.search,
-                  size: 20,
-                  color: MandirTheme.textMuted,
-                ),
-                suffixIcon: _filter.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _filter = '');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE0CEB5)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE0CEB5)),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Cities List
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-              itemCount: filteredCities.length,
-              separatorBuilder: (context, index) => const Divider(
-                color: Color(0xFFF1E4D0),
-                height: 1,
-              ),
-              itemBuilder: (context, index) {
-                final city = filteredCities[index];
-                final isSelected = city.id == widget.currentCity.id;
-
-                return ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  leading: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSelected
-                          ? MandirTheme.primarySaffron
-                          : const Color(0xFFF5EBE1),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: InkWell(
+                onTap: _isLocating ? null : _useCurrentLocation,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
                     ),
-                    child: Center(
-                      child: Icon(
-                        Icons.location_on_rounded,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF81C784)),
+                  ),
+                  child: Row(
+                    children: [
+                      _isLocating
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: _goodColor,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.my_location_rounded,
+                              color: _goodColor,
+                              size: 20,
+                            ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              s.useGps,
+                              style: GoogleFonts.mukta(
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.bold,
+                                color: _goodDark,
+                              ),
+                            ),
+                            Text(
+                              s.useGpsHint,
+                              style: GoogleFonts.mukta(
+                                fontSize: 13.5,
+                                color: _goodColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right,
                         size: 18,
-                        color: isSelected ? Colors.white : MandirTheme.primarySaffron,
+                        color: _goodColor,
                       ),
-                    ),
+                    ],
                   ),
-                  title: Text(
-                    city.localizedName(widget.langCode),
-                    style: GoogleFonts.mukta(
-                      fontSize: 18,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w600,
-                      color: isSelected
-                          ? MandirTheme.primarySaffron
-                          : MandirTheme.textDark,
-                    ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) => setState(() => _filter = val.trim()),
+                style: const TextStyle(fontSize: 15.5),
+                decoration: InputDecoration(
+                  hintText: s.searchCity,
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 20,
+                    color: MandirTheme.textMuted,
                   ),
-                  subtitle: Text(
-                    '${city.stateOrCountry} • ${city.latitude.toStringAsFixed(2)}°N, ${city.longitude.toStringAsFixed(2)}°E',
-                    style: GoogleFonts.mukta(
-                      fontSize: 14,
-                      color: MandirTheme.textMuted,
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? const Icon(
-                          Icons.check_circle_rounded,
-                          color: MandirTheme.primarySaffron,
-                          size: 20,
+                  suffixIcon: _filter.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _filter = '');
+                          },
                         )
                       : null,
-                  onTap: () {
-                    ref.read(selectedPanchangCityProvider.notifier).state =
-                        city;
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '📍 शहर: ${city.localizedName(widget.langCode)} निवडले!',
-                        ),
-                        backgroundColor: MandirTheme.secondaryMaroon,
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                );
-              },
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0CEB5)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0CEB5)),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                itemCount: filteredCities.length,
+                separatorBuilder: (context, index) => const Divider(
+                  color: Color(0xFFF1E4D0),
+                  height: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final city = filteredCities[index];
+                  final isSelected = city.id == widget.currentCity.id;
+
+                  return ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    leading: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected
+                            ? MandirTheme.primarySaffron
+                            : const Color(0xFFF5EBE1),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.location_on_rounded,
+                          size: 18,
+                          color: isSelected
+                              ? Colors.white
+                              : MandirTheme.primarySaffron,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      city.localizedName(widget.langCode),
+                      style: GoogleFonts.mukta(
+                        fontSize: 18,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w600,
+                        color: isSelected
+                            ? MandirTheme.primarySaffron
+                            : MandirTheme.textDark,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${city.stateOrCountry} • ${city.latitude.toStringAsFixed(2)}°N, ${city.longitude.toStringAsFixed(2)}°E',
+                      style: GoogleFonts.mukta(
+                        fontSize: 14,
+                        color: MandirTheme.textMuted,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            color: MandirTheme.primarySaffron,
+                            size: 20,
+                          )
+                        : null,
+                    onTap: () {
+                      ref.read(selectedPanchangCityProvider.notifier).state =
+                          city;
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            s.citySelected(city.localizedName(widget.langCode)),
+                          ),
+                          backgroundColor: MandirTheme.secondaryMaroon,
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

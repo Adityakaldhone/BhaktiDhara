@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:math';
@@ -18,7 +19,12 @@ class BackendService {
     defaultValue: 'http://46.225.142.210',
   );
 
+  /// Keep in sync with `version:` in pubspec.yaml.
+  static const appVersion = '1.0.4';
+
   static const _anonIdKey = 'anon_device_id';
+  static const _premiumKey = 'is_bhaktidhara_premium_member';
+  static const _adminGrantedVipKey = 'vip_granted_by_admin';
 
   /// Generates or retrieves a persistent, randomized 128-bit UUID for the device.
   /// Collects ZERO personal information (no phone, no email, no name, no Google account).
@@ -68,10 +74,19 @@ class BackendService {
     } catch (_) {}
   }
 
+  static String get _platformName {
+    if (kIsWeb) return 'web';
+    try {
+      if (Platform.isIOS) return 'ios';
+    } catch (_) {}
+    return 'android';
+  }
+
   /// Sends a lightweight heartbeat to track downloads, DAU, and city analytics.
+  /// When [isVip] is omitted, the locally stored premium status is reported.
   static Future<void> sendAnonymousPing({
     required String locale,
-    bool isVip = false,
+    bool? isVip,
     String? userName,
     String? city,
   }) async {
@@ -88,34 +103,118 @@ class BackendService {
         await prefs.setString(_cachedCityKey, city.trim());
       }
 
-      String platformName = 'android';
-      if (kIsWeb) {
-        platformName = 'web';
-      } else {
-        try {
-          if (Platform.isIOS) platformName = 'ios';
-          if (Platform.isAndroid) platformName = 'android';
-        } catch (_) {}
-      }
+      final adminGranted = prefs.getBool(_adminGrantedVipKey) ?? false;
+      final storedPremium = prefs.getBool(_premiumKey) ?? false;
+      // Only report paid VIP; admin-granted VIP is tracked separately on the server.
+      final effectiveVip = isVip ?? (storedPremium && !adminGranted);
 
       final url = Uri.parse('${backendUrl.trim()}/api/v1/telemetry/ping');
-      await http
+      final response = await http
           .post(
             url,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'deviceId': deviceId,
-              'platform': platformName,
-              'appVersion': '1.0.4',
+              'platform': _platformName,
+              'appVersion': appVersion,
               'locale': locale,
-              'isVip': isVip,
+              'isVip': effectiveVip,
               if (effectiveName.isNotEmpty) 'userName': effectiveName,
               if (effectiveCity.isNotEmpty) 'city': effectiveCity,
             }),
           )
           .timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          await _applyAdminVipGrant(prefs, decoded['vipGranted'] == true);
+        }
+      }
     } catch (_) {
       // Non-blocking fire-and-forget
+    }
+  }
+
+  /// Applies complimentary VIP granted from the admin dashboard.
+  /// Revoking only removes premium that the admin granted, never a paid unlock.
+  static Future<void> _applyAdminVipGrant(SharedPreferences prefs, bool granted) async {
+    final wasGranted = prefs.getBool(_adminGrantedVipKey) ?? false;
+    final hasPremium = prefs.getBool(_premiumKey) ?? false;
+    if (granted && !hasPremium) {
+      await prefs.setBool(_premiumKey, true);
+      await prefs.setBool(_adminGrantedVipKey, true);
+    } else if (!granted && wasGranted) {
+      await prefs.setBool(_premiumKey, false);
+      await prefs.setBool(_adminGrantedVipKey, false);
+    }
+  }
+
+  /// Registers this device's FCM token so the admin dashboard can target it.
+  static Future<void> registerPushToken(String token, {required bool enabled}) async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return;
+    try {
+      final deviceId = await getAnonymousDeviceId();
+      await http
+          .post(
+            Uri.parse('${backendUrl.trim()}/api/v1/telemetry/push-token'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'deviceId': deviceId,
+              'token': token,
+              'enabled': enabled,
+              'platform': _platformName,
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
+  }
+
+  static final bool _isFlutterTest = () {
+    if (kIsWeb) return false;
+    try {
+      return Platform.environment.containsKey('FLUTTER_TEST');
+    } catch (_) {
+      return false;
+    }
+  }();
+
+  static final List<Map<String, dynamic>> _pendingEvents = [];
+  static Timer? _flushTimer;
+
+  /// Records an anonymous feature-usage event (e.g. `aarti_open`) for the admin dashboard.
+  /// Events are batched and sent a few seconds later; failures are silently dropped.
+  static void trackEvent(String name, {String? item, Map<String, dynamic>? props}) {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return;
+    _pendingEvents.add({
+      'name': name,
+      'props': {...?props, if (item != null && item.isNotEmpty) 'item': item},
+      'ts': DateTime.now().toUtc().toIso8601String(),
+    });
+    if (_pendingEvents.length >= 20) {
+      _flushEvents();
+    } else {
+      _flushTimer ??= Timer(const Duration(seconds: 5), _flushEvents);
+    }
+  }
+
+  static Future<void> _flushEvents() async {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    if (_pendingEvents.isEmpty) return;
+    final batch = List<Map<String, dynamic>>.from(_pendingEvents);
+    _pendingEvents.clear();
+    try {
+      final deviceId = await getAnonymousDeviceId();
+      await http
+          .post(
+            Uri.parse('${backendUrl.trim()}/api/v1/telemetry/event'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'deviceId': deviceId, 'events': batch}),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Analytics must never affect the devotee's experience.
     }
   }
 

@@ -1,7 +1,14 @@
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
-from app.database import save_cached_horoscope, save_cached_panchang
+from app.database import (
+    save_cached_horoscope,
+    save_cached_panchang,
+    start_job_run,
+    finish_job_run,
+    increment_api_stat,
+    prune_old_events,
+)
 from app.gemini_service import generate_horoscope, generate_panchang
 
 logger = logging.getLogger("bhaktidhara.cron")
@@ -39,6 +46,8 @@ async def run_daily_precache_job():
     Runs at 00:05 AM IST every morning.
     """
     logger.info("Starting Daily Vedic Precaching Job...")
+    run_id = await start_job_run("nightly_precache")
+    ok = failed = 0
 
     # Calculate IST date (UTC+5:30)
     ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
@@ -64,9 +73,11 @@ async def run_daily_precache_job():
                     data=data,
                 )
                 logger.info(f"Cached Horoscope: {rashi_id} [{lang}] for {today_str}")
+                ok += 1
                 # Slight throttle to prevent sudden burst
                 await asyncio.sleep(0.5)
             except Exception as e:
+                failed += 1
                 logger.error(f"Error caching horoscope {rashi_id} [{lang}]: {e}")
 
     # 2. Pre-generate Panchang for key cities
@@ -86,8 +97,21 @@ async def run_daily_precache_job():
                     data=data,
                 )
                 logger.info(f"Cached Panchang: {city['id']} [{lang}] for {today_str}")
+                ok += 1
                 await asyncio.sleep(0.5)
             except Exception as e:
+                failed += 1
                 logger.error(f"Error caching panchang {city['id']} [{lang}]: {e}")
 
-    logger.info("Daily Vedic Precaching Job Finished Successfully!")
+    try:
+        pruned = await prune_old_events()
+    except Exception as e:
+        pruned = 0
+        logger.error(f"Error pruning old events: {e}")
+
+    await increment_api_stat("precache_gemini", ok)
+    if failed:
+        await increment_api_stat("gemini_error", failed)
+    status = "success" if failed == 0 else ("partial" if ok else "failed")
+    await finish_job_run(run_id, status, f"{ok} cached, {failed} failed, {pruned} old events pruned")
+    logger.info(f"Daily Vedic Precaching Job finished: {ok} ok, {failed} failed.")

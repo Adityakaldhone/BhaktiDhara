@@ -12,6 +12,7 @@ services:
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.1-flash-lite}
       - ADMIN_SECRET=${ADMIN_SECRET:-mandir_secret_2026}
       - DB_PATH=/app/data/bhaktidhara.db
+      - FIREBASE_SERVICE_ACCOUNT=/app/data/firebase-service-account.json
     volumes:
       - ./data:/app/data
     healthcheck:

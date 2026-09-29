@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/premium_provider.dart';
+import '../../services/backend_service.dart';
 
 /// Wraps any widget: if user is free, the child is blurred and a premium
 /// upgrade banner is overlaid. If premium, just shows the child as-is.
@@ -191,6 +192,7 @@ class _PremiumUnlockCard extends ConsumerWidget {
 
 /// Beautiful full-screen premium upgrade bottom sheet
 void _showPremiumSheet(BuildContext context, WidgetRef ref) {
+  BackendService.trackEvent('paywall_view', item: 'premium_gate');
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,

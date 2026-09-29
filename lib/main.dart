@@ -8,8 +8,10 @@ import 'l10n/app_localizations.dart';
 
 import 'core/theme/theme.dart';
 import 'presentation/providers/locale_provider.dart';
+import 'presentation/providers/premium_provider.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'services/backend_service.dart';
+import 'services/push_notification_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +19,7 @@ void main() {
     MobileAds.instance.initialize();
   }
   // Send anonymous install/active user heartbeat in background (fire-and-forget)
-  BackendService.sendAnonymousPing(locale: 'mr');
+  BackendService.sendAnonymousPing(locale: getInitialDeviceLocale().languageCode);
   runApp(
     // ProviderScope is required for Riverpod
     const ProviderScope(
@@ -26,16 +28,42 @@ void main() {
   );
 }
 
-class NityaAartiApp extends ConsumerWidget {
+class NityaAartiApp extends ConsumerStatefulWidget {
   const NityaAartiApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NityaAartiApp> createState() => _NityaAartiAppState();
+}
+
+class _NityaAartiAppState extends ConsumerState<NityaAartiApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await PushNotificationService.init();
+      if (!mounted) return;
+      _syncPushTopics();
+      PushNotificationService.handlePendingTap();
+    });
+  }
+
+  void _syncPushTopics() {
+    PushNotificationService.syncTopics(
+      locale: ref.read(localeProvider).languageCode,
+      isVip: ref.read(isPremiumProvider),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentLocale = ref.watch(localeProvider);
+    ref.listen(localeProvider, (_, _) => _syncPushTopics());
+    ref.listen(isPremiumProvider, (_, _) => _syncPushTopics());
 
     return MaterialApp(
       title: 'Digital Mandir',
       debugShowCheckedModeBanner: false,
+      navigatorKey: PushNotificationService.navigatorKey,
       theme: MandirTheme.lightTheme,
       locale: currentLocale,
       localizationsDelegates: const [
