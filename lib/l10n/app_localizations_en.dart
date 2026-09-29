@@ -61,11 +61,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navHome => 'Home';
 
   @override
-  String get navFavorites => 'Favorites';
+  String get navHoroscope => 'Horoscope';
 
   @override
   String get navLanguage => 'Language';
 
   @override
-  String get navMore => 'More';
+  String get navPanchang => 'Panchang';
+
+  @override
+  String get searchNoResults => 'No Aartis found matching your search.';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String get voiceSearch => 'Voice Search';
+
+  @override
+  String get listening => 'Listening...';
+
+  @override
+  String get speakNow => 'Speak now...';
+
+  @override
+  String get speechNotAvailable =>
+      'Voice search is not available on this device';
+
+  @override
+  String get speechError => 'Could not recognize speech. Please try again.';
+
+  @override
+  String get micPermissionRequired =>
+      'Microphone permission is required for voice search.';
+
+  @override
+  String get deityGanesha => 'Ganesha';
+
+  @override
+  String get deityHanuman => 'Hanuman';
+
+  @override
+  String get deityShiva => 'Shiva';
+
+  @override
+  String get deityDurga => 'Durga';
+
+  @override
+  String get navBhajan => 'Bhajan';
+
+  @override
+  String get bhajanSangrah => 'Bhajan & Kirtan';
+
+  @override
+  String get bhajanSubtitle => 'Sacred Hindu Bhajans & Divine Kirtans';
+
+  @override
+  String get bhajanSearchHint => 'Search Bhajan, Kirtan, Singer...';
+
+  @override
+  String get noBhajanFound => 'No Bhajans found matching your search.';
 }

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  bhaktidhara-api:
+    build: .
+    container_name: bhaktidhara_backend
+    restart: always
+    ports:
+      - "8080:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      - ADMIN_SECRET=${ADMIN_SECRET:-mandir_secret_2026}
+      - DB_PATH=/app/data/bhaktidhara.db
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

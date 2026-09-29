@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -8,10 +9,15 @@ import 'l10n/app_localizations.dart';
 import 'core/theme/theme.dart';
 import 'presentation/providers/locale_provider.dart';
 import 'presentation/screens/dashboard_screen.dart';
+import 'services/backend_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  MobileAds.instance.initialize();
+  if (!kIsWeb) {
+    MobileAds.instance.initialize();
+  }
+  // Send anonymous install/active user heartbeat in background (fire-and-forget)
+  BackendService.sendAnonymousPing(locale: 'mr');
   runApp(
     // ProviderScope is required for Riverpod
     const ProviderScope(

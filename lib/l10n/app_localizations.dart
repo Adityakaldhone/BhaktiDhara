@@ -202,11 +202,11 @@ abstract class AppLocalizations {
   /// **'Home'**
   String get navHome;
 
-  /// No description provided for @navFavorites.
+  /// No description provided for @navHoroscope.
   ///
   /// In en, this message translates to:
-  /// **'Favorites'**
-  String get navFavorites;
+  /// **'Horoscope'**
+  String get navHoroscope;
 
   /// No description provided for @navLanguage.
   ///
@@ -214,11 +214,113 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get navLanguage;
 
-  /// No description provided for @navMore.
+  /// No description provided for @navPanchang.
   ///
   /// In en, this message translates to:
-  /// **'More'**
-  String get navMore;
+  /// **'Panchang'**
+  String get navPanchang;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No Aartis found matching your search.'**
+  String get searchNoResults;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// No description provided for @voiceSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice Search'**
+  String get voiceSearch;
+
+  /// No description provided for @listening.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening...'**
+  String get listening;
+
+  /// No description provided for @speakNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Speak now...'**
+  String get speakNow;
+
+  /// No description provided for @speechNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice search is not available on this device'**
+  String get speechNotAvailable;
+
+  /// No description provided for @speechError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not recognize speech. Please try again.'**
+  String get speechError;
+
+  /// No description provided for @micPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission is required for voice search.'**
+  String get micPermissionRequired;
+
+  /// No description provided for @deityGanesha.
+  ///
+  /// In en, this message translates to:
+  /// **'Ganesha'**
+  String get deityGanesha;
+
+  /// No description provided for @deityHanuman.
+  ///
+  /// In en, this message translates to:
+  /// **'Hanuman'**
+  String get deityHanuman;
+
+  /// No description provided for @deityShiva.
+  ///
+  /// In en, this message translates to:
+  /// **'Shiva'**
+  String get deityShiva;
+
+  /// No description provided for @deityDurga.
+  ///
+  /// In en, this message translates to:
+  /// **'Durga'**
+  String get deityDurga;
+
+  /// No description provided for @navBhajan.
+  ///
+  /// In en, this message translates to:
+  /// **'Bhajan'**
+  String get navBhajan;
+
+  /// No description provided for @bhajanSangrah.
+  ///
+  /// In en, this message translates to:
+  /// **'Bhajan & Kirtan'**
+  String get bhajanSangrah;
+
+  /// No description provided for @bhajanSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sacred Hindu Bhajans & Divine Kirtans'**
+  String get bhajanSubtitle;
+
+  /// No description provided for @bhajanSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Bhajan, Kirtan, Singer...'**
+  String get bhajanSearchHint;
+
+  /// No description provided for @noBhajanFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No Bhajans found matching your search.'**
+  String get noBhajanFound;
 }
 
 class _AppLocalizationsDelegate

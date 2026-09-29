@@ -47,6 +47,15 @@ class AartiItem {
   /// Content type tags (e.g. ['Aarti', 'Chalisa', 'Bhajan']).
   final List<String> tags;
 
+  /// Short description / spiritual significance (Devanagari Marathi).
+  final String aboutMr;
+
+  /// Short description (Hindi).
+  final String aboutHi;
+
+  /// Short description (English).
+  final String about;
+
   const AartiItem({
     required this.id,
     required this.title,
@@ -63,6 +72,9 @@ class AartiItem {
     required this.accentColorHex,
     required this.deityEmoji,
     this.tags = const ['Aarti'],
+    this.about = '',
+    this.aboutHi = '',
+    this.aboutMr = '',
   });
 
   /// Returns the localized title based on locale code.
@@ -86,6 +98,18 @@ class AartiItem {
         return deityMr.isNotEmpty ? deityMr : deity;
       default:
         return deity;
+    }
+  }
+
+  /// Returns the localized description / about text based on locale code.
+  String localizedAbout(String localeCode) {
+    switch (localeCode) {
+      case 'hi':
+        return aboutHi.isNotEmpty ? aboutHi : (aboutMr.isNotEmpty ? aboutMr : about);
+      case 'mr':
+        return aboutMr.isNotEmpty ? aboutMr : (aboutHi.isNotEmpty ? aboutHi : about);
+      default:
+        return about.isNotEmpty ? about : (aboutMr.isNotEmpty ? aboutMr : aboutHi);
     }
   }
 

@@ -59,12 +59,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>BhaktiDhara requires microphone access to enable voice search for Aartis, Chalisas, and prayers.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>BhaktiDhara uses speech recognition to help you search for devotional prayers using your voice.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>BhaktiDhara uses your location to compute accurate Vedic sunrise, sunset, and muhurat timings for your city.</string>
 </dict>
 </plist>

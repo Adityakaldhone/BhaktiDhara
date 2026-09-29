@@ -36,6 +36,12 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
   google_fonts: ^8.2.1
   change_app_package_name: ^1.5.0
+  speech_to_text: ^7.5.0
+  google_generative_ai: ^0.4.7
+  http: ^1.6.0
+  geolocator: ^14.0.3
+  shared_preferences: ^2.5.4
+  webview_flutter_web: ^0.2.3+4
 
 dev_dependencies:
   flutter_test:
@@ -49,6 +55,9 @@ flutter:
     - assets/devotional_catalog.json
     - assets/app_logo/logo.png
     - assets/decorations/
+    - assets/aarti_screen/
+    - assets/aarti_list/
+    - assets/sounds/
     - shorebird.yaml
     # Add ghanti.mp3 and shankh.mp3 under assets/sounds/ before production build
     # - assets/sounds/ghanti.mp3

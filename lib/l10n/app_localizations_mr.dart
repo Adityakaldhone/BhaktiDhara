@@ -61,11 +61,64 @@ class AppLocalizationsMr extends AppLocalizations {
   String get navHome => 'मुख्य';
 
   @override
-  String get navFavorites => 'आवडते';
+  String get navHoroscope => 'राशीभविष्य';
 
   @override
   String get navLanguage => 'भाषा';
 
   @override
-  String get navMore => 'अधिक';
+  String get navPanchang => 'पंचांग';
+
+  @override
+  String get searchNoResults =>
+      'तुमच्या शोधाशी जुळणारी कोणतीही आरती आढळली नाही.';
+
+  @override
+  String get clearSearch => 'शोध साफ करा';
+
+  @override
+  String get voiceSearch => 'व्हॉइस शोध';
+
+  @override
+  String get listening => 'ऐकत आहे...';
+
+  @override
+  String get speakNow => 'आता बोला...';
+
+  @override
+  String get speechNotAvailable => 'या डिव्हाइसवर व्हॉइस शोध उपलब्ध नाही';
+
+  @override
+  String get speechError => 'आवाज ओळखता आला नाही. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get micPermissionRequired =>
+      'व्हॉइस शोधासाठी मायक्रोफोन परवानगी आवश्यक आहे.';
+
+  @override
+  String get deityGanesha => 'गणपती बाप्पा';
+
+  @override
+  String get deityHanuman => 'हनुमान';
+
+  @override
+  String get deityShiva => 'महादेव / शिव';
+
+  @override
+  String get deityDurga => 'दुर्गा देवी';
+
+  @override
+  String get navBhajan => 'भजन';
+
+  @override
+  String get bhajanSangrah => 'भजन आणि कीर्तन';
+
+  @override
+  String get bhajanSubtitle => 'पवित्र हिंदू भजने आणि नामस्मरण';
+
+  @override
+  String get bhajanSearchHint => 'शोधा भजन, कीर्तन, गायक...';
+
+  @override
+  String get noBhajanFound => 'तुमच्या शोधाशी जुळणारे कोणतेही भजन आढळले नाही.';
 }

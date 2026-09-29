@@ -7,8 +7,8 @@
       "title": "Shree Hanuman Chalisa",
       "deity": "Lord Hanuman",
       "singer": "Shankar Mahadevan",
-      "youtubeVideoId": "AETFv445DXE",
-      "backupVideoIds": ["06bCdCvkzfs", "3IIR2Bmdvtg"],
+      "youtubeVideoId": "AETFvQonfV8",
+      "backupVideoIds": ["LUx8wlA_dk8", "PlgIlN5gmQw"],
       "durationText": "9:48",
       "accentColorHex": "#FF6F00",
       "deityEmoji": "🙏"
@@ -17,9 +17,9 @@
       "id": "ganesh_aarti",
       "title": "Sukhkarta Dukhharta",
       "deity": "Lord Ganesha",
-      "singer": "Traditional Devotional",
-      "youtubeVideoId": "M7XgIq7y7b0",
-      "backupVideoIds": ["EWPsRH9qKA8"],
+      "singer": "Lata Mangeshkar",
+      "youtubeVideoId": "qux5HuSgaI4",
+      "backupVideoIds": ["q72FRIUFcvM", "UlLAxTVT1Qk"],
       "durationText": "4:20",
       "accentColorHex": "#F57C00",
       "deityEmoji": "🐘"
@@ -29,8 +29,8 @@
       "title": "Om Jai Shiv Omkara",
       "deity": "Lord Shiva",
       "singer": "Anuradha Paudwal",
-      "youtubeVideoId": "RV-TdShFEWo",
-      "backupVideoIds": ["Wbpuub7bMV8"],
+      "youtubeVideoId": "BhwOproElxU",
+      "backupVideoIds": ["dsilAV0uKEM", "1z7Ozpxp7fE"],
       "durationText": "5:12",
       "accentColorHex": "#1565C0",
       "deityEmoji": "🔱"
@@ -39,12 +39,34 @@
       "id": "durga_aarti",
       "title": "Jai Ambe Gauri",
       "deity": "Goddess Durga",
-      "singer": "Narendra Chanchal",
-      "youtubeVideoId": "J1E4zT9COVE",
-      "backupVideoIds": ["JSwah1NCPZY"],
+      "singer": "Anuradha Paudwal",
+      "youtubeVideoId": "-rKAOaS7Q3I",
+      "backupVideoIds": ["RY1jmTTjvhI", "Iyki_pDrOUM"],
       "durationText": "6:05",
       "accentColorHex": "#AD1457",
       "deityEmoji": "🌸"
+    },
+    {
+      "id": "vitthal_yuge_atthavis",
+      "title": "Yuge Atthavis Vitevari Ubha",
+      "deity": "Lord Vitthal",
+      "singer": "Sant Namdev",
+      "youtubeVideoId": "arPJkd2JUkg",
+      "backupVideoIds": ["CXHHDS5yRKE"],
+      "durationText": "4:20",
+      "accentColorHex": "#C62828",
+      "deityEmoji": "🛕"
+    },
+    {
+      "id": "datta_aarti",
+      "title": "Shree Datta Aarti",
+      "deity": "Lord Datta",
+      "singer": "Sant Eknath",
+      "youtubeVideoId": "arPJkd2JUkg",
+      "backupVideoIds": ["CXHHDS5yRKE"],
+      "durationText": "4:10",
+      "accentColorHex": "#6A1B9A",
+      "deityEmoji": "🕉️"
     }
   ]
 }

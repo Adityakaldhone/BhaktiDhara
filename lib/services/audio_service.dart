@@ -30,9 +30,13 @@ class AudioService {
     await HapticFeedback.heavyImpact();
     try {
       await _conchPlayer.stop();
-      await _conchPlayer.play(AssetSource('sounds/shankh.mp3'));
+      await _conchPlayer.play(AssetSource('sounds/shankh_dhun.mp3'));
     } catch (_) {
-      // Audio asset not yet bundled — haptic feedback only (expected in demo)
+      try {
+        await _conchPlayer.play(AssetSource('sounds/shankh.mp3'));
+      } catch (_) {
+        // Audio asset not yet bundled — haptic feedback only
+      }
     }
   }
 

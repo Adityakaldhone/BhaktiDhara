@@ -5,6 +5,14 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Required: WakelockPlus — keeps screen on during pooja -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Required: Speech recognition voice search -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <!-- Required: Authentic local Vedic Panchang calculations (Sunrise, Sunset & Muhurats) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
         android:label="BhaktiDhara"
@@ -41,11 +49,14 @@
             android:value="2" />
     </application>
 
-    <!-- Required for Flutter text processing plugin -->
+    <!-- Required for Flutter text processing plugin and speech recognition -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 </manifest>

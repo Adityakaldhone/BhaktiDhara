@@ -88,4 +88,49 @@ class MandirTheme {
       ),
     );
   }
+
+  /// Maps a deity name to its own portrait only — never another god's image.
+  static String getDeityImageAsset(String deity) {
+    switch (deity) {
+      case 'Lord Ganesha':
+        return 'assets/decorations/ganesh.png';
+      case 'Lord Hanuman':
+        return 'assets/decorations/hanuman.png';
+      case 'Lord Shiva':
+        return 'assets/decorations/mahadev.png';
+      case 'Goddess Durga':
+        return 'assets/decorations/durga.png';
+      case 'Lord Krishna':
+        return 'assets/decorations/krishna.png';
+      case 'Lord Rama':
+        return 'assets/decorations/rama.png';
+      case 'Lord Vitthal':
+        return 'assets/decorations/vitthal.png';
+      case 'Lord Datta':
+        return 'assets/decorations/datta.png';
+      case 'Sai Baba':
+        return 'assets/decorations/saibaba.png';
+      case 'Gajanan Maharaj':
+        return 'assets/decorations/gajanan_maharaj.png';
+      case 'Lord Vishnu':
+      case 'Lord Satyanarayan':
+        return 'assets/decorations/vishnu.png';
+      case 'Lord Khandoba':
+        return 'assets/decorations/khandoba.png';
+      case 'Lord Shani':
+        return 'assets/decorations/shani.png';
+      case 'Goddess Lakshmi':
+        return 'assets/decorations/lakshmi.png';
+      case 'Lord Venkatesh':
+        return 'assets/decorations/venkatesh.png';
+      case 'Goddess Tulsi':
+        return 'assets/decorations/tulsi.png';
+      case 'Goddess Santoshi Mata':
+        return 'assets/decorations/santoshi_mata.png';
+      case 'Sant':
+        return 'assets/decorations/sant.png';
+      default:
+        return 'assets/decorations/om.png';
+    }
+  }
 }
