@@ -7,8 +7,9 @@ import '../../domain/entities/horoscope.dart';
 // import '../../services/gemini_horoscope_service.dart';
 import '../providers/horoscope_provider.dart';
 import '../providers/locale_provider.dart';
-// import '../providers/premium_provider.dart';
-// import '../widgets/premium_blurred_gate.dart';
+import '../providers/premium_provider.dart';
+import '../widgets/premium_blurred_gate.dart';
+import '../widgets/premium_content_blur.dart';
 
 /// Screen displaying Vedic Horoscopes (राशीभविष्य / राशिफल) powered by Google Gemini AI.
 class HoroscopeScreen extends ConsumerStatefulWidget {
@@ -145,40 +146,26 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       ),
                     ),
                     data: (reading) {
+                      final isPremium = ref.watch(isPremiumProvider);
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                         physics: const BouncingScrollPhysics(),
                         children: [
+                          // Hero card + Quick Badges: always visible (free teaser)
                           _buildHeroCard(selectedRashi, reading, langCode),
                           const SizedBox(height: 12),
                           _buildQuickBadges(reading, langCode),
                           const SizedBox(height: 12),
-                          // [Future Release: Premium Blurred Gate]
-                          // PremiumBlurredGate(
-                          //   langCode: langCode,
-                          //   title: langCode == 'en'
-                          //       ? 'Unlock Complete Horoscope & Remedies'
-                          //       : (langCode == 'hi'
-                          //           ? 'संपूर्ण राशिफल व उपाय अनलॉक करें'
-                          //           : 'संपूर्ण राशीभविष्य व उपाय अनलॉक करा'),
-                          //   subtitle: langCode == 'en'
-                          //       ? 'Get deep Career, Wealth, Family & Health predictions and accurate Astrological Remedies.'
-                          //       : (langCode == 'hi'
-                          //           ? 'करियर, धन, परिवार, स्वास्थ्य की विस्तृत भविष्यवाणी व सटीक ज्योतिषीय उपाय प्राप्त करें।'
-                          //           : 'करिअर, धनलाभ, कुटुंब, आरोग्याची सविस्तर भविष्यवाणी व अचूक ज्योतिषीय उपाय मिळवा.'),
-                          //   child: Column(
-                          //     children: [
-                          //       _buildAspectCards(reading, langCode),
-                          //       const SizedBox(height: 14),
-                          //       _buildRemedyCard(reading, langCode),
-                          //       const SizedBox(height: 14),
-                          //       _buildAiFooter(reading, langCode),
-                          //     ],
-                          //   ),
-                          // ),
-                          _buildAspectCards(reading, langCode),
+                          // Aspect Cards (Career & Finance, Health & Energy, Family & Love):
+                          // Titles are ALWAYS visible! Only the description below each title is blurred for free users.
+                          _buildAspectCards(reading, langCode, isPremium),
                           const SizedBox(height: 14),
-                          _buildRemedyCard(reading, langCode),
+                          // Vedic Remedy Card: Title is ALWAYS visible! Only remedy text below is blurred.
+                          _buildRemedyCard(reading, langCode, isPremium),
+                          if (!isPremium) ...[
+                            const SizedBox(height: 14),
+                            _buildSubscriptionCta(langCode),
+                          ],
                           const SizedBox(height: 14),
                           _buildAiFooter(reading, langCode),
                         ],
@@ -245,70 +232,70 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
             ),
           ),
 
-          // [Future Release: Premium Badge / Button]
-          // Builder(
-          //   builder: (ctx) {
-          //     final isPremium = ref.watch(isPremiumProvider);
-          //     final langCode = ref.watch(localeProvider).languageCode;
-          //     return GestureDetector(
-          //       onTap: () => showPremiumPaywallSheet(context, ref, langCode),
-          //       child: Container(
-          //         padding:
-          //             const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          //         margin: const EdgeInsets.only(right: 8),
-          //         decoration: BoxDecoration(
-          //           gradient: LinearGradient(
-          //             colors: isPremium
-          //                 ? const [Color(0xFFFFF3D6), Color(0xFFFFD54F)]
-          //                 : const [Color(0xFF8B1D18), Color(0xFFE65100)],
-          //           ),
-          //           borderRadius: BorderRadius.circular(16),
-          //           border: Border.all(
-          //             color: const Color(0xFFD4AF37),
-          //             width: 1,
-          //           ),
-          //           boxShadow: [
-          //             BoxShadow(
-          //               color: (isPremium
-          //                       ? const Color(0xFFD4AF37)
-          //                       : const Color(0xFF8B1D18))
-          //                   .withValues(alpha: 0.25),
-          //               blurRadius: 4,
-          //               offset: const Offset(0, 1),
-          //             ),
-          //           ],
-          //         ),
-          //         child: Row(
-          //           mainAxisSize: MainAxisSize.min,
-          //           children: [
-          //             Icon(
-          //               isPremium
-          //                   ? Icons.stars_rounded
-          //                   : Icons.workspace_premium_rounded,
-          //               color: isPremium
-          //                   ? const Color(0xFF8B1D18)
-          //                   : Colors.white,
-          //               size: 15,
-          //             ),
-          //             const SizedBox(width: 4),
-          //             Text(
-          //               isPremium
-          //                   ? (langCode == 'en' ? 'VIP' : 'प्रीमियम')
-          //                   : (langCode == 'en' ? '₹20' : '₹२०'),
-          //               style: GoogleFonts.mukta(
-          //                 fontSize: 12,
-          //                 fontWeight: FontWeight.bold,
-          //                 color: isPremium
-          //                     ? const Color(0xFF7A0C08)
-          //                     : Colors.white,
-          //               ),
-          //             ),
-          //           ],
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
+          // Premium Badge / Button
+          Builder(
+            builder: (ctx) {
+              final isPremium = ref.watch(isPremiumProvider);
+              final langCode = ref.watch(localeProvider).languageCode;
+              return GestureDetector(
+                onTap: () => showPremiumPaywallSheet(context, ref, langCode),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isPremium
+                          ? const [Color(0xFFFFF3D6), Color(0xFFFFD54F)]
+                          : const [Color(0xFF8B1D18), Color(0xFFE65100)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isPremium
+                                ? const Color(0xFFD4AF37)
+                                : const Color(0xFF8B1D18))
+                            .withValues(alpha: 0.25),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPremium
+                            ? Icons.stars_rounded
+                            : Icons.workspace_premium_rounded,
+                        color: isPremium
+                            ? const Color(0xFF8B1D18)
+                            : Colors.white,
+                        size: 15,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isPremium
+                            ? (langCode == 'en' ? 'VIP' : 'प्रीमियम')
+                            : (langCode == 'en' ? '₹51' : '₹५१'),
+                        style: GoogleFonts.mukta(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isPremium
+                              ? const Color(0xFF7A0C08)
+                              : Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -739,7 +726,11 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   // ═══════════════════════════════════════════════════════════════════════════
   // ASPECT CARDS (Career, Health, Love)
   // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildAspectCards(HoroscopeReading reading, String langCode) {
+  Widget _buildAspectCards(
+    HoroscopeReading reading,
+    String langCode,
+    bool isPremium,
+  ) {
     final aspects = [
       {
         'icon': '💼',
@@ -783,6 +774,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // TITLE IS ALWAYS VISIBLE AND UNBLURRED!
                     Text(
                       asp['title']!,
                       style: GoogleFonts.mukta(
@@ -792,14 +784,28 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       ),
                     ),
                     const SizedBox(height: 3),
-                    Text(
-                      asp['desc']!,
-                      style: GoogleFonts.mukta(
-                        fontSize: 15.5,
-                        color: const Color(0xFF5A4535),
-                        height: 1.45,
+                    // ONLY THE DESCRIPTION BELOW IS BLURRED FOR FREE USERS:
+                    if (isPremium)
+                      Text(
+                        asp['desc']!,
+                        style: GoogleFonts.mukta(
+                          fontSize: 15.5,
+                          color: const Color(0xFF5A4535),
+                          height: 1.45,
+                        ),
+                      )
+                    else
+                      BlurredContentGate(
+                        langCode: langCode,
+                        child: Text(
+                          asp['desc']!,
+                          style: GoogleFonts.mukta(
+                            fontSize: 15.5,
+                            color: const Color(0xFF5A4535),
+                            height: 1.45,
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -813,7 +819,11 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   // ═══════════════════════════════════════════════════════════════════════════
   // REMEDY CARD (Vedic Upay)
   // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildRemedyCard(HoroscopeReading reading, String langCode) {
+  Widget _buildRemedyCard(
+    HoroscopeReading reading,
+    String langCode,
+    bool isPremium,
+  ) {
     final remedyLabel = langCode == 'mr'
         ? 'आजचा विशेष सिद्ध उपाय'
         : (langCode == 'hi' ? 'आज का विशेष उपाय' : 'Vedic Divine Remedy');
@@ -843,6 +853,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // TITLE IS ALWAYS VISIBLE AND UNBLURRED!
                 Text(
                   remedyLabel,
                   style: GoogleFonts.mukta(
@@ -852,16 +863,156 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  reading.remedy,
-                  style: GoogleFonts.mukta(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF5A2010),
-                    height: 1.45,
+                // ONLY REMEDY CONTENT BELOW IS BLURRED FOR FREE USERS:
+                if (isPremium)
+                  Text(
+                    reading.remedy,
+                    style: GoogleFonts.mukta(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF5A2010),
+                      height: 1.45,
+                    ),
+                  )
+                else
+                  BlurredContentGate(
+                    langCode: langCode,
+                    child: Text(
+                      reading.remedy,
+                      style: GoogleFonts.mukta(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF5A2010),
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SUBSCRIPTION CTA BANNER (For Free Users)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildSubscriptionCta(String langCode) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B1D18).withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFFF3D6),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Color(0xFFD4AF37),
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      langCode == 'en'
+                          ? 'Unlock All 12 Rashi Forecasts'
+                          : (langCode == 'hi'
+                              ? 'सभी 12 राशियों का विस्तृत भविष्य'
+                              : 'सर्व १२ राशींचे सविस्तर भविष्य अनलॉक करा'),
+                      style: GoogleFonts.mukta(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF7A0C08),
+                        height: 1.2,
+                      ),
+                    ),
+                    Text(
+                      langCode == 'en'
+                          ? '7 Days Free Trial • Then ₹51/month'
+                          : (langCode == 'hi'
+                              ? '7 दिन मुफ्त ट्रायल • फिर ₹51/माह'
+                              : '७ दिवस मोफत ट्रायल • मग ₹५१/महिना'),
+                      style: GoogleFonts.mukta(
+                        fontSize: 13,
+                        color: MandirTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B1D18), Color(0xFFE65100)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B1D18).withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () =>
+                    showPremiumPaywallSheet(context, ref, langCode),
+                icon: const Icon(
+                  Icons.lock_open_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    langCode == 'en'
+                        ? 'Start 7-Day Free Trial'
+                        : (langCode == 'hi'
+                            ? '7 दिन मुफ्त ट्रायल शुरू करें'
+                            : '७ दिवस मोफत ट्रायल सुरू करा'),
+                    style: GoogleFonts.mukta(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ],
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

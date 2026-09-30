@@ -295,31 +295,31 @@ abstract class AppLocalizations {
   /// No description provided for @navBhajan.
   ///
   /// In en, this message translates to:
-  /// **'Bhajan'**
+  /// **'Bhakti'**
   String get navBhajan;
 
   /// No description provided for @bhajanSangrah.
   ///
   /// In en, this message translates to:
-  /// **'Bhajan & Kirtan'**
+  /// **'Bhakti Sangrah'**
   String get bhajanSangrah;
 
   /// No description provided for @bhajanSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Sacred Hindu Bhajans & Divine Kirtans'**
+  /// **'Bhajans, Mantras, Stotras & Chants'**
   String get bhajanSubtitle;
 
   /// No description provided for @bhajanSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search Bhajan, Kirtan, Singer...'**
+  /// **'Search Bhajan, Mantra, Stotra...'**
   String get bhajanSearchHint;
 
   /// No description provided for @noBhajanFound.
   ///
   /// In en, this message translates to:
-  /// **'No Bhajans found matching your search.'**
+  /// **'No devotionals found matching your search.'**
   String get noBhajanFound;
 }
 

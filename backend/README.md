@@ -7,8 +7,10 @@ High-performance, privacy-first backend built for deployment on your **Hetzner V
 ## 🌟 Key Features
 
 1. **Daily Gemini Caching Engine**:
-   - Pre-caches 12 Rashis (Today/Tomorrow/Weekly) and Top Cities' Panchang every night at **00:05 AM IST**.
-   - Reduces Gemini API calls by **99.9%** (from 50,000 requests/day to only ~36 requests/day).
+   - Pre-caches today's 12 Rashis and Top Cities' Panchang (Marathi & Hindi, 36 readings) every night from **00:05 AM IST**.
+   - Built for the Gemini **free tier**: every call (users + precache) shares one limit of `GEMINI_RPM` calls/min (default 10). The precache is paced at `PRECACHE_RPM` (default 5/min, ~8 minutes total), so users always keep the rest.
+   - Cache-first: the first request for a reading calls Gemini and stores it; everyone after gets it from SQLite. Simultaneous requests for the same reading share one Gemini call, and the precache skips anything users already generated.
+   - When the quota is full, the API answers `503` immediately (the app falls back to its offline calculation) and generates the reading in the background so the next request hits cache.
    - Serves cached responses to devotees in **< 10 milliseconds**.
 2. **Anonymous Device & Download Tracking (100% Privacy-Preserving)**:
    - Tracks unique installs, Daily Active Users (DAU), Monthly Active Users (MAU), and VIP subscribers.

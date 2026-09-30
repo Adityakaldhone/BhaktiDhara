@@ -12,12 +12,33 @@ class JaapMantraCatalog {
 
   static const List<JaapMantra> all = [
     JaapMantra(
+      id: 'radha',
+      deity: 'Radha',
+      devanagari: 'राधा राधा',
+      transliteration: 'Radha Radha',
+      name: {'mr': 'राधा राधा', 'hi': 'राधा राधा', 'en': 'Radha Radha'},
+    ),
+    JaapMantra(
+      id: 'swami_samarth',
+      deity: 'Swami Samarth',
+      devanagari: 'श्री स्वामी समर्थ',
+      transliteration: 'Shri Swami Samarth',
+      name: {'mr': 'श्री स्वामी समर्थ', 'hi': 'श्री स्वामी समर्थ', 'en': 'Shri Swami Samarth'},
+    ),
+    JaapMantra(
       id: 'shri_ram',
       deity: 'Lord Rama',
       devanagari: 'श्री राम जय राम जय जय राम',
-      transliteration: 'Shri Ram Jai Ram Jai Jai Ram',
+      transliteration: 'Shri Ram Jay Ram Jay Jay Ram',
       name: {'mr': 'श्रीराम जप', 'hi': 'श्री राम जप', 'en': 'Shri Ram'},
       freeAudio: true,
+    ),
+    JaapMantra(
+      id: 'ganesha',
+      deity: 'Lord Ganesha',
+      devanagari: 'ॐ गं गणपतये नमः',
+      transliteration: 'Om Gam Ganapataye Namah',
+      name: {'mr': 'श्री गणेश', 'hi': 'श्री गणेश', 'en': 'Lord Ganesha'},
     ),
     JaapMantra(
       id: 'om_namah_shivaya',
@@ -28,11 +49,18 @@ class JaapMantraCatalog {
       freeAudio: true,
     ),
     JaapMantra(
-      id: 'ganesha',
-      deity: 'Lord Ganesha',
-      devanagari: 'ॐ गं गणपतये नमः',
-      transliteration: 'Om Gam Ganapataye Namah',
-      name: {'mr': 'श्री गणेश', 'hi': 'श्री गणेश', 'en': 'Lord Ganesha'},
+      id: 'vasudevaya',
+      deity: 'Lord Vishnu',
+      devanagari: 'ॐ नमो भगवते वासुदेवाय',
+      transliteration: 'Om Namo Bhagavate Vasudevaya',
+      name: {'mr': 'श्री विष्णू', 'hi': 'श्री विष्णु', 'en': 'Lord Vishnu'},
+    ),
+    JaapMantra(
+      id: 'jai_shri_ram',
+      deity: 'Lord Rama',
+      devanagari: 'जय श्री राम',
+      transliteration: 'Jai Shri Ram',
+      name: {'mr': 'जय श्री राम', 'hi': 'जय श्री राम', 'en': 'Jai Shri Ram'},
     ),
     JaapMantra(
       id: 'hare_krishna',
@@ -44,11 +72,11 @@ class JaapMantraCatalog {
       name: {'mr': 'हरे कृष्ण महामंत्र', 'hi': 'हरे कृष्ण महामंत्र', 'en': 'Hare Krishna Mahamantra'},
     ),
     JaapMantra(
-      id: 'vasudevaya',
+      id: 'om_namo_narayanaya',
       deity: 'Lord Vishnu',
-      devanagari: 'ॐ नमो भगवते वासुदेवाय',
-      transliteration: 'Om Namo Bhagavate Vasudevaya',
-      name: {'mr': 'श्री विष्णू', 'hi': 'श्री विष्णु', 'en': 'Lord Vishnu'},
+      devanagari: 'ॐ नमो नारायणाय',
+      transliteration: 'Om Namo Narayanaya',
+      name: {'mr': 'ॐ नमो नारायणाय', 'hi': 'ॐ नमो नारायणाय', 'en': 'Om Namo Narayanaya'},
     ),
     JaapMantra(
       id: 'gayatri',
@@ -60,6 +88,15 @@ class JaapMantraCatalog {
           'Tat Savitur Varenyam Bhargo Devasya Dhimahi\n'
           'Dhiyo Yo Nah Prachodayat',
       name: {'mr': 'गायत्री मंत्र', 'hi': 'गायत्री मंत्र', 'en': 'Gayatri Mantra'},
+    ),
+    JaapMantra(
+      id: 'shani_mantra',
+      deity: 'Lord Shani',
+      devanagari: 'ॐ नीलांजन समाभासं रविपुत्रं यमाग्रजम् ।\n'
+          'छाया मार्तण्ड सम्भूतं तं नमामि शनैश्चरम् ॥',
+      transliteration: 'Om Neelanjana Samabhasam Raviputram Yamagrajam\n'
+          'Chhaya Martanda Sambhutam Tam Namami Shanaishcharam',
+      name: {'mr': 'शनि मंत्र', 'hi': 'शनि मंत्र', 'en': 'Shani Mantra'},
     ),
     JaapMantra(
       id: 'hanuman',
@@ -109,6 +146,9 @@ class JaapMantraCatalog {
 
   static JaapMantra byId(String? id) => all.firstWhere(
         (m) => m.id == id,
-        orElse: () => all.first,
+        orElse: () => all.firstWhere(
+          (m) => m.id == defaultMantraId,
+          orElse: () => all.first,
+        ),
       );
 }

@@ -10,6 +10,7 @@ import '../../core/theme/theme.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/locale_provider.dart';
+import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
 import 'bhajan_screen.dart';
 import 'deity_aarti_list_screen.dart';
@@ -32,16 +33,36 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
   // Search and voice recognition controllers
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _homeScrollController = ScrollController();
   final stt.SpeechToText _speechToText = stt.SpeechToText();
   bool _speechEnabled = false;
   bool _isListening = false;
-
+  bool _showScrollToTop = false;
 
   @override
   void initState() {
     super.initState();
+    _homeScrollController.addListener(_onHomeScroll);
     _initSpeech();
     // _loadBannerAd();
+  }
+
+  void _onHomeScroll() {
+    final show = _homeScrollController.hasClients &&
+        _homeScrollController.offset > 320;
+    if (show != _showScrollToTop) {
+      setState(() => _showScrollToTop = show);
+    }
+  }
+
+  void _scrollToTop() {
+    if (_homeScrollController.hasClients) {
+      _homeScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   Future<void> _initSpeech() async {
@@ -83,7 +104,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
   @override
   void dispose() {
+    _homeScrollController.removeListener(_onHomeScroll);
     _searchController.dispose();
+    _homeScrollController.dispose();
     _speechToText.stop();
     _bannerAd?.dispose();
     super.dispose();
@@ -93,14 +116,11 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => DeityAartiListScreen(
-          deity: item.deity,
-          initialItem: item,
-        ),
+        builder: (_) =>
+            DeityAartiListScreen(deity: item.deity, initialItem: item),
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -113,143 +133,28 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       body: IndexedStack(
         index: _bottomNavIndex,
         children: [
-          SafeArea(
-            child: Column(
-              children: [
-                // ── Decorative Header ────────────────────────────────────────
-                _buildHeader(l10n),
-
-            // ── Search Bar ───────────────────────────────────────────────
-            _buildSearchBar(l10n, localeCode),
-
-            // ── Naam Jaap entry ──────────────────────────────────────────
-            const JaapDashboardCard(),
-
-            // ── Section Title Row ────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.sacredCollection,
-                      style: GoogleFonts.mukta(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: MandirTheme.textDark,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildLanguageDropdown(localeCode, l10n),
-                ],
-              ),
-            ),
-
-            // ── Catalog List ─────────────────────────────────────────────
-            Expanded(
-              child: catalogAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: MandirTheme.primarySaffron,
-                  ),
-                ),
-                error: (err, stack) => Center(
-                  child: Text(
-                    l10n.loadingError,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
-                data: (catalog) {
-                  if (catalog.isEmpty) {
-                    final query = ref.watch(searchQueryProvider).trim();
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 32,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.search_off_rounded,
-                              size: 56,
-                              color: MandirTheme.goldenAccent,
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              query.isNotEmpty
-                                  ? l10n.searchNoResults
-                                  : l10n.noAartiFound,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.mukta(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: MandirTheme.textDark,
-                              ),
-                            ),
-                            if (query.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  _searchController.clear();
-                                  ref.read(searchQueryProvider.notifier).state = '';
-                                  setState(() {});
-                                },
-                                icon: const Icon(Icons.clear, size: 18),
-                                label: Text(l10n.clearSearch),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: MandirTheme.primarySaffron,
-                                  foregroundColor: Colors.white,
-                                  elevation: 1,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    itemCount: catalog.length,
-                    separatorBuilder: (context, i) =>
-                        const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      return _buildAartiCard(catalog[index], l10n, localeCode);
-                    },
-                  );
-                },
-              ),
-            ),
-
-            // ── AdMob Banner ─────────────────────────────────────────────
-            if (!kIsWeb && _isBannerAdLoaded && _bannerAd != null)
-              Container(
-                color: MandirTheme.backgroundCream,
-                width: _bannerAd!.size.width.toDouble(),
-                height: _bannerAd!.size.height.toDouble(),
-                child: AdWidget(ad: _bannerAd!),
-              ),
-          ],
-        ),
+          _buildHomeTab(catalogAsync, l10n, localeCode),
+          const BhajanScreen(),
+          const HoroscopeScreen(),
+          const PanchangScreen(),
+        ],
       ),
-      const BhajanScreen(),
-      const HoroscopeScreen(),
-      const PanchangScreen(),
-    ],
-  ),
+
+      // ── Scroll-to-Top Floating Action Button ───────────────────────────
+      floatingActionButton: (_bottomNavIndex == 0 && _showScrollToTop)
+          ? FloatingActionButton(
+              onPressed: _scrollToTop,
+              mini: true,
+              backgroundColor: MandirTheme.primarySaffron,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: const CircleBorder(),
+              tooltip: localeCode == 'mr'
+                  ? 'वर जा'
+                  : (localeCode == 'hi' ? 'ऊपर जाएं' : 'Scroll to top'),
+              child: const Icon(Icons.arrow_upward_rounded, size: 22),
+            )
+          : null,
 
       // ── Bottom Navigation ──────────────────────────────────────────────
       bottomNavigationBar: Container(
@@ -265,7 +170,24 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         child: BottomNavigationBar(
           currentIndex: _bottomNavIndex,
           onTap: (index) {
-            setState(() => _bottomNavIndex = index);
+            // Re-tapping Home scrolls the collection back to the top
+            if (index == 0 &&
+                _bottomNavIndex == 0 &&
+                _homeScrollController.hasClients) {
+              _homeScrollController.animateTo(
+                0,
+                duration: const Duration(milliseconds: 450),
+                curve: Curves.easeOutCubic,
+              );
+            }
+            setState(() {
+              _bottomNavIndex = index;
+              if (index != 0) {
+                _showScrollToTop = false;
+              } else if (_homeScrollController.hasClients) {
+                _showScrollToTop = _homeScrollController.offset > 320;
+              }
+            });
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: MandirTheme.surfaceWhite,
@@ -303,6 +225,312 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  HOME TAB (Collapsing header + pinned search + scrolling collection)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildHomeTab(
+    AsyncValue<List<AartiItem>> catalogAsync,
+    AppLocalizations l10n,
+    String localeCode,
+  ) {
+    return SafeArea(
+      child: Column(
+        children: [
+          Expanded(
+            child: CustomScrollView(
+              controller: _homeScrollController,
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              slivers: [
+                // ── Decorative Header (collapses to a compact bar) ───────
+                _buildSliverHeader(l10n),
+
+                // ── Search Bar (stays pinned under the header) ───────────
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _PinnedSearchBarDelegate(
+                    child: _buildSearchBar(l10n, localeCode),
+                  ),
+                ),
+
+                // ── Naam Jaap entry ──────────────────────────────────────
+                const SliverToBoxAdapter(child: JaapDashboardCard()),
+                const SliverToBoxAdapter(child: GreetingDashboardCard()),
+
+                // ── Section Title Row ────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.sacredCollection,
+                            style: GoogleFonts.mukta(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: MandirTheme.textDark,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildLanguageDropdown(localeCode, l10n),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ── Catalog List ─────────────────────────────────────────
+                ...catalogAsync.when(
+                  loading: () => [
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: MandirTheme.primarySaffron,
+                        ),
+                      ),
+                    ),
+                  ],
+                  error: (err, stack) => [
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Text(
+                          l10n.loadingError,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
+                    ),
+                  ],
+                  data: (catalog) => [
+                    if (catalog.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _buildEmptyCatalog(l10n),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                        sliver: SliverList.separated(
+                          itemCount: catalog.length,
+                          separatorBuilder: (context, i) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            return _buildAartiCard(
+                              catalog[index],
+                              l10n,
+                              localeCode,
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // ── AdMob Banner ───────────────────────────────────────────────
+          if (!kIsWeb && _isBannerAdLoaded && _bannerAd != null)
+            Container(
+              color: MandirTheme.backgroundCream,
+              width: _bannerAd!.size.width.toDouble(),
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyCatalog(AppLocalizations l10n) {
+    final query = ref.watch(searchQueryProvider).trim();
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.search_off_rounded,
+              size: 56,
+              color: MandirTheme.goldenAccent,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              query.isNotEmpty ? l10n.searchNoResults : l10n.noAartiFound,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.mukta(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: MandirTheme.textDark,
+              ),
+            ),
+            if (query.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  _searchController.clear();
+                  ref.read(searchQueryProvider.notifier).state = '';
+                  setState(() {});
+                },
+                icon: const Icon(Icons.clear, size: 18),
+                label: Text(l10n.clearSearch),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: MandirTheme.primarySaffron,
+                  foregroundColor: Colors.white,
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  COLLAPSING SLIVER HEADER (Full header → compact Om + title bar)
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const double _collapsedHeaderHeight = 60;
+
+  Widget _buildSliverHeader(AppLocalizations l10n) {
+    // Om, decorative bar and padding are fixed; the three text lines scale.
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final expandedHeight = 84 + 100 * textScale;
+
+    return SliverAppBar(
+      primary: false,
+      pinned: true,
+      automaticallyImplyLeading: false,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: _collapsedHeaderHeight,
+      collapsedHeight: _collapsedHeaderHeight,
+      expandedHeight: expandedHeight,
+      flexibleSpace: LayoutBuilder(
+        builder: (context, constraints) {
+          // 1.0 = fully expanded, 0.0 = fully collapsed
+          final expandRatio =
+              ((constraints.maxHeight - _collapsedHeaderHeight) /
+                      (expandedHeight - _collapsedHeaderHeight))
+                  .clamp(0.0, 1.0);
+          final collapseRatio = 1.0 - expandRatio;
+          final collapsedOpacity = ((collapseRatio - 0.5) / 0.5).clamp(
+            0.0,
+            1.0,
+          );
+          final expandedOpacity = Curves.easeIn.transform(
+            ((expandRatio - 0.25) / 0.75).clamp(0.0, 1.0),
+          );
+
+          return Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              // Solid backdrop fades in so cards don't show through
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: MandirTheme.backgroundCream,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: MandirTheme.goldenAccent.withValues(
+                          alpha: 0.45 * collapsedOpacity,
+                        ),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Full header slides up and fades out while collapsing
+              if (expandedOpacity > 0)
+                Positioned(
+                  top: constraints.maxHeight - expandedHeight,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    ignoring: expandRatio < 0.5,
+                    child: Opacity(
+                      opacity: expandedOpacity,
+                      child: _buildHeader(l10n),
+                    ),
+                  ),
+                ),
+
+              // Compact bar (built only once mostly collapsed)
+              if (collapsedOpacity > 0)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: _collapsedHeaderHeight,
+                  child: Opacity(
+                    opacity: collapsedOpacity,
+                    child: _buildCollapsedHeader(l10n),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCollapsedHeader(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Image.asset('assets/decorations/om.png', height: 30, width: 30),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.appTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.yatraOne(
+                fontSize: 24,
+                color: MandirTheme.secondaryMaroon,
+                height: 1.0,
+              ),
+            ),
+          ),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: MandirTheme.goldenAccent.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: Icon(
+                Icons.settings_outlined,
+                color: MandirTheme.goldenAccent,
+                size: 20,
+              ),
+              onPressed: () {},
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -550,7 +778,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     );
   }
 
-  Future<void> _handleVoiceSearch(AppLocalizations l10n, String localeCode) async {
+  Future<void> _handleVoiceSearch(
+    AppLocalizations l10n,
+    String localeCode,
+  ) async {
     if (!_speechEnabled) {
       final available = await _speechToText.initialize(
         onError: (_) {
@@ -581,22 +812,30 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     try {
       final locales = await _speechToText.locales();
       if (localeCode == 'hi') {
-        final match = locales.where((l) => l.localeId.toLowerCase().startsWith('hi')).toList();
+        final match = locales
+            .where((l) => l.localeId.toLowerCase().startsWith('hi'))
+            .toList();
         if (match.isNotEmpty) {
           targetLocaleId = match.first.localeId;
         }
       } else if (localeCode == 'mr') {
-        final match = locales.where((l) => l.localeId.toLowerCase().startsWith('mr')).toList();
+        final match = locales
+            .where((l) => l.localeId.toLowerCase().startsWith('mr'))
+            .toList();
         if (match.isNotEmpty) {
           targetLocaleId = match.first.localeId;
         } else {
-          final hiMatch = locales.where((l) => l.localeId.toLowerCase().startsWith('hi')).toList();
+          final hiMatch = locales
+              .where((l) => l.localeId.toLowerCase().startsWith('hi'))
+              .toList();
           if (hiMatch.isNotEmpty) {
             targetLocaleId = hiMatch.first.localeId;
           }
         }
       } else {
-        final match = locales.where((l) => l.localeId.toLowerCase().startsWith('en')).toList();
+        final match = locales
+            .where((l) => l.localeId.toLowerCase().startsWith('en'))
+            .toList();
         if (match.isNotEmpty) {
           targetLocaleId = match.first.localeId;
         }
@@ -621,10 +860,12 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       builder: (modalContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final cancelLabel =
-                MaterialLocalizations.of(context).cancelButtonLabel;
-            final searchLabel =
-                MaterialLocalizations.of(context).searchFieldLabel;
+            final cancelLabel = MaterialLocalizations.of(
+              context,
+            ).cancelButtonLabel;
+            final searchLabel = MaterialLocalizations.of(
+              context,
+            ).searchFieldLabel;
 
             void startListening() async {
               try {
@@ -634,9 +875,11 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     setModalState(() {
                       recognizedQuery = result.recognizedWords;
                     });
-                    if (result.finalResult && recognizedQuery.trim().isNotEmpty) {
+                    if (result.finalResult &&
+                        recognizedQuery.trim().isNotEmpty) {
                       _applyVoiceQuery(recognizedQuery);
-                      if (modalContext.mounted && Navigator.of(modalContext).canPop()) {
+                      if (modalContext.mounted &&
+                          Navigator.of(modalContext).canPop()) {
                         Navigator.of(modalContext).pop();
                       }
                     }
@@ -713,7 +956,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                           color: MandirTheme.primarySaffron,
                           boxShadow: [
                             BoxShadow(
-                              color: MandirTheme.primarySaffron.withValues(alpha: 0.35),
+                              color: MandirTheme.primarySaffron.withValues(
+                                alpha: 0.35,
+                              ),
                               blurRadius: 20,
                               spreadRadius: 4,
                             ),
@@ -730,7 +975,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     Container(
                       width: double.infinity,
                       constraints: const BoxConstraints(minHeight: 56),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: MandirTheme.surfaceWhite,
                         borderRadius: BorderRadius.circular(16),
@@ -775,7 +1023,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                             ),
                             child: Text(
                               cancelLabel,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -797,7 +1047,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -806,7 +1058,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                   const SizedBox(width: 6),
                                   Text(
                                     searchLabel,
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -838,7 +1092,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       setState(() {});
     }
   }
-
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  AARTI CARD
@@ -881,8 +1134,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     opacity: 0.25,
                     child: Image.asset(
                       'assets/decorations/card_right_design.png',
-                      width: 180,
-                      height: 180,
+                      width: 150,
+                      height: 150,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -890,16 +1143,14 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
                 // 2. Main content row
                 Padding(
-                  padding: const EdgeInsets.all(
-                    10,
-                  ), // inner padding around everything
+                  padding: const EdgeInsets.all(8),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Artwork Container
                       Container(
-                        width: 130,
-                        height: 140, // Proportional to card height
+                        width: 104,
+                        height: 112,
                         decoration: BoxDecoration(
                           color: MandirTheme.imageSurface,
                           borderRadius: BorderRadius.circular(18),
@@ -907,15 +1158,19 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(18),
                           child: Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.all(6.0),
                             child: Image.asset(
                               _getDeityImageAsset(item.deity),
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) {
-                                return Center(
-                                  child: Text(
-                                    item.deityEmoji,
-                                    style: const TextStyle(fontSize: 40),
+                                return Image.asset(
+                                  'assets/decorations/om.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, _, _) => Center(
+                                    child: Text(
+                                      item.deityEmoji,
+                                      style: const TextStyle(fontSize: 40),
+                                    ),
                                   ),
                                 );
                               },
@@ -923,12 +1178,12 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
 
                       // Content Area
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(vertical: 2),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -936,7 +1191,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                               Text(
                                 localizedTitle,
                                 style: GoogleFonts.notoSansDevanagari(
-                                  fontSize: 21,
+                                  fontSize: 17,
                                   fontWeight: FontWeight.w700,
                                   color: MandirTheme.cardTitle,
                                   height: 1.15,
@@ -949,7 +1204,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                               Text(
                                 englishTitle,
                                 style: GoogleFonts.notoSans(
-                                  fontSize: 14,
+                                  fontSize: 12.5,
                                   fontWeight: FontWeight.w500,
                                   color: MandirTheme.cardSubtitle,
                                   height: 1.2,
@@ -957,7 +1212,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 6),
 
                               // Content tags
                               Wrap(
@@ -968,15 +1223,15 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                     .toList(),
                               ),
 
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 10),
 
                               // Read & Play Button and Arrow
                               Row(
                                 children: [
                                   Container(
-                                    height: 40,
+                                    height: 34,
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
+                                      horizontal: 14,
                                     ),
                                     decoration: BoxDecoration(
                                       color: MandirTheme.cardPrimaryButton,
@@ -997,14 +1252,14 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                         const Icon(
                                           Icons.play_arrow,
                                           color: MandirTheme.cardButtonText,
-                                          size: 20,
+                                          size: 18,
                                         ),
-                                        const SizedBox(width: 6),
+                                        const SizedBox(width: 4),
                                         Text(
                                           l10n.readAndPlay,
                                           style: GoogleFonts.notoSans(
                                             color: MandirTheme.cardButtonText,
-                                            fontSize: 14,
+                                            fontSize: 12.5,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -1014,8 +1269,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                   const Spacer(),
                                   // Circular Arrow Button
                                   Container(
-                                    width: 44,
-                                    height: 44,
+                                    width: 36,
+                                    height: 36,
                                     margin: const EdgeInsets.only(right: 6),
                                     decoration: BoxDecoration(
                                       color: MandirTheme.arrowBackground,
@@ -1033,7 +1288,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                     child: const Icon(
                                       Icons.chevron_right,
                                       color: MandirTheme.arrowIcon,
-                                      size: 24,
+                                      size: 22,
                                     ),
                                   ),
                                 ],
@@ -1176,7 +1431,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         children: [
           Icon(
             isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-            color: isSelected ? MandirTheme.primarySaffron : MandirTheme.textMuted,
+            color: isSelected
+                ? MandirTheme.primarySaffron
+                : MandirTheme.textMuted,
             size: 20,
           ),
           const SizedBox(width: 10),
@@ -1185,7 +1442,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             style: GoogleFonts.mukta(
               fontSize: 16,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-              color: isSelected ? MandirTheme.secondaryMaroon : MandirTheme.textDark,
+              color: isSelected
+                  ? MandirTheme.secondaryMaroon
+                  : MandirTheme.textDark,
             ),
           ),
         ],
@@ -1193,11 +1452,43 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     );
   }
 
-
   // ═══════════════════════════════════════════════════════════════════════════
   //  DEITY IMAGE ASSETS
   // ═══════════════════════════════════════════════════════════════════════════
   String _getDeityImageAsset(String deity) {
     return MandirTheme.getDeityImageAsset(deity);
   }
+}
+
+/// Keeps the dashboard search bar pinned below the collapsed header.
+class _PinnedSearchBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+
+  const _PinnedSearchBarDelegate({required this.child});
+
+  // 48px field + 12px vertical padding on each side.
+  static const double _height = 72;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: MandirTheme.backgroundCream,
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+
+  // Always rebuild so the clear/mic icons track search and listening state.
+  @override
+  bool shouldRebuild(covariant _PinnedSearchBarDelegate oldDelegate) => true;
 }

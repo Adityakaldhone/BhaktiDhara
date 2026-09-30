@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nitya_aarti/core/theme/theme.dart';
+import 'package:nitya_aarti/data/datasources/jaap_mantra_catalog.dart';
 import 'package:nitya_aarti/domain/entities/jaap_progress.dart';
 import 'package:nitya_aarti/presentation/providers/jaap_providers.dart';
 import 'package:nitya_aarti/presentation/providers/locale_provider.dart';
@@ -362,5 +364,48 @@ void main() {
     );
     expect(find.text('Milestones'), findsOneWidget);
     expect(find.text('Next milestone: 1 Crore'), findsOneWidget);
+  });
+
+  test('JaapMantraCatalog contains all required mantras from user request', () {
+    const requiredIds = [
+      'radha',
+      'swami_samarth',
+      'shri_ram',
+      'ganesha',
+      'om_namah_shivaya',
+      'vasudevaya',
+      'jai_shri_ram',
+      'hare_krishna',
+      'om_namo_narayanaya',
+      'gayatri',
+      'shani_mantra',
+    ];
+
+    for (final id in requiredIds) {
+      final mantra = JaapMantraCatalog.byId(id);
+      expect(mantra.id, id, reason: 'Mantra $id must exist');
+      expect(mantra.devanagari.isNotEmpty, isTrue);
+      expect(mantra.transliteration.isNotEmpty, isTrue);
+      expect(mantra.name['mr']?.isNotEmpty, isTrue);
+      expect(mantra.name['hi']?.isNotEmpty, isTrue);
+      expect(mantra.name['en']?.isNotEmpty, isTrue);
+      expect(MandirTheme.getDeityImageAsset(mantra.deity).isNotEmpty, isTrue);
+    }
+
+    final radha = JaapMantraCatalog.byId('radha');
+    expect(radha.devanagari, 'राधा राधा');
+    expect(radha.transliteration, 'Radha Radha');
+
+    final swami = JaapMantraCatalog.byId('swami_samarth');
+    expect(swami.devanagari, 'श्री स्वामी समर्थ');
+    expect(swami.transliteration, 'Shri Swami Samarth');
+
+    final narayana = JaapMantraCatalog.byId('om_namo_narayanaya');
+    expect(narayana.devanagari, 'ॐ नमो नारायणाय');
+    expect(narayana.transliteration, 'Om Namo Narayanaya');
+
+    final shani = JaapMantraCatalog.byId('shani_mantra');
+    expect(shani.devanagari, contains('नीलांजन समाभासं'));
+    expect(shani.isLong, isTrue);
   });
 }

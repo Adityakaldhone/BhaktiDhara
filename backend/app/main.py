@@ -19,10 +19,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from app.database import (
     init_db,
-    get_cached_horoscope,
-    save_cached_horoscope,
-    get_cached_panchang,
-    save_cached_panchang,
+    ist_today_str,
     clear_cache,
     increment_api_stat,
     record_device_ping,
@@ -58,8 +55,13 @@ from app.database import (
     delete_push_campaign,
     get_push_stats,
 )
-from app.gemini_service import generate_horoscope, generate_panchang
-from app.cron import run_daily_precache_job, RASHI_NAMES
+from app.cron import run_daily_precache_job, build_precache_items, precache_running, RASHI_NAMES
+from app.vedic_cache import (
+    GeminiBusy,
+    get_or_create_horoscope,
+    get_or_create_panchang,
+    limiter_status,
+)
 from app.push_service import (
     PushNotConfigured,
     push_status,
@@ -93,6 +95,8 @@ async def lifespan(app: FastAPI):
         trigger=CronTrigger(hour=18, minute=35, timezone="UTC"),  # 00:05 AM IST
         id="nightly_vedic_precache",
         replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
     )
     scheduler.add_job(
         run_due_push_campaigns,
@@ -249,50 +253,25 @@ async def get_horoscope_endpoint(
     """
     ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
     today_str = ist_now.strftime("%Y-%m-%d")
-
-    # 1. Check cache
-    if not force_refresh:
-        cached = await get_cached_horoscope(today_str, rashi.lower(), period.lower(), lang.lower())
-        if cached:
-            await increment_api_stat("horoscope_cache_hit")
-            return {
-                "source": "cache",
-                "cachedDate": today_str,
-                "reading": cached,
-            }
-
-    # 2. Cache miss: Generate once via Gemini
-    rashi_info = RASHI_NAMES.get(rashi.lower(), {})
-    rashi_name = rashi_info.get(lang.lower(), rashi.capitalize())
+    rashi_id, period_id, lang_id = rashi.lower(), period.lower(), lang.lower()
+    rashi_name = RASHI_NAMES.get(rashi_id, {}).get(lang_id, rashi.capitalize())
 
     try:
-        fresh_reading = await generate_horoscope(
-            rashi_name=rashi_name,
-            period=period.lower(),
-            lang_code=lang.lower(),
-            date_text=today_str,
-            rashi_id=rashi.lower(),
+        reading, source = await get_or_create_horoscope(
+            today_str, rashi_id, rashi_name, period_id, lang_id, force_refresh
         )
-        await save_cached_horoscope(
-            date_str=today_str,
-            rashi_id=rashi.lower(),
-            period=period.lower(),
-            lang_code=lang.lower(),
-            data=fresh_reading,
-        )
-        await increment_api_stat("horoscope_gemini")
-        return {
-            "source": "gemini_generated",
-            "cachedDate": today_str,
-            "reading": fresh_reading,
-        }
+    except GeminiBusy as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate horoscope for {rashi}: {e}")
-        await increment_api_stat("gemini_error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unable to generate horoscope: {str(e)}",
         )
+
+    if source == "cache":
+        await increment_api_stat("horoscope_cache_hit")
+    return {"source": source, "cachedDate": today_str, "reading": reading}
 
 
 @app.get("/api/v1/panchang")
@@ -314,43 +293,22 @@ async def get_panchang_endpoint(
 
     clean_city_id = city.lower().strip()
 
-    # 1. Check cache
-    if not force_refresh:
-        cached = await get_cached_panchang(date_str, clean_city_id, lang.lower())
-        if cached:
-            await increment_api_stat("panchang_cache_hit")
-            return {
-                "source": "cache",
-                "date": date_str,
-                "panchang": cached,
-            }
-
-    # 2. Cache miss: Generate via Gemini
     try:
-        fresh_panchang = await generate_panchang(
-            city_name=city,
-            date_str=date_str,
-            lang_code=lang.lower(),
+        panchang, source = await get_or_create_panchang(
+            date_str, clean_city_id, city, lang.lower(), force_refresh
         )
-        await save_cached_panchang(
-            date_str=date_str,
-            city_id=clean_city_id,
-            lang_code=lang.lower(),
-            data=fresh_panchang,
-        )
-        await increment_api_stat("panchang_gemini")
-        return {
-            "source": "gemini_generated",
-            "date": date_str,
-            "panchang": fresh_panchang,
-        }
+    except GeminiBusy as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate panchang for {city}: {e}")
-        await increment_api_stat("gemini_error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unable to generate panchang: {str(e)}",
         )
+
+    if source == "cache":
+        await increment_api_stat("panchang_cache_hit")
+    return {"source": source, "date": date_str, "panchang": panchang}
 
 
 @app.post("/api/v1/telemetry/ping")
@@ -566,6 +524,9 @@ async def admin_system_endpoint():
         "gemini_key_configured": bool(os.getenv("GEMINI_API_KEY")),
         "default_admin_secret": ADMIN_SECRET == DEFAULT_ADMIN_SECRET,
         "next_precache_run": job.next_run_time.isoformat() if job and job.next_run_time else None,
+        "precache_items": len(build_precache_items(ist_today_str())),
+        "precache_running": precache_running(),
+        **limiter_status(),
     }
     return data
 
@@ -573,6 +534,8 @@ async def admin_system_endpoint():
 @app.post("/api/v1/admin/trigger-precache", dependencies=admin)
 async def trigger_precache_endpoint():
     """Manually triggers the precache job immediately."""
+    if precache_running():
+        return {"status": "already_running"}
     scheduler.add_job(run_daily_precache_job, id="manual_precache_run", replace_existing=True)
     await log_admin_action("trigger_precache")
     return {"status": "precache_job_started"}

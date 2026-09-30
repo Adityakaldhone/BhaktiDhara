@@ -186,6 +186,89 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           shloka: 'जय देवी जय देवी जय तुळसी । निजपत्राहुनि लघुतर त्रिभुवन हे तुळसी ॥',
           imagePath: 'assets/decorations/tulsi.png',
         );
+      case 'Goddess Renuka Mata':
+        return const _DeityHeaderInfo(
+          title: 'श्री रेणुका माता',
+          subtitle: 'आरती संग्रह',
+          shloka: 'जय देवी जय देवी जय जय रेणुके । तुझे तुळणे हरिहर ब्रह्मादिक ना तुके ॥',
+          imagePath: 'assets/decorations/renuka_mata.png',
+        );
+      case 'Lord Siddhanath':
+        return const _DeityHeaderInfo(
+          title: 'श्री सिद्धनाथ',
+          subtitle: 'आरती संग्रह',
+          shloka: 'जय देव जय देव जय भैरवनाथा । आरती ओवाळूं तुज कृपावंता ॥',
+          imagePath: 'assets/decorations/siddhanath.png',
+        );
+      case 'Lord Bhairavnath':
+        return const _DeityHeaderInfo(
+          title: 'श्री भैरवनाथ',
+          subtitle: 'आरती संग्रह',
+          shloka: 'जय देव जय देव जय भैरवनाथा । सुंदर पदयुग तूझें वंदिन निजमाथां ॥',
+          imagePath: 'assets/decorations/bhairavnath.png',
+        );
+      case 'Chandra Dev':
+        return const _DeityHeaderInfo(
+          title: 'श्री चंद्र देव',
+          subtitle: 'आरती संग्रह',
+          shloka: '''दधिशङ्खतुषाराभं
+क्षीरोदार्णवसम्भवम् ।
+नमामि शशिनं सोमं
+शम्भोर्मुकुटभूषणम् ॥''',
+          imagePath: 'assets/decorations/chandra.png',
+        );
+      case 'Surya Dev':
+        return const _DeityHeaderInfo(
+          title: 'श्री सूर्य देव',
+          subtitle: 'आरती संग्रह',
+          shloka: '''जपाकुसुमसङ्काशं
+काश्यपेयं महाद्युतिम् ।
+तमोऽरिं सर्वपापघ्नं
+प्रणतोऽस्मि दिवाकरम् ॥''',
+          imagePath: 'assets/decorations/surya.png',
+        );
+      case 'Goddess Narmada':
+        return const _DeityHeaderInfo(
+          title: 'श्री नर्मदा माता',
+          subtitle: 'आरती संग्रह',
+          shloka: 'त्वदीय पादपङ्कजं नमामि देवि नर्मदे ॥ नर्मदे हर ॥',
+          imagePath: 'assets/decorations/narmada.png',
+        );
+      case 'Goddess Gayatri':
+        return const _DeityHeaderInfo(
+          title: 'श्री गायत्री माता',
+          subtitle: 'मंत्र संग्रह',
+          shloka: 'ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात् ॥',
+          imagePath: 'assets/decorations/gayatri.png',
+        );
+      case 'Sant Balumama':
+        return const _DeityHeaderInfo(
+          title: 'संत बाळूमामा',
+          subtitle: 'आरती संग्रह',
+          shloka: 'बाळूमामाच्या नावानं चांगभलं ॥',
+          imagePath: 'assets/decorations/balumama.png',
+        );
+      case 'Gondavalekar Maharaj':
+        return const _DeityHeaderInfo(
+          title: 'श्री ब्रह्मचैतन्य गोंदवलेकर महाराज',
+          subtitle: 'आरती संग्रह',
+          shloka: 'श्रीराम जय राम जय जय राम ॥',
+          imagePath: 'assets/decorations/gondavalekar_maharaj.png',
+        );
+      case 'Navnath':
+        return const _DeityHeaderInfo(
+          title: 'श्री नवनाथ',
+          subtitle: 'आरती संग्रह',
+          shloka: 'अलख निरंजन ॥ जयदेव जयदेव जय श्रीनवनाथा ॥',
+          imagePath: 'assets/decorations/navnath.png',
+        );
+      case 'Swami Samarth':
+        return const _DeityHeaderInfo(
+          title: 'श्री स्वामी समर्थ महाराज',
+          subtitle: 'आरती संग्रह',
+          shloka: 'भिऊ नकोस, मी तुझ्या पाठीशी आहे ॥ श्री स्वामी समर्थ ॥',
+          imagePath: 'assets/decorations/swami_samarth.png',
+        );
       case 'Sant':
         return const _DeityHeaderInfo(
           title: 'संत परंपरा',

@@ -976,6 +976,8 @@
   const FLAG_LABELS = {
     horoscope: '♈ Horoscope (Rashi bhavishya)', panchang: '📅 Panchang', jaap: '📿 Jaap mala counter',
     bhajan: '🎵 Bhajans', ads: '📺 Show ads', premium_paywall: '⭐ Premium paywall',
+    status_cards: '🪔 WhatsApp status cards',
+    status_card_photo: '🖼️ Photo on status cards',
   };
   loaders.config = async () => {
     const c = await api('/api/v1/admin/config');
@@ -1004,7 +1006,9 @@
   const METRIC_LABELS = {
     horoscope_cache_hit: 'Horoscope (cache)', horoscope_gemini: 'Horoscope (Gemini)', panchang_cache_hit: 'Panchang (cache)',
     panchang_gemini: 'Panchang (Gemini)', precache_gemini: 'Nightly precache (Gemini)', gemini_error: 'Gemini errors',
+    gemini_busy: 'Rate-limited (served by app)',
   };
+  let precacheInfo = { items: 36, rpm: 5 };
   loaders.system = async () => {
     const s = await api('/api/v1/admin/system');
     const sv = s.server;
@@ -1018,11 +1022,15 @@
     $('#sys-kpis').innerHTML = [
       kpi('Server', '<span class="pill ok" style="font-size:14px">● Healthy</span>', `v${esc(sv.version)} · up ${upText}`),
       kpi('Cache hit rate today', s.cache.hit_rate_today_pct == null ? '—' : s.cache.hit_rate_today_pct + '%', 'requests served without Gemini', 'var(--green)'),
-      kpi('Gemini calls today', fmt(geminiToday), `${fmt(t.gemini_error || 0)} errors · ${esc(sv.gemini_model || 'default model')}`, 'var(--violet)'),
+      kpi('Gemini calls today', fmt(geminiToday), `${fmt(t.gemini_error || 0)} errors · ${fmt(t.gemini_busy || 0)} rate-limited · ${esc(sv.gemini_model || 'default model')}`, 'var(--violet)'),
+      kpi('Gemini quota (last minute)', `${sv.gemini_calls_last_minute ?? 0} / ${sv.gemini_rpm ?? '—'}`, `precache paced at ${sv.precache_rpm ?? '—'}/min · rest reserved for users`),
       kpi('Cached today', fmt(s.cache.horoscope_today + s.cache.panchang_today), `${s.cache.horoscope_today} horoscope · ${s.cache.panchang_today} panchang`),
       kpi('Database', (s.db.size_bytes / 1048576).toFixed(1) + ' MB', `${fmt(s.db.events_total)} events stored`),
-      kpi('Next precache', sv.next_precache_run ? new Date(sv.next_precache_run).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', sv.next_precache_run ? dateIN(sv.next_precache_run) : ''),
+      sv.precache_running
+        ? kpi('Precache', '<span class="pill" style="font-size:14px">● Running</span>', 'progress in Job runs below')
+        : kpi('Next precache', sv.next_precache_run ? new Date(sv.next_precache_run).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', sv.next_precache_run ? dateIN(sv.next_precache_run) : ''),
     ].join('');
+    precacheInfo = { items: sv.precache_items || 36, rpm: sv.precache_rpm || 5 };
     chart('ch-api', {
       type: 'bar',
       data: { labels: s.api.days.map(shortDay), datasets: Object.entries(s.api.series).map(([m, vals], i) => ({
@@ -1037,9 +1045,11 @@
     stamp();
   };
   $('#sys-precache').addEventListener('click', async () => {
-    if (!confirm('Run the Gemini precache job now? (~36 Gemini calls)')) return;
-    await api('/api/v1/admin/trigger-precache', { method: 'POST' });
-    toast('⚡ Precache started — check job runs in a minute');
+    const { items, rpm } = precacheInfo;
+    if (!confirm(`Run the Gemini precache job now?\n\nUp to ${items} readings, paced at ${rpm} Gemini calls/min (~${Math.ceil(items / rpm)} min). Readings already cached today are skipped.`)) return;
+    const r = await api('/api/v1/admin/trigger-precache', { method: 'POST' });
+    if (r.status === 'already_running') { toast('Precache is already running — see Job runs'); return; }
+    toast('⚡ Precache started — progress updates in Job runs');
     setTimeout(() => currentView === 'system' && loaders.system(), 3000);
   });
   $('#sys-clear-old').addEventListener('click', async () => {

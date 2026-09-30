@@ -108,17 +108,18 @@ class AppLocalizationsMr extends AppLocalizations {
   String get deityDurga => 'दुर्गा देवी';
 
   @override
-  String get navBhajan => 'भजन';
+  String get navBhajan => 'भक्ती';
 
   @override
-  String get bhajanSangrah => 'भजन आणि कीर्तन';
+  String get bhajanSangrah => 'भक्ती संग्रह';
 
   @override
-  String get bhajanSubtitle => 'पवित्र हिंदू भजने आणि नामस्मरण';
+  String get bhajanSubtitle => 'भजन, मंत्र, स्तोत्र आणि नामस्मरण';
 
   @override
-  String get bhajanSearchHint => 'शोधा भजन, कीर्तन, गायक...';
+  String get bhajanSearchHint => 'शोधा भजन, मंत्र, स्तोत्र...';
 
   @override
-  String get noBhajanFound => 'तुमच्या शोधाशी जुळणारे कोणतेही भजन आढळले नाही.';
+  String get noBhajanFound =>
+      'तुमच्या शोधाशी जुळणारे कोणतेही साहित्य आढळले नाही.';
 }

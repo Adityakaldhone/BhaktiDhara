@@ -31,9 +31,9 @@
   "deityHanuman": "हनुमान जी",
   "deityShiva": "शिव जी",
   "deityDurga": "दुर्गा माँ",
-  "navBhajan": "भजन",
-  "bhajanSangrah": "भजन और कीर्तन",
-  "bhajanSubtitle": "पवित्र हिंदू भजन और मधुर कीर्तन",
-  "bhajanSearchHint": "खोजें भजन, कीर्तन, गायक...",
-  "noBhajanFound": "आपकी खोज से मेल खाता कोई भजन नहीं मिला।"
+  "navBhajan": "भक्ति",
+  "bhajanSangrah": "भक्ति संग्रह",
+  "bhajanSubtitle": "भजन, मंत्र, स्तोत्र एवं नामस्मरण",
+  "bhajanSearchHint": "खोजें भजन, मंत्र, स्तोत्र...",
+  "noBhajanFound": "आपकी खोज से मेल खाता कोई भक्ति गीत/मंत्र नहीं मिला।"
 }

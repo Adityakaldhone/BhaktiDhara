@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import re
@@ -242,11 +243,13 @@ JSON Schema:
 }}
 """
 
-    raw_text = _generate_with_fallback(prompt)
+    # The Gemini SDK call is blocking; run it off the event loop.
+    raw_text = await asyncio.to_thread(_generate_with_fallback, prompt)
     cleaned = _clean_json_markdown(raw_text)
 
     try:
         data = json.loads(cleaned)
+        data["isAiGenerated"] = True
     except Exception:
         # Fallback dictionary if JSON parsing fails
         data = {
@@ -257,10 +260,10 @@ JSON Schema:
             "luckyNumber": profile['numbers'].split(',')[0].strip(),
             "luckyColor": profile['colors'].split(',')[0].strip(),
             "remedy": f"श्री {profile['lord'].split('(')[0].strip()} चे स्मरण किंवा जप करावा.",
-            "auspiciousPercentage": 62
+            "auspiciousPercentage": 62,
+            "isAiGenerated": False,
         }
 
-    data["isAiGenerated"] = True
     return data
 
 
@@ -328,11 +331,12 @@ JSON Schema:
 }}
 """
 
-    raw_text = _generate_with_fallback(prompt)
+    raw_text = await asyncio.to_thread(_generate_with_fallback, prompt)
     cleaned = _clean_json_markdown(raw_text)
 
     try:
         data = json.loads(cleaned)
+        data["isAiGenerated"] = True
     except Exception:
         data = {
             "formattedDate": date_str,
@@ -374,9 +378,9 @@ JSON Schema:
             "vrat": "",
             "festivalDescription": "आजचा दिवस अत्यंत शुभ असून कुलदैवत व श्री गणेशाचे स्मरण करावे.",
             "dailyMantra": "ॐ नमो भगवते वासुदेवाय",
-            "specialGuidance": "सत्कर्म व दानधर्म केल्यास विशेष पुण्य लाभेल."
+            "specialGuidance": "सत्कर्म व दानधर्म केल्यास विशेष पुण्य लाभेल.",
+            "isAiGenerated": False,
         }
 
     data["cityName"] = city_name
-    data["isAiGenerated"] = True
     return data

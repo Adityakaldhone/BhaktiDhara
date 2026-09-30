@@ -31,9 +31,9 @@
   "deityHanuman": "Hanuman",
   "deityShiva": "Shiva",
   "deityDurga": "Durga",
-  "navBhajan": "Bhajan",
-  "bhajanSangrah": "Bhajan & Kirtan",
-  "bhajanSubtitle": "Sacred Hindu Bhajans & Divine Kirtans",
-  "bhajanSearchHint": "Search Bhajan, Kirtan, Singer...",
-  "noBhajanFound": "No Bhajans found matching your search."
+  "navBhajan": "Bhakti",
+  "bhajanSangrah": "Bhakti Sangrah",
+  "bhajanSubtitle": "Bhajans, Mantras, Stotras & Chants",
+  "bhajanSearchHint": "Search Bhajan, Mantra, Stotra...",
+  "noBhajanFound": "No devotionals found matching your search."
 }

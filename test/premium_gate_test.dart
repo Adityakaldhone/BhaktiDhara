@@ -42,10 +42,10 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Free user must see the ₹20 offer banner and unlock button
-      expect(find.text('विशेष ऑफर: फक्त ₹२० / महिना'), findsOneWidget);
+      // Free user must see the 7-day trial offer banner and unlock button
+      expect(find.text('७ दिवस मोफत! मग फक्त ₹३३/महिना'), findsOneWidget);
       expect(find.text('संपूर्ण राशीभविष्य व उपाय अनलॉक करा'), findsOneWidget);
-      expect(find.text('प्रीमियम अनलॉक करा — ₹२०'), findsOneWidget);
+      expect(find.text('मोफत ट्रायल सुरू करा — ७ दिवस'), findsOneWidget);
 
       // Child is rendered inside ImageFiltered blur
       expect(find.byType(ImageFiltered), findsOneWidget);
@@ -79,15 +79,18 @@ void main() {
 
       // Premium user must NOT see the blur or unlock card
       expect(find.byType(ImageFiltered), findsNothing);
-      expect(find.text('विशेष ऑफर: फक्त ₹२० / महिना'), findsNothing);
-      expect(find.text('प्रीमियम अनलॉक करा — ₹२०'), findsNothing);
+      expect(find.text('७ दिवस मोफत! मग फक्त ₹३३/महिना'), findsNothing);
+      expect(find.text('मोफत ट्रायल सुरू करा — ७ दिवस'), findsNothing);
 
       // Secret content is clear and accessible
       expect(find.text('Secret Vedic Astrological Remedy Content'), findsOneWidget);
     });
 
-    testWidgets('Tapping Unlock Premium opens Paywall Sheet with ₹20/month details',
+    testWidgets('Tapping Unlock Premium opens Paywall Sheet with subscription details',
         (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -109,18 +112,22 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap the Unlock CTA button
-      await tester.tap(find.text('प्रीमियम अनलॉक करा — ₹२०'));
+      await tester.tap(find.text('मोफत ट्रायल सुरू करा — ७ दिवस'));
       await tester.pumpAndSettle();
 
-      // Verify Paywall sheet opens with ₹20 details
+      // Verify Paywall sheet opens with subscription details
       expect(find.text('भक्तिधारा प्रीमियम'), findsOneWidget);
-      expect(find.text('मासिक योजना'), findsOneWidget);
-      expect(find.text('₹२० / महिना'), findsOneWidget);
-      expect(find.text('८०% सूट'), findsOneWidget);
-      expect(find.text('आत्ताच सबस्क्राइब करा • फक्त ₹२०'), findsOneWidget);
+      expect(find.text('🎉 सर्व योजनांवर ७ दिवस मोफत ट्रायल!'), findsOneWidget);
+      expect(find.text('मासिक'), findsOneWidget);
+      expect(find.text('वार्षिक'), findsOneWidget);
 
-      // Tap Subscribe Now to activate premium
-      await tester.tap(find.text('आत्ताच सबस्क्राइब करा • फक्त ₹२०'));
+      // Scroll to dev instant activate button to activate premium
+      await tester.scrollUntilVisible(
+        find.text('Dev: Paid Member'),
+        150,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text('Dev: Paid Member'));
       await tester.pumpAndSettle();
 
       // The sheet should close and premium should be unlocked

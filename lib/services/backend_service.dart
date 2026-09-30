@@ -218,6 +218,43 @@ class BackendService {
     }
   }
 
+  static const _featureFlagsKey = 'remote_feature_flags_v1';
+
+  /// Remote kill switches from `/api/v1/config`. Returns the last known flags
+  /// when offline; a missing flag means "enabled".
+  static Future<Map<String, bool>> fetchFeatureFlags() async {
+    Map<String, bool> cached = const {};
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_featureFlagsKey);
+      if (raw != null) cached = _parseFlags(jsonDecode(raw));
+      if (backendUrl.trim().isEmpty || _isFlutterTest) return cached;
+
+      final response = await http
+          .get(Uri.parse('${backendUrl.trim()}/api/v1/config'))
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          final flags = _parseFlags(decoded['feature_flags']);
+          await prefs.setString(_featureFlagsKey, jsonEncode(flags));
+          return flags;
+        }
+      }
+    } catch (_) {
+      // Keep the cached flags; features stay on by default.
+    }
+    return cached;
+  }
+
+  static Map<String, bool> _parseFlags(Object? value) {
+    if (value is! Map) return const {};
+    return {
+      for (final entry in value.entries)
+        if (entry.value is bool) entry.key.toString(): entry.value as bool,
+    };
+  }
+
   /// Attempts to fetch cached horoscope reading from the Hetzner backend.
   static Future<HoroscopeReading?> fetchCachedHoroscope({
     required Rashi rashi,

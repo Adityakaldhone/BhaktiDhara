@@ -9,6 +9,7 @@ import 'l10n/app_localizations.dart';
 import 'core/theme/theme.dart';
 import 'presentation/providers/locale_provider.dart';
 import 'presentation/providers/premium_provider.dart';
+import 'presentation/providers/subscription_provider.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'services/backend_service.dart';
 import 'services/push_notification_service.dart';
@@ -40,6 +41,8 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Eagerly initialize subscription & 7-day free trial state
+      ref.read(subscriptionProvider);
       await PushNotificationService.init();
       if (!mounted) return;
       _syncPushTopics();

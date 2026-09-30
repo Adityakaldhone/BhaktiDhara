@@ -60,13 +60,22 @@ final filteredBhajanCatalogProvider = Provider<List<AartiItem>>((ref) {
   return allBhajans.where((item) {
     // 1. Check category filter
     if (category != 'All') {
-      if (category == 'Kirtan') {
+      final cat = category.toLowerCase();
+      if (cat == 'popular') {
+        if (!item.tags.any((t) => t.toLowerCase() == 'popular')) return false;
+      } else if (cat == 'bhajan') {
+        if (!item.tags.any((t) => t.toLowerCase() == 'bhajan' || t.toLowerCase() == 'kirtan')) return false;
+      } else if (cat == 'mantra') {
+        if (!item.tags.any((t) => t.toLowerCase() == 'mantra')) return false;
+      } else if (cat == 'stotra') {
+        if (!item.tags.any((t) => t.toLowerCase() == 'stotra' || t.toLowerCase() == 'chalisa')) return false;
+      } else if (cat == 'kirtan') {
         final isKirtan = item.tags.any(
           (t) => t.toLowerCase().contains('kirtan') || t.toLowerCase().contains('dhun'),
         );
         if (!isKirtan) return false;
       } else {
-        if (!item.deity.toLowerCase().contains(category.toLowerCase())) {
+        if (!item.deity.toLowerCase().contains(cat)) {
           return false;
         }
       }
@@ -79,4 +88,25 @@ final filteredBhajanCatalogProvider = Provider<List<AartiItem>>((ref) {
 
     return true;
   }).toList();
+});
+
+/// Dedicated providers for sectional rendering in 'All' mode.
+final popularItemsProvider = Provider<List<AartiItem>>((ref) {
+  final all = ref.watch(bhajanCatalogProvider);
+  return all.where((i) => i.tags.any((t) => t.toLowerCase() == 'popular')).toList();
+});
+
+final bhajanOnlyItemsProvider = Provider<List<AartiItem>>((ref) {
+  final all = ref.watch(bhajanCatalogProvider);
+  return all.where((i) => i.tags.any((t) => t.toLowerCase() == 'bhajan' || t.toLowerCase() == 'kirtan')).toList();
+});
+
+final mantraOnlyItemsProvider = Provider<List<AartiItem>>((ref) {
+  final all = ref.watch(bhajanCatalogProvider);
+  return all.where((i) => i.tags.any((t) => t.toLowerCase() == 'mantra')).toList();
+});
+
+final stotraOnlyItemsProvider = Provider<List<AartiItem>>((ref) {
+  final all = ref.watch(bhajanCatalogProvider);
+  return all.where((i) => i.tags.any((t) => t.toLowerCase() == 'stotra' || t.toLowerCase() == 'chalisa')).toList();
 });

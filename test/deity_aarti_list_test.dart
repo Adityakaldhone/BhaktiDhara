@@ -105,6 +105,34 @@ void main() {
       expect(deities, contains('Lord Khandoba'));
       expect(deities, contains('Lord Venkatesh'));
       expect(deities, contains('Goddess Tulsi'));
+      expect(deities, contains('Lord Siddhanath'));
+      expect(deities, contains('Goddess Renuka Mata'));
+      expect(deities, contains('Sant Balumama'));
+      expect(deities, contains('Gondavalekar Maharaj'));
+      expect(deities, contains('Navnath'));
+      expect(deities, contains('Swami Samarth'));
+      expect(
+        kDevotionalCatalog.where((i) => i.deity == 'Swami Samarth').length,
+        5,
+      );
+
+      final lakshmi =
+          kDevotionalCatalog.firstWhere((i) => i.id == 'lakshmi_aarti');
+      expect(lakshmi.lyrics.first.devanagari, contains('जय महालक्ष्मी'));
+      expect(
+        kDevotionalCatalog.where((i) => i.deity == 'Gondavalekar Maharaj').length,
+        3,
+      );
+
+      final renuka =
+          kDevotionalCatalog.firstWhere((i) => i.id == 'renuka_mata_aarti');
+      expect(renuka.lyrics.first.devanagari, contains('जय जय रेणुके'));
+
+      final dattaDurmil =
+          kDevotionalCatalog.firstWhere((i) => i.id == 'datta_durmil_aarti');
+      expect(dattaDurmil.deity, 'Lord Datta');
+      expect(dattaDurmil.youtubeVideoId, 'raCt3EQkIBQ');
+      expect(dattaDurmil.lyrics.first.devanagari, contains('श्री गुरु दत्तराज मूर्ती'));
     });
 
     test('never maps one god portrait onto another god', () {
@@ -142,8 +170,34 @@ void main() {
           'assets/decorations/tulsi.png');
       expect(MandirTheme.getDeityImageAsset('Goddess Santoshi Mata'),
           'assets/decorations/santoshi_mata.png');
+      expect(MandirTheme.getDeityImageAsset('Goddess Renuka Mata'),
+          'assets/decorations/renuka_mata.png');
+      expect(MandirTheme.getDeityImageAsset('Lord Siddhanath'),
+          'assets/decorations/siddhanath.png');
+      expect(MandirTheme.getDeityImageAsset('Sant Balumama'),
+          'assets/decorations/balumama.png');
+      expect(MandirTheme.getDeityImageAsset('Gondavalekar Maharaj'),
+          'assets/decorations/gondavalekar_maharaj.png');
+      expect(MandirTheme.getDeityImageAsset('Navnath'),
+          'assets/decorations/navnath.png');
+      expect(MandirTheme.getDeityImageAsset('Swami Samarth'),
+          'assets/decorations/swami_samarth.png');
       expect(MandirTheme.getDeityImageAsset('Sant'),
           'assets/decorations/sant.png');
+      expect(MandirTheme.getDeityImageAsset('Lord Bhairavnath'),
+          'assets/decorations/bhairavnath.png');
+      expect(MandirTheme.getDeityImageAsset('Chandra Dev'),
+          'assets/decorations/chandra.png');
+      expect(MandirTheme.getDeityImageAsset('Surya Dev'),
+          'assets/decorations/surya.png');
+      expect(MandirTheme.getDeityImageAsset('Goddess Narmada'),
+          'assets/decorations/narmada.png');
+      expect(MandirTheme.getDeityImageAsset('Goddess Gayatri'),
+          'assets/decorations/gayatri.png');
+      expect(MandirTheme.getDeityImageAsset('Gayatri'),
+          'assets/decorations/gayatri.png');
+      expect(MandirTheme.getDeityImageAsset('Radha'),
+          'assets/decorations/radha.png');
     });
 
     test('Marathi aartis have valid matching YouTube videos and full lyrics', () {

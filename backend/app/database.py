@@ -25,6 +25,8 @@ DEFAULT_APP_CONFIG: Dict[str, Any] = {
         "bhajan": True,
         "ads": True,
         "premium_paywall": True,
+        "status_cards": True,
+        "status_card_photo": True,
     },
 }
 
@@ -963,6 +965,13 @@ async def start_job_run(job: str) -> int:
         cur = await db.execute("INSERT INTO job_runs (job, started_at) VALUES (?, ?)", (job, utc_now_iso()))
         await db.commit()
         return cur.lastrowid
+
+
+async def update_job_run_detail(run_id: int, detail: str):
+    """Live progress for a running job, shown in the admin panel."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE job_runs SET detail = ? WHERE id = ?", (detail[:1000], run_id))
+        await db.commit()
 
 
 async def finish_job_run(run_id: int, status: str, detail: str = ""):

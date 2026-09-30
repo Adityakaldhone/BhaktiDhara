@@ -119,5 +119,93 @@ void main() {
       expect(find.text('भाषा: हिंदी'), findsOneWidget);
       expect(container.read(localeProvider), const Locale('hi'));
     });
+
+    testWidgets('Home header collapses on scroll while search stays pinned',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            localeProvider.overrideWith((ref) => const Locale('en')),
+          ],
+          child: const MaterialApp(
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: [
+              Locale('en'),
+              Locale('hi'),
+              Locale('mr'),
+            ],
+            locale: Locale('en'),
+            home: MandirDashboardScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(MandirDashboardScreen));
+      final l10n = AppLocalizations.of(context)!;
+      // Expanded: full header with tagline, no compact title yet
+      expect(find.text(l10n.appTagline), findsOneWidget);
+      expect(find.text(l10n.appTitle), findsOneWidget);
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+
+      // Collapsed: tagline gone, compact title shown, search still on screen
+      expect(find.text(l10n.appTagline), findsNothing);
+      expect(find.text(l10n.appTitle), findsOneWidget);
+      expect(find.text(l10n.searchHint), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'Scroll to top FloatingActionButton appears on scroll and scrolls back up',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            localeProvider.overrideWith((ref) => const Locale('mr')),
+          ],
+          child: const MaterialApp(
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: [
+              Locale('en'),
+              Locale('hi'),
+              Locale('mr'),
+            ],
+            locale: Locale('mr'),
+            home: MandirDashboardScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // At first entry / top: FAB should not be present
+      expect(find.byType(FloatingActionButton), findsNothing);
+
+      // Scroll down
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      // FAB with upward arrow should now appear
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
+
+      // Tap FAB
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // Scrolled back to top: FAB hides
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
   });
 }

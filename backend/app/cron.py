@@ -2,14 +2,17 @@ import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 from app.database import (
+    get_cached_horoscope,
     save_cached_horoscope,
+    get_cached_panchang,
     save_cached_panchang,
     start_job_run,
+    update_job_run_detail,
     finish_job_run,
-    increment_api_stat,
     prune_old_events,
 )
 from app.gemini_service import generate_horoscope, generate_panchang
+from app.vedic_cache import PRECACHE_RPM, precache_item
 
 logger = logging.getLogger("bhaktidhara.cron")
 
@@ -40,78 +43,91 @@ TOP_CITIES = [
 ]
 
 
+PRECACHE_LANGS = ["mr", "hi"]
+
+_precache_lock = asyncio.Lock()
+
+
+def precache_running() -> bool:
+    return _precache_lock.locked()
+
+
+def build_precache_items(date_str: str):
+    """
+    (label, key, lookup, generate, save) for everything the nightly job warms.
+    Ordered by language so Marathi (the main audience) is ready first.
+    """
+    items = []
+    for lang in PRECACHE_LANGS:
+        for rashi_id, names in RASHI_NAMES.items():
+            rashi_name = names.get(lang, names["mr"])
+            items.append((
+                f"horoscope {rashi_id} [{lang}]",
+                ("horoscope", date_str, rashi_id, "today", lang),
+                lambda r=rashi_id, l=lang: get_cached_horoscope(date_str, r, "today", l),
+                lambda r=rashi_id, n=rashi_name, l=lang: generate_horoscope(
+                    rashi_name=n, period="today", lang_code=l, date_text=date_str, rashi_id=r
+                ),
+                lambda data, r=rashi_id, l=lang: save_cached_horoscope(date_str, r, "today", l, data),
+            ))
+        for city in TOP_CITIES:
+            city_name = city.get(f"name_{lang}", city["name_mr"])
+            items.append((
+                f"panchang {city['id']} [{lang}]",
+                ("panchang", date_str, city["id"], lang),
+                lambda c=city["id"], l=lang: get_cached_panchang(date_str, c, l),
+                lambda n=city_name, l=lang: generate_panchang(city_name=n, date_str=date_str, lang_code=l),
+                lambda data, c=city["id"], l=lang: save_cached_panchang(date_str, c, l, data),
+            ))
+    return items
+
+
 async def run_daily_precache_job():
     """
-    Nightly cron job that pre-generates horoscopes and panchang for the day.
-    Runs at 00:05 AM IST every morning.
+    Pre-generates today's horoscopes and panchang, paced to PRECACHE_RPM Gemini
+    calls per minute. Anything users already generated today is skipped, so each
+    minute's budget goes to the next readings still missing.
+    Runs at 00:05 AM IST every morning (and on demand from the admin panel).
     """
-    logger.info("Starting Daily Vedic Precaching Job...")
-    run_id = await start_job_run("nightly_precache")
-    ok = failed = 0
+    if _precache_lock.locked():
+        logger.info("Precache already running; skipping this trigger.")
+        return
 
-    # Calculate IST date (UTC+5:30)
-    ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
-    today_str = ist_now.strftime("%Y-%m-%d")
+    async with _precache_lock:
+        logger.info("Starting Daily Vedic Precaching Job (%s Gemini calls/min)...", PRECACHE_RPM)
+        run_id = await start_job_run("nightly_precache")
+        generated = skipped = fallback = failed = 0
 
-    # 1. Pre-generate Daily Horoscopes (12 rashis in Marathi & Hindi)
-    for rashi_id, names in RASHI_NAMES.items():
-        for lang in ["mr", "hi"]:
-            rashi_name = names.get(lang, names["mr"])
+        ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+        today_str = ist_now.strftime("%Y-%m-%d")
+        items = build_precache_items(today_str)
+
+        def progress() -> str:
+            return f"{generated} generated, {skipped} already cached, {fallback} unusable, {failed} failed"
+
+        for index, (label, key, lookup, generate, save) in enumerate(items, start=1):
             try:
-                data = await generate_horoscope(
-                    rashi_name=rashi_name,
-                    period="today",
-                    lang_code=lang,
-                    date_text=today_str,
-                    rashi_id=rashi_id,
-                )
-                await save_cached_horoscope(
-                    date_str=today_str,
-                    rashi_id=rashi_id,
-                    period="today",
-                    lang_code=lang,
-                    data=data,
-                )
-                logger.info(f"Cached Horoscope: {rashi_id} [{lang}] for {today_str}")
-                ok += 1
-                # Slight throttle to prevent sudden burst
-                await asyncio.sleep(0.5)
+                result = await precache_item(key, lookup, generate, save)
+                if result == "generated":
+                    generated += 1
+                    logger.info("Precached %s for %s", label, today_str)
+                elif result == "cached":
+                    skipped += 1
+                else:
+                    fallback += 1
+                    logger.warning("Gemini returned unusable output for %s", label)
             except Exception as e:
                 failed += 1
-                logger.error(f"Error caching horoscope {rashi_id} [{lang}]: {e}")
+                logger.error("Error precaching %s: %s", label, e)
+            await update_job_run_detail(run_id, f"{index}/{len(items)} · {progress()}")
 
-    # 2. Pre-generate Panchang for key cities
-    for city in TOP_CITIES:
-        for lang in ["mr", "hi"]:
-            city_name = city.get(f"name_{lang}", city["name_mr"])
-            try:
-                data = await generate_panchang(
-                    city_name=city_name,
-                    date_str=today_str,
-                    lang_code=lang,
-                )
-                await save_cached_panchang(
-                    date_str=today_str,
-                    city_id=city["id"],
-                    lang_code=lang,
-                    data=data,
-                )
-                logger.info(f"Cached Panchang: {city['id']} [{lang}] for {today_str}")
-                ok += 1
-                await asyncio.sleep(0.5)
-            except Exception as e:
-                failed += 1
-                logger.error(f"Error caching panchang {city['id']} [{lang}]: {e}")
+        try:
+            pruned = await prune_old_events()
+        except Exception as e:
+            pruned = 0
+            logger.error(f"Error pruning old events: {e}")
 
-    try:
-        pruned = await prune_old_events()
-    except Exception as e:
-        pruned = 0
-        logger.error(f"Error pruning old events: {e}")
-
-    await increment_api_stat("precache_gemini", ok)
-    if failed:
-        await increment_api_stat("gemini_error", failed)
-    status = "success" if failed == 0 else ("partial" if ok else "failed")
-    await finish_job_run(run_id, status, f"{ok} cached, {failed} failed, {pruned} old events pruned")
-    logger.info(f"Daily Vedic Precaching Job finished: {ok} ok, {failed} failed.")
+        ok = generated + skipped
+        status = "success" if ok == len(items) else ("partial" if ok else "failed")
+        await finish_job_run(run_id, status, f"{progress()}, {pruned} old events pruned")
+        logger.info("Daily Vedic Precaching Job finished: %s.", progress())

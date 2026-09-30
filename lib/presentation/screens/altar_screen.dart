@@ -10,6 +10,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 // ignore: depend_on_referenced_packages
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/aarti_item.dart';
 import '../../services/audio_service.dart';
@@ -269,7 +270,13 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
                 return NavigationDecision.navigate;
               }
               if (url.contains('youtube.com/watch') ||
-                  url.contains('youtu.be/')) {
+                  url.contains('youtu.be/') ||
+                  url.contains('youtube.com/@') ||
+                  url.contains('youtube.com/channel')) {
+                final uri = Uri.tryParse(url);
+                if (uri != null) {
+                  launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
                 return NavigationDecision.prevent;
               }
               return NavigationDecision.navigate;
@@ -658,39 +665,47 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
                       ),
                     ),
                   if (!kIsWeb && _showUnmuteHint && !_isLoading)
-                    Positioned.fill(
-                      child: Material(
-                        color: Colors.black54,
-                        child: InkWell(
+                    Positioned(
+                      top: 10,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: GestureDetector(
                           onTap: _unmuteFromUserTap,
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE9B170),
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.volume_up_rounded,
-                                    color: Color(0xFF2E1104),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE9B170).withValues(alpha: 0.92),
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.volume_up_rounded,
+                                  color: Color(0xFF2E1104),
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Tap video to unmute',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF2E1104),
+                                    fontSize: 13,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Tap to unmute',
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF2E1104),
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

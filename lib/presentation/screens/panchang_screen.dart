@@ -14,6 +14,9 @@ import '../../services/backend_service.dart';
 import '../panchang/panchang_strings.dart';
 import '../providers/locale_provider.dart';
 import '../providers/panchang_provider.dart';
+import '../providers/premium_provider.dart';
+import '../widgets/premium_blurred_gate.dart';
+import '../widgets/premium_content_blur.dart';
 
 const _goodColor = Color(0xFF2E7D32);
 const _goodDark = Color(0xFF1B5E20);
@@ -210,6 +213,8 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
         panchang.festivalDescription.isNotEmpty ||
         panchang.dailyMantra.isNotEmpty;
 
+    final isPremium = ref.watch(isPremiumProvider);
+
     return RefreshIndicator(
       color: MandirTheme.primarySaffron,
       backgroundColor: const Color(0xFFFFFBF2),
@@ -218,21 +223,28 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
+          // TodayCard: always visible (free teaser — shows basic info)
           _TodayCard(panchang: panchang, slots: slots, now: nowStatus, s: s),
           const SizedBox(height: 16),
+          // ScheduleCard: title & indicators always visible, slots blurred if !isPremium
           _ScheduleCard(
             slots: slots,
             s: s,
             nowMinute: isToday ? nowMinute : null,
+            isPremium: isPremium,
           ),
           if (hasFestival) ...[
             const SizedBox(height: 16),
-            _FestivalCard(panchang: panchang, s: s),
+            _FestivalCard(panchang: panchang, s: s, isPremium: isPremium),
           ],
           const SizedBox(height: 16),
-          _SunMoonCard(panchang: panchang, s: s),
+          _SunMoonCard(panchang: panchang, s: s, isPremium: isPremium),
           const SizedBox(height: 16),
-          _FullPanchangCard(panchang: panchang, s: s),
+          _FullPanchangCard(panchang: panchang, s: s, isPremium: isPremium),
+          if (!isPremium) ...[
+            const SizedBox(height: 16),
+            _buildSubscriptionCta(s.lang),
+          ],
           const SizedBox(height: 20),
           Center(
             child: Text(
@@ -258,6 +270,131 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
             ),
           ],
           const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SUBSCRIPTION CTA BANNER (For Free Users)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildSubscriptionCta(String langCode) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B1D18).withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFFF3D6),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Color(0xFFD4AF37),
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      langCode == 'en'
+                          ? 'Unlock Complete Panchang & Muhurats'
+                          : (langCode == 'hi'
+                              ? 'संपूर्ण पंचांग व शुभ मुहूर्त अनलॉक करें'
+                              : 'संपूर्ण पंचांग व सर्व शुभ मुहूर्त अनलॉक करा'),
+                      style: GoogleFonts.mukta(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF7A0C08),
+                        height: 1.2,
+                      ),
+                    ),
+                    Text(
+                      langCode == 'en'
+                          ? '7 Days Free Trial • Then ₹51/month'
+                          : (langCode == 'hi'
+                              ? '7 दिन मुफ्त ट्रायल • फिर ₹51/माह'
+                              : '७ दिवस मोफत ट्रायल • मग ₹५१/महिना'),
+                      style: GoogleFonts.mukta(
+                        fontSize: 13,
+                        color: MandirTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B1D18), Color(0xFFE65100)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B1D18).withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () =>
+                    showPremiumPaywallSheet(context, ref, langCode),
+                icon: const Icon(
+                  Icons.lock_open_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    langCode == 'en'
+                        ? 'Start 7-Day Free Trial'
+                        : (langCode == 'hi'
+                            ? '7 दिन मुफ्त ट्रायल शुरू करें'
+                            : '७ दिवस मोफत ट्रायल सुरू करा'),
+                    style: GoogleFonts.mukta(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1002,6 +1139,7 @@ class _ScheduleCard extends StatelessWidget {
     required this.slots,
     required this.s,
     required this.nowMinute,
+    required this.isPremium,
   });
 
   final List<PanchangSlot> slots;
@@ -1009,6 +1147,7 @@ class _ScheduleCard extends StatelessWidget {
 
   /// Only set when the selected date is today.
   final int? nowMinute;
+  final bool isPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -1016,6 +1155,7 @@ class _ScheduleCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // TITLE AND INDICATORS STAY 100% VISIBLE AND UNBLURRED!
           _CardTitle(Icons.schedule_rounded, s.scheduleTitle),
           const SizedBox(height: 6),
           Row(
@@ -1044,7 +1184,18 @@ class _ScheduleCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          for (final slot in slots) _slotRow(slot),
+          // ONLY SLOTS ARE BLURRED FOR FREE USERS:
+          if (isPremium)
+            for (final slot in slots) _slotRow(slot)
+          else
+            BlurredContentGate(
+              langCode: s.lang,
+              child: Column(
+                children: [
+                  for (final slot in slots) _slotRow(slot),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -1129,10 +1280,15 @@ class _ScheduleCard extends StatelessWidget {
 //  3. FESTIVAL, VRAT & MANTRA
 // ═════════════════════════════════════════════════════════════════════════════
 class _FestivalCard extends StatelessWidget {
-  const _FestivalCard({required this.panchang, required this.s});
+  const _FestivalCard({
+    required this.panchang,
+    required this.s,
+    required this.isPremium,
+  });
 
   final PanchangData panchang;
   final PanchangStrings s;
+  final bool isPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -1150,6 +1306,7 @@ class _FestivalCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // TITLE AND FESTIVAL NAME STAY 100% VISIBLE AND UNBLURRED!
           _CardTitle(Icons.festival_rounded, s.festivalTitle),
           if (panchang.festivalName.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -1163,52 +1320,68 @@ class _FestivalCard extends StatelessWidget {
               ),
             ),
           ],
-          if (panchang.vrat.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: MandirTheme.primarySaffron.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                '${s.vrat}: ${panchang.vrat}',
-                style: GoogleFonts.mukta(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: MandirTheme.primarySaffron,
-                ),
-              ),
+          // ONLY THE DETAILS BELOW ARE BLURRED FOR FREE USERS:
+          if (isPremium)
+            _festivalBody(context)
+          else
+            BlurredContentGate(
+              langCode: s.lang,
+              child: _festivalBody(context),
             ),
-          ],
-          if (panchang.festivalDescription.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              panchang.festivalDescription,
-              style: GoogleFonts.mukta(
-                fontSize: 16.5,
-                color: const Color(0xFF5D4037),
-                height: 1.45,
-              ),
-            ),
-          ],
-          if (panchang.dailyMantra.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _mantraBox(context),
-          ],
-          if (panchang.specialGuidance.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              '💡 ${s.tip}: ${panchang.specialGuidance}',
-              style: GoogleFonts.mukta(
-                fontSize: 16,
-                color: const Color(0xFF6D5545),
-                height: 1.45,
-              ),
-            ),
-          ],
         ],
       ),
+    );
+  }
+
+  Widget _festivalBody(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (panchang.vrat.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: MandirTheme.primarySaffron.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${s.vrat}: ${panchang.vrat}',
+              style: GoogleFonts.mukta(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: MandirTheme.primarySaffron,
+              ),
+            ),
+          ),
+        ],
+        if (panchang.festivalDescription.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            panchang.festivalDescription,
+            style: GoogleFonts.mukta(
+              fontSize: 16.5,
+              color: const Color(0xFF5D4037),
+              height: 1.45,
+            ),
+          ),
+        ],
+        if (panchang.dailyMantra.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _mantraBox(context),
+        ],
+        if (panchang.specialGuidance.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(
+            '💡 ${s.tip}: ${panchang.specialGuidance}',
+            style: GoogleFonts.mukta(
+              fontSize: 16,
+              color: const Color(0xFF6D5545),
+              height: 1.45,
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -1267,10 +1440,15 @@ class _FestivalCard extends StatelessWidget {
 //  4. SUN & MOON
 // ═════════════════════════════════════════════════════════════════════════════
 class _SunMoonCard extends StatelessWidget {
-  const _SunMoonCard({required this.panchang, required this.s});
+  const _SunMoonCard({
+    required this.panchang,
+    required this.s,
+    required this.isPremium,
+  });
 
   final PanchangData panchang;
   final PanchangStrings s;
+  final bool isPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -1322,16 +1500,9 @@ class _SunMoonCard extends StatelessWidget {
     const sunBg = Color(0xFFFFF4E0);
     const moonBg = Color(0xFFF0F4F8);
 
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    Widget tilesContent() {
+      return Column(
         children: [
-          _CardTitle(
-            Icons.wb_sunny_rounded,
-            s.sunMoonTitle,
-            color: const Color(0xFFE65100),
-          ),
-          const SizedBox(height: 12),
           Row(
             children: [
               tile('🌅', s.sunrise, panchang.sunrise, sunBg),
@@ -1348,6 +1519,29 @@ class _SunMoonCard extends StatelessWidget {
             ],
           ),
         ],
+      );
+    }
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // TITLE IS ALWAYS VISIBLE AND UNBLURRED!
+          _CardTitle(
+            Icons.wb_sunny_rounded,
+            s.sunMoonTitle,
+            color: const Color(0xFFE65100),
+          ),
+          const SizedBox(height: 12),
+          // TIME TILES: Blurred if !isPremium!
+          if (isPremium)
+            tilesContent()
+          else
+            BlurredContentGate(
+              langCode: s.lang,
+              child: tilesContent(),
+            ),
+        ],
       ),
     );
   }
@@ -1357,10 +1551,15 @@ class _SunMoonCard extends StatelessWidget {
 //  5. FULL PANCHANG (one tap away)
 // ═════════════════════════════════════════════════════════════════════════════
 class _FullPanchangCard extends StatelessWidget {
-  const _FullPanchangCard({required this.panchang, required this.s});
+  const _FullPanchangCard({
+    required this.panchang,
+    required this.s,
+    required this.isPremium,
+  });
 
   final PanchangData panchang;
   final PanchangStrings s;
+  final bool isPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -1385,6 +1584,7 @@ class _FullPanchangCard extends StatelessWidget {
             color: MandirTheme.primarySaffron,
             size: 26,
           ),
+          // TITLE AND SUBTITLE ARE ALWAYS VISIBLE AND UNBLURRED!
           title: Text(
             s.detailsTitle,
             style: GoogleFonts.mukta(
@@ -1401,23 +1601,50 @@ class _FullPanchangCard extends StatelessWidget {
             ),
           ),
           children: [
-            _section(s.limbsSection),
-            _row(s.tithi, s.tithiMeaning, '${p.paksha} ${p.tithi}', p.tithiEndTime),
-            _row(s.vaar, s.vaarMeaning(p.vaarGraha), p.vaar, null),
-            _row(s.nakshatra, s.nakshatraMeaning, p.nakshatra, p.nakshatraEndTime),
-            _row(s.yoga, s.yogaMeaning, p.yoga, p.yogaEndTime),
-            _row(s.karana, s.karanaMeaning, p.karana, p.karanaEndTime),
-            _section(s.rashiSection),
-            _row(s.suryaRashi, null, p.suryaRashi, null),
-            _row(s.chandraRashi, null, p.chandraRashi, null),
-            _section(s.yearSection),
-            _row(s.maas, null, p.maas, null),
-            _row(s.paksha, null, p.paksha, null),
-            _row(s.vikramSamvat, null, p.vikramSamvat, null),
-            _row(s.shakaSamvat, null, p.shakaSamvat, null),
-            _row(s.samvatsara, null, p.samvatsara, null),
-            _row(s.ritu, null, p.ritu, null),
-            _row(s.ayana, null, p.ayana, null),
+            if (isPremium) ...[
+              _section(s.limbsSection),
+              _row(s.tithi, s.tithiMeaning, '${p.paksha} ${p.tithi}', p.tithiEndTime),
+              _row(s.vaar, s.vaarMeaning(p.vaarGraha), p.vaar, null),
+              _row(s.nakshatra, s.nakshatraMeaning, p.nakshatra, p.nakshatraEndTime),
+              _row(s.yoga, s.yogaMeaning, p.yoga, p.yogaEndTime),
+              _row(s.karana, s.karanaMeaning, p.karana, p.karanaEndTime),
+              _section(s.rashiSection),
+              _row(s.suryaRashi, null, p.suryaRashi, null),
+              _row(s.chandraRashi, null, p.chandraRashi, null),
+              _section(s.yearSection),
+              _row(s.maas, null, p.maas, null),
+              _row(s.paksha, null, p.paksha, null),
+              _row(s.vikramSamvat, null, p.vikramSamvat, null),
+              _row(s.shakaSamvat, null, p.shakaSamvat, null),
+              _row(s.samvatsara, null, p.samvatsara, null),
+              _row(s.ritu, null, p.ritu, null),
+              _row(s.ayana, null, p.ayana, null),
+            ] else ...[
+              BlurredContentGate(
+                langCode: s.lang,
+                child: Column(
+                  children: [
+                    _section(s.limbsSection),
+                    _row(s.tithi, s.tithiMeaning, '${p.paksha} ${p.tithi}', p.tithiEndTime),
+                    _row(s.vaar, s.vaarMeaning(p.vaarGraha), p.vaar, null),
+                    _row(s.nakshatra, s.nakshatraMeaning, p.nakshatra, p.nakshatraEndTime),
+                    _row(s.yoga, s.yogaMeaning, p.yoga, p.yogaEndTime),
+                    _row(s.karana, s.karanaMeaning, p.karana, p.karanaEndTime),
+                    _section(s.rashiSection),
+                    _row(s.suryaRashi, null, p.suryaRashi, null),
+                    _row(s.chandraRashi, null, p.chandraRashi, null),
+                    _section(s.yearSection),
+                    _row(s.maas, null, p.maas, null),
+                    _row(s.paksha, null, p.paksha, null),
+                    _row(s.vikramSamvat, null, p.vikramSamvat, null),
+                    _row(s.shakaSamvat, null, p.shakaSamvat, null),
+                    _row(s.samvatsara, null, p.samvatsara, null),
+                    _row(s.ritu, null, p.ritu, null),
+                    _row(s.ayana, null, p.ayana, null),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
