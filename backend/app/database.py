@@ -212,6 +212,27 @@ async def init_db():
         """)
 
         await db.execute("""
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id TEXT NOT NULL,
+                product_id TEXT NOT NULL,
+                purchase_token TEXT NOT NULL,
+                order_id TEXT DEFAULT '',
+                platform TEXT NOT NULL DEFAULT 'android',
+                status TEXT NOT NULL DEFAULT 'active',
+                is_trial INTEGER DEFAULT 0,
+                auto_renewing INTEGER DEFAULT 1,
+                started_at TIMESTAMP NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                raw_receipt TEXT DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(device_id, purchase_token)
+            )
+        """)
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_subs_device ON subscriptions(device_id, expires_at)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_subs_token ON subscriptions(purchase_token)")
+
+        await db.execute("""
             CREATE TABLE IF NOT EXISTS admin_audit (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 action TEXT NOT NULL,
@@ -380,8 +401,21 @@ async def record_device_ping(
             "SELECT vip_granted, blocked FROM devices WHERE device_id = ?", (device_id,)
         ) as cur:
             row = await cur.fetchone()
+
+        # Check if device has an active paid or trial subscription
+        is_sub_active = False
+        async with db.execute(
+            "SELECT 1 FROM subscriptions WHERE device_id = ? AND status = 'active' AND datetime(expires_at) > datetime('now') LIMIT 1",
+            (device_id,),
+        ) as cur:
+            sub_row = await cur.fetchone()
+            if sub_row:
+                is_sub_active = True
+
+        vip_active = (bool(row[0]) if row else False) or is_sub_active
+
         return {
-            "vipGranted": bool(row[0]) if row else False,
+            "vipGranted": vip_active,
             "blocked": bool(row[1]) if row else False,
         }
 
@@ -437,12 +471,16 @@ async def get_admin_metrics() -> Dict[str, Any]:
         )
         horoscope_cache_count = await _fetch_scalar(db, "SELECT COUNT(*) FROM horoscope_cache")
         panchang_cache_count = await _fetch_scalar(db, "SELECT COUNT(*) FROM panchang_cache")
+        active_subs_count = await _fetch_scalar(
+            db, "SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND datetime(expires_at) > datetime('now')"
+        )
 
         return {
             "total_installs": total_devices,
             "daily_active_users_dau": dau,
             "monthly_active_users_mau": mau,
             "vip_subscribers": vip_subscribers,
+            "active_subscriptions": active_subs_count,
             "platforms": platforms,
             "locales": locales,
             "cities": cities,
@@ -1262,3 +1300,182 @@ async def get_push_stats() -> Dict[str, Any]:
         "opens_30d": opens_30d,
         "scheduled": scheduled,
     }
+
+
+# ── Subscription & Monetization Methods ──────────────────────────────────────
+
+PLAN_DURATION_DAYS: Dict[str, int] = {
+    "bhaktidhara_annual_399": 365,
+    "bhaktidhara_halfyearly_229": 180,
+    "bhaktidhara_quarterly_129": 90,
+    "bhaktidhara_monthly_51": 30,
+}
+
+PLAN_PRICES_INR: Dict[str, int] = {
+    "bhaktidhara_annual_399": 399,
+    "bhaktidhara_halfyearly_229": 229,
+    "bhaktidhara_quarterly_129": 129,
+    "bhaktidhara_monthly_51": 51,
+}
+
+
+async def record_subscription(
+    device_id: str,
+    product_id: str,
+    purchase_token: str,
+    platform: str = "android",
+    order_id: str = "",
+    is_trial: bool = False,
+    auto_renewing: bool = True,
+    raw_receipt: str = "",
+) -> Dict[str, Any]:
+    """Records or updates a verified subscription purchase in the database."""
+    days = 7 if is_trial else PLAN_DURATION_DAYS.get(product_id, 30)
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=days)
+    now_iso = now.isoformat()
+    expires_iso = expires_at.isoformat()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO subscriptions (
+                device_id, product_id, purchase_token, order_id, platform,
+                status, is_trial, auto_renewing, started_at, expires_at, raw_receipt, updated_at
+            ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(device_id, purchase_token) DO UPDATE SET
+                product_id = excluded.product_id,
+                order_id = excluded.order_id,
+                status = 'active',
+                is_trial = excluded.is_trial,
+                auto_renewing = excluded.auto_renewing,
+                expires_at = excluded.expires_at,
+                raw_receipt = excluded.raw_receipt,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                device_id,
+                product_id,
+                purchase_token,
+                order_id,
+                platform,
+                1 if is_trial else 0,
+                1 if auto_renewing else 0,
+                now_iso,
+                expires_iso,
+                raw_receipt,
+            ),
+        )
+        # Mark device as VIP in devices table
+        await db.execute(
+            "UPDATE devices SET is_vip = 1 WHERE device_id = ?",
+            (device_id,),
+        )
+        # Record analytics event
+        await db.execute(
+            "INSERT INTO events (device_id, name, item, props_json, created_at) VALUES (?, 'subscription_activated', ?, ?, ?)",
+            (device_id, product_id, json.dumps({"is_trial": is_trial, "price": PLAN_PRICES_INR.get(product_id, 0)}), now_iso),
+        )
+        await db.commit()
+
+    return {
+        "verified": True,
+        "isActive": True,
+        "tier": product_id,
+        "expiresAt": expires_iso,
+        "isTrial": is_trial,
+        "trialStartedAt": now_iso if is_trial else None,
+        "autoRenewing": auto_renewing,
+    }
+
+
+async def get_device_subscription_status(device_id: str) -> Dict[str, Any]:
+    """Retrieves current subscription status for a device."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Check active subscription
+        async with db.execute(
+            """
+            SELECT product_id, status, is_trial, auto_renewing, started_at, expires_at
+            FROM subscriptions
+            WHERE device_id = ? AND status = 'active' AND datetime(expires_at) > datetime('now')
+            ORDER BY datetime(expires_at) DESC LIMIT 1
+            """,
+            (device_id,),
+        ) as cur:
+            row = await cur.fetchone()
+            if row:
+                return {
+                    "isActive": True,
+                    "tier": row[0],
+                    "status": row[1],
+                    "isTrial": bool(row[2]),
+                    "autoRenewing": bool(row[3]),
+                    "startedAt": row[4],
+                    "expiresAt": row[5],
+                }
+
+        # Check if manually granted VIP by admin
+        async with db.execute(
+            "SELECT is_vip, vip_granted FROM devices WHERE device_id = ?",
+            (device_id,),
+        ) as cur:
+            dev_row = await cur.fetchone()
+            if dev_row and (dev_row[0] == 1 or dev_row[1] == 1):
+                return {
+                    "isActive": True,
+                    "tier": "bhaktidhara_annual_399",
+                    "status": "vip_granted",
+                    "isTrial": False,
+                    "autoRenewing": True,
+                    "startedAt": None,
+                    "expiresAt": (datetime.now(timezone.utc) + timedelta(days=365)).isoformat(),
+                }
+
+    return {
+        "isActive": False,
+        "tier": None,
+        "status": "free",
+        "isTrial": False,
+        "autoRenewing": False,
+        "expiresAt": None,
+    }
+
+
+async def cancel_subscription_by_token(purchase_token: str) -> bool:
+    """Marks a subscription cancelled (e.g. from Google Play RTDN webhook)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE subscriptions SET status = 'cancelled', auto_renewing = 0, updated_at = CURRENT_TIMESTAMP WHERE purchase_token = ?",
+            (purchase_token,),
+        )
+        await db.commit()
+    return True
+
+
+async def get_subscription_stats() -> Dict[str, Any]:
+    """Returns analytics for subscriptions and revenue."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        active_subs = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND datetime(expires_at) > datetime('now')",
+        )
+        trial_subs = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND is_trial = 1 AND datetime(expires_at) > datetime('now')",
+        )
+        paid_subs = max(0, active_subs - trial_subs)
+        by_plan = await _fetch_map(
+            db,
+            "SELECT product_id, COUNT(*) FROM subscriptions WHERE status = 'active' AND datetime(expires_at) > datetime('now') GROUP BY 1",
+        )
+        total_revenue_inr = sum(
+            PLAN_PRICES_INR.get(pid, 0) * cnt
+            for pid, cnt in by_plan.items()
+        )
+        return {
+            "active_subscriptions": active_subs,
+            "trial_subscriptions": trial_subs,
+            "paid_subscriptions": paid_subs,
+            "by_plan": by_plan,
+            "estimated_revenue_inr": total_revenue_inr,
+        }

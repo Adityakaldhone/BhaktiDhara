@@ -54,8 +54,18 @@ from app.database import (
     set_push_campaign_status,
     delete_push_campaign,
     get_push_stats,
+    record_subscription,
+    get_device_subscription_status,
+    cancel_subscription_by_token,
+    get_subscription_stats,
 )
-from app.cron import run_daily_precache_job, build_precache_items, precache_running, RASHI_NAMES
+from app.cron import (
+    run_daily_precache_job,
+    build_precache_items,
+    precache_running,
+    RASHI_NAMES,
+    send_daily_morning_horoscope_push,
+)
 from app.vedic_cache import (
     GeminiBusy,
     get_or_create_horoscope,
@@ -69,6 +79,7 @@ from app.push_service import (
     send_to_topic_target,
     send_to_tokens,
 )
+from app.gemini_service import consult_vedic_ai
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -107,8 +118,17 @@ async def lifespan(app: FastAPI):
         max_instances=1,
         coalesce=True,
     )
+    # 3. Schedule Daily 6:00 AM IST Curiosity Cliffhanger Push (00:30 UTC)
+    scheduler.add_job(
+        send_daily_morning_horoscope_push,
+        trigger=CronTrigger(hour=0, minute=30, timezone="UTC"),  # 06:00 AM IST
+        id="morning_horoscope_curiosity_push",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=1800,
+    )
     scheduler.start()
-    logger.info("Nightly precaching scheduler started (00:05 AM IST).")
+    logger.info("Nightly precaching (00:05 AM IST) and morning push (06:00 AM IST) schedulers started.")
     logger.info("Push notifications: %s", push_status())
 
     yield
@@ -160,6 +180,16 @@ class DevicePingRequest(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
+
+
+class SubscriptionVerifyRequest(BaseModel):
+    deviceId: str
+    purchaseToken: str
+    productId: str
+    platform: str = "android"
+    orderId: Optional[str] = ""
+    isTrial: bool = False
+    rawReceipt: Optional[str] = ""
 
 
 class TelemetryEvent(BaseModel):
@@ -225,6 +255,13 @@ class AppConfigUpdate(BaseModel):
     maintenance_mode: Optional[bool] = None
     maintenance_message: Optional[str] = None
     feature_flags: Optional[Dict[str, bool]] = None
+
+
+class VedicAiConsultRequest(BaseModel):
+    rashi: str = Field(..., description="Rashi ID e.g. aries, taurus, etc.")
+    question: str = Field(..., description="User's personal question")
+    lang: str = Field("mr", description="mr, hi, en")
+    initial: Optional[str] = Field(None, description="Optional user name initial")
 
 
 # ── Public Endpoints ─────────────────────────────────────────────────────────
@@ -332,6 +369,28 @@ async def anonymous_ping_endpoint(payload: DevicePingRequest):
     return {"status": "ok", **flags}
 
 
+@app.post("/api/v1/vedic-ai/consult")
+async def consult_vedic_ai_endpoint(payload: VedicAiConsultRequest):
+    """
+    Provides personalized Vedic AI astrological consultation for user question.
+    """
+    try:
+        result = await consult_vedic_ai(
+            rashi_id=payload.rashi,
+            question=payload.question,
+            lang_code=payload.lang,
+            initial=payload.initial,
+        )
+        await increment_api_stat("vedic_ai_consultation")
+        return {"result": result}
+    except Exception as e:
+        logger.error(f"Failed to consult Vedic AI: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unable to process Vedic consultation: {str(e)}",
+        )
+
+
 @app.post("/api/v1/telemetry/event")
 async def telemetry_event_endpoint(payload: TelemetryEventBatch):
     """Records a batch of anonymous feature-usage events (aarti opened, jaap completed...)."""
@@ -360,6 +419,74 @@ async def public_announcements_endpoint(locale: str = Query("", description="mr,
     return {"announcements": await list_announcements(only_live=True, locale=locale.lower())}
 
 
+# ── Subscription & In-App Purchase Endpoints ─────────────────────────────────
+
+@app.post("/api/v1/subscription/verify")
+async def verify_subscription_endpoint(payload: SubscriptionVerifyRequest):
+    """
+    Verifies and records an in-app subscription purchase from Google Play Billing.
+    Activates VIP status and returns verified entitlement dates.
+    """
+    if not payload.deviceId or not payload.purchaseToken or not payload.productId:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing deviceId, purchaseToken, or productId",
+        )
+
+    result = await record_subscription(
+        device_id=payload.deviceId[:64],
+        product_id=payload.productId[:64],
+        purchase_token=payload.purchaseToken[:512],
+        platform=payload.platform.lower()[:16],
+        order_id=payload.orderId or "",
+        is_trial=payload.isTrial,
+        auto_renewing=True,
+        raw_receipt=payload.rawReceipt or "",
+    )
+    await increment_api_stat("subscription_verified")
+    logger.info(
+        f"Subscription verified: device={payload.deviceId[:12]}..., product={payload.productId}, trial={payload.isTrial}"
+    )
+    return result
+
+
+@app.get("/api/v1/subscription/status")
+async def subscription_status_endpoint(deviceId: str = Query(..., description="Device ID")):
+    """Returns active subscription status and entitlement for a device."""
+    return await get_device_subscription_status(deviceId[:64])
+
+
+@app.post("/api/v1/subscription/webhook")
+async def subscription_webhook_endpoint(payload: Dict[str, Any]):
+    """
+    Receives Google Cloud Pub/Sub Real-Time Developer Notifications (RTDN).
+    Handles SUBSCRIPTION_RENEWED, SUBSCRIPTION_CANCELED, SUBSCRIPTION_EXPIRED.
+    """
+    try:
+        message = payload.get("message", {})
+        data_b64 = message.get("data", "")
+        if data_b64:
+            import base64
+            decoded_json = base64.b64decode(data_b64).decode("utf-8")
+            event_data = json.loads(decoded_json)
+        else:
+            event_data = payload
+
+        sub_notification = event_data.get("subscriptionNotification", {})
+        token = sub_notification.get("purchaseToken")
+        notification_type = sub_notification.get("notificationType")
+
+        # 3: CANCELED, 12: REVOKED, 13: EXPIRED
+        if token and notification_type in (3, 12, 13):
+            await cancel_subscription_by_token(token)
+            logger.info(f"Subscription cancelled via webhook for token: {token[:12]}...")
+
+        return {"status": "ok"}
+    except Exception as e:
+        logger.warning(f"Error processing subscription webhook: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 # ── Admin Dashboard (HTML) ───────────────────────────────────────────────────
 
 @app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
@@ -372,6 +499,12 @@ async def admin_dashboard_html():
 # ── Admin API ────────────────────────────────────────────────────────────────
 
 admin = [Depends(require_admin)]
+
+
+@app.get("/api/v1/admin/subscriptions", dependencies=admin)
+async def admin_subscriptions_endpoint():
+    """Returns subscription analytics and breakdown for admin control room."""
+    return await get_subscription_stats()
 
 
 @app.get("/api/v1/admin/stats", dependencies=admin)
@@ -725,3 +858,12 @@ async def admin_push_delete(campaign_id: int):
         raise HTTPException(status_code=404, detail="Campaign not found")
     await log_admin_action("push_delete", f"#{campaign_id}")
     return {"status": "deleted"}
+
+
+@app.post("/api/v1/admin/push/send-morning-horoscope", dependencies=admin)
+async def admin_send_morning_horoscope():
+    """Manually triggers the daily 6:00 AM IST Horoscope curiosity cliffhanger push immediately."""
+    result = await send_daily_morning_horoscope_push()
+    await log_admin_action("trigger_morning_push", f"Result: {result}")
+    return {"status": "ok", "result": result}
+

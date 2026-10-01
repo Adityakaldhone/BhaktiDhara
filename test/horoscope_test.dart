@@ -49,9 +49,24 @@ void main() {
       expect(reading.auspiciousPercentage, greaterThan(50));
     });
 
+    test('GeminiHoroscopeService consults Vedic AI for user question', () async {
+      final service = GeminiHoroscopeService();
+      final consult = await service.consultVedicAi(
+        rashi: kAllRashis.first,
+        question: 'नोकरीमध्ये कधी यश मिळेल?',
+        langCode: 'mr',
+      );
+
+      expect(consult.headline, isNotEmpty);
+      expect(consult.astrologicalAspect, isNotEmpty);
+      expect(consult.guidance, isNotEmpty);
+      expect(consult.remedy, isNotEmpty);
+      expect(consult.favorableTiming, isNotEmpty);
+    });
+
     testWidgets('HoroscopeScreen renders Rashi carousel and reading content',
         (WidgetTester tester) async {
-      await tester.binding.setSurfaceSize(const Size(600, 1200));
+      await tester.binding.setSurfaceSize(const Size(600, 3600));
       addTearDown(() async => await tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
@@ -91,9 +106,88 @@ void main() {
       expect(find.text('मेष'), findsWidgets);
       expect(find.text('♈'), findsWidgets);
 
+      // Check Phase 4 Personalized Lucky Meter
+      expect(find.text('तुमचे वैयक्तिक भाग्य मीटर (नावावरून)'), findsOneWidget);
+      expect(find.text('तुमच्या नावाचे पहिले अक्षर निवडा:'), findsOneWidget);
+      expect(find.text('अक्षर: \'अ\''), findsOneWidget);
+
+      // Test tapping an initial chip (e.g. 'स')
+      await tester.tap(find.text('स').first);
+      await tester.pumpAndSettle();
+      expect(find.text('अक्षर: \'स\''), findsOneWidget);
+
+      // Check Phase 1 Caution card
+      expect(find.text('सावधगिरीचा इशारा (आज काय टाळावे?)'), findsOneWidget);
+
+      // Check Phase 2 Hourly Time-Slot Forecast
+      expect(find.text('वेळेनुसार दैनिक काळ व भविष्य'), findsOneWidget);
+      expect(find.text('सकाळ (प्रातःकाल ऊर्जा)'), findsOneWidget);
+      expect(find.text('दुपार (निर्णय व व्यवहार)'), findsOneWidget);
+      expect(find.text('संध्याकाळ (कौटुंबिक व विश्रांती)'), findsOneWidget);
+
+      // Check Phase 3 Compatibility & Deity section
+      expect(find.text('आजचे अनुकूल भागीदार व मैत्री रास'), findsOneWidget);
+      expect(find.text('अनुकूल मैत्री रास'), findsOneWidget);
+      expect(find.text('सावध राहावयाची रास'), findsOneWidget);
+      expect(find.text('आजची इष्टदेवता व ग्रह शांती बीजमंत्र'), findsOneWidget);
+
+      // Check Phase 5 Vedic AI Consult Card
+      expect(find.text('वेदिक AI ज्योतिष मार्गदर्शन'), findsOneWidget);
+      expect(find.text('खालीलपैकी एक प्रश्न निवडा किंवा स्वतःचा विचारा:'), findsOneWidget);
+      expect(find.text('💼 नोकरी/व्यवसायात कधी यश मिळेल?'), findsOneWidget);
+
+      // Test tapping suggested question chip
+      await tester.tap(find.text('💼 नोकरी/व्यवसायात कधी यश मिळेल?'));
+      await tester.pumpAndSettle();
+
+      // Check results
+      expect(find.text('ग्रहगोचर संकेत व सारांश'), findsOneWidget);
+      expect(find.text('दुसरा प्रश्न विचारा'), findsOneWidget);
+
       // Check remedy and aspect cards
       expect(find.text('आजचा विशेष सिद्ध उपाय'), findsOneWidget);
       expect(find.text('कार्य व आर्थिक स्थिती'), findsOneWidget);
+
+      // Check Phase 6 Morning 6 AM Notification Card
+      expect(find.text('⏰ सकाळी ६:०० ची राशीभविष्य सूचना'), findsOneWidget);
+      expect(find.text('🔔 सूचना कशी दिसेल ते पहा'), findsOneWidget);
+    });
+
+    testWidgets('HoroscopeScreen opens with initialRashiId deep-link',
+        (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(600, 3600));
+      addTearDown(() async => await tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            localeProvider.overrideWith((ref) => const Locale('mr')),
+          ],
+          child: const MaterialApp(
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: [
+              Locale('en'),
+              Locale('hi'),
+              Locale('mr'),
+            ],
+            locale: Locale('mr'),
+            home: HoroscopeScreen(
+              initialRashiId: 'scorpio',
+              focusSection: 'caution',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('वृश्चिक'), findsWidgets);
+      expect(find.text('सावधगिरीचा इशारा (आज काय टाळावे?)'), findsOneWidget);
     });
 
     testWidgets('Dashboard bottom navigation switches to Horoscope tab',

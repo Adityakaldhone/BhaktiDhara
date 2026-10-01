@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/subscription_plan.dart';
@@ -20,6 +21,9 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionStatus> {
     state = status;
     // Keep premium provider in sync
     _ref.read(isPremiumProvider.notifier).setPremium(status.isActive);
+
+    // Initialize Google Play Billing in background
+    unawaited(SubscriptionService.instance.initialize());
   }
 
   /// Refresh subscription status from backend (call on app launch).
@@ -33,26 +37,20 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionStatus> {
     }
   }
 
+  String? lastError;
+
   /// Purchase a subscription plan.
-  ///
-  /// In production, this will trigger Google Play Billing flow.
-  /// Currently uses simulated purchase for development.
+  /// Launches Google Play Billing sheet.
   Future<bool> purchasePlan(SubscriptionPlan plan) async {
+    lastError = null;
     try {
-      // TODO: Replace with actual Google Play Billing flow:
-      // 1. Query product details from Google Play
-      // 2. Launch billing flow
-      // 3. Listen for purchase updates
-      // 4. Verify receipt with backend
-      // 5. Update local state
-      //
-      // For now, simulate the purchase:
-      final status =
-          await SubscriptionService.instance.simulatePurchase(plan);
+      final status = await SubscriptionService.instance.buyPlan(plan);
       state = status;
-      _ref.read(isPremiumProvider.notifier).setPremium(true);
-      return true;
-    } catch (_) {
+      _ref.read(isPremiumProvider.notifier).setPremium(status.isActive);
+      return status.isActive;
+    } catch (e) {
+      lastError = SubscriptionService.instance.lastErrorMessage ??
+          e.toString().replaceAll('Exception: ', '');
       return false;
     }
   }
@@ -80,15 +78,14 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionStatus> {
 
   /// Restore a previous purchase (e.g., after reinstall).
   Future<bool> restorePurchase() async {
-    final backendStatus =
-        await SubscriptionService.instance.checkStatusWithBackend();
-    if (backendStatus != null && backendStatus.isActive) {
-      state = backendStatus;
-      await SubscriptionService.instance.saveSubscriptionStatus(backendStatus);
-      _ref.read(isPremiumProvider.notifier).setPremium(true);
-      return true;
+    try {
+      final restored = await SubscriptionService.instance.restorePurchases();
+      state = restored;
+      _ref.read(isPremiumProvider.notifier).setPremium(restored.isActive);
+      return restored.isActive;
+    } catch (_) {
+      return false;
     }
-    return false;
   }
 }
 

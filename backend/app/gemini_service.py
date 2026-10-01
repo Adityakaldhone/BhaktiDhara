@@ -228,6 +228,22 @@ STRICT ASTROLOGICAL RULES - AVOID TOXIC POSITIVITY & REPETITION:
    - Color: Choose an authentic color from: {profile['colors']}.
 7. VEDIC REMEDY (उपाय):
    - A specific sacred mantra, stotra, or deed honoring {profile['lord']}.
+8. CAUTION & AVOIDANCE (सावधगिरीचा इशारा - काय टाळावे?):
+   - cautionTitle: 1 punchy, attention-grabbing headline in {lang_code} (e.g. "दुपारी २:३० ते ५:०० दरम्यान वादाचे प्रसंग व मोठी खरेदी टाळा")
+   - cautionDetail: 1-2 practical sentences explaining planetary risk and specific trap/pitfall to avoid today.
+   - cautionWindow: Specific sensitive time window (e.g. "दुपारी १२:०० - ०३:३०" or "सकाळी १०:३० - १२:००")
+9. HOURLY TIME-SLOTS (वेळेनुसार ३-काळ):
+   - timeSlots: An object containing:
+     - morning: 1-2 practical sentences on morning mindset, worship, and priority tasks (06:00 AM - 12:00 PM)
+     - afternoon: 1-2 sentences on career decisions, trade, negotiation, and alertness (12:00 PM - 05:00 PM)
+     - evening: 1-2 sentences on relationships, health unwinding, and peaceful reflection (05:00 PM - 10:00 PM)
+10. DAILY COMPATIBILITY & DEITY (अनुकूल मैत्री रास व इष्टदेवता मंत्र):
+   - compatibleRashi: 1-2 signs favoring collaboration today in {lang_code} (e.g. "सिंह व धनु")
+   - cautionRashi: 1 sign where caution in communication is needed in {lang_code} (e.g. "वृश्चिक")
+   - compatibilityTip: 1-2 sentences on handling partnership and avoiding debate today
+   - rulingDeity: Divine deity for today's planetary transit in {lang_code}
+   - deityMantra: Sacred Beej Mantra with count in {lang_code} (e.g. "ॐ गं गणपतये नमः (२१ वेळा जप)")
+   - mantraBenefit: 1 sentence on the spiritual benefit of this mantra today
 
 Respond ONLY with a valid, raw JSON object (no markdown, no ```json tags, no explanations).
 JSON Schema:
@@ -236,6 +252,20 @@ JSON Schema:
   "career": "1-2 sentences with concrete guidance on work, trade, expenses, or dealings",
   "health": "1 sentence on health caution and physical energy",
   "love": "1 sentence on family harmony and where patience is required",
+  "cautionTitle": "1 short punchy alert on what to avoid today",
+  "cautionDetail": "1-2 sentences on specific planetary transit risk and avoidance advice",
+  "cautionWindow": "Specific hours of the day where caution is most required",
+  "timeSlots": {{
+    "morning": "Morning guidance in {lang_code}",
+    "afternoon": "Afternoon guidance in {lang_code}",
+    "evening": "Evening guidance in {lang_code}"
+  }},
+  "compatibleRashi": "1-2 compatible signs today in {lang_code}",
+  "cautionRashi": "1 sign to avoid conflict with today in {lang_code}",
+  "compatibilityTip": "Practical guidance on synergy and handling debate in {lang_code}",
+  "rulingDeity": "Sacred deity for today in {lang_code}",
+  "deityMantra": "Beej mantra with count in {lang_code}",
+  "mantraBenefit": "Spiritual benefit in {lang_code}",
   "luckyNumber": "Auspicious numeral from {profile['numbers']}",
   "luckyColor": "Auspicious color from {profile['colors']}",
   "remedy": "Vedic remedy linked to {profile['lord']}",
@@ -257,6 +287,20 @@ JSON Schema:
             "career": "कामाच्या ठिकाणी वादाचे प्रसंग टाळा आणि वरिष्ठांच्या सूचनेनुसार वाटचाल करा. आर्थिक देवाणघेवाणीत दक्षता ठेवा.",
             "health": "मानसिक थकवा जाणवू शकतो; ध्यानधारणा आणि संतुलित आहारावर भर द्या.",
             "love": "कुटुंबात सामंजस्याने वागा, रागावर नियंत्रण ठेवल्यास कौटुंबिक सौख्य टिकून राहील.",
+            "cautionTitle": f"{rashi_name} राशीने आज दुपारी घाईगडबडीत आर्थिक निर्णय किंवा वादविवाद टाळावेत.",
+            "cautionDetail": f"{profile['lord']} च्या प्रभावामुळे आज {profile['cautions']} बाबत विशेष दक्षता बाळगणे गरजेचे आहे. कोणावरही आंधळा विश्वास ठेवू नका.",
+            "cautionWindow": "दुपारी १२:०० - ०३:३०",
+            "timeSlots": {
+                "morning": f"सकाळी ६ ते १२: दिवसाचा प्रारंभ ईष्टदेवतेच्या चिंतनाने करा. नवीन योजना आखण्यासाठी सकाळचा काळ शुभ आहे.",
+                "afternoon": f"दुपारी १२ ते ५: कामाच्या ठिकाणी संयम ठेवा. आर्थिक निर्णय व महत्त्वाच्या बैठकांमध्ये विचारपूर्वक बोला.",
+                "evening": f"संध्याकाळी ५ ते १०: कुटुंबासमवेत शांततेत वेळ घालवा. कामाचा ताण दूर ठेवून सात्त्विक आहाराला प्राधान्य द्या.",
+            },
+            "compatibleRashi": "सिंह व धनु",
+            "cautionRashi": "वृश्चिक",
+            "compatibilityTip": "सिंह व धनु राशीच्या सहकाऱ्यांशी कामात सहकार्य लाभेल. वृश्चिक राशीशी संवाद साधताना शांतता ठेवा.",
+            "rulingDeity": f"श्री {profile['lord'].split('(')[0].strip()}",
+            "deityMantra": "ॐ गं गणपतये नमः (२१ वेळा जप)",
+            "mantraBenefit": "या मंत्राने ग्रहांची अनिष्ट पीडा दूर होऊन आत्मविश्वासात वाढ होईल.",
             "luckyNumber": profile['numbers'].split(',')[0].strip(),
             "luckyColor": profile['colors'].split(',')[0].strip(),
             "remedy": f"श्री {profile['lord'].split('(')[0].strip()} चे स्मरण किंवा जप करावा.",
@@ -383,4 +427,74 @@ JSON Schema:
         }
 
     data["cityName"] = city_name
+    return data
+
+
+async def consult_vedic_ai(
+    rashi_id: str,
+    question: str,
+    lang_code: str = "mr",
+    initial: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Provides personalized Vedic astrological consultation on user question."""
+    clean_id = _resolve_rashi_id(rashi_id, rashi_id)
+    profile = RASHI_VEDIC_PROFILES.get(clean_id, RASHI_VEDIC_PROFILES["aries"])
+
+    if not GEMINI_API_KEY:
+        return {
+            "headline": "ग्रहांच्या अनुकूलतेनुसार संयमाने घेतलेले निर्णय यशस्वी ठरतील.",
+            "astrologicalAspect": f"{profile['lord']} च्या प्रभावामुळे आपल्या प्रयत्नांना योग्य दिशा मिळण्याचे योग आहेत.",
+            "guidance": "आपण विचारलेल्या प्रश्नासंदर्भात घाईगडबड न करता योग्य नियोजन करा. वरिष्ठ किंवा जाणकार व्यक्तीचा सल्ला घेतल्यास यश नक्की मिळेल.",
+            "remedy": f"रोज सकाळी 'ॐ श्री गणेशाय नमः' चा २१ वेळा जप करावा व कुलदेवतेचे स्मरण करावे.",
+            "favorableTiming": "सकाळी ०८:०० ते ११:०० ही वेळ महत्त्वपूर्ण निर्णयांसाठी उत्तम आहे.",
+            "isAiGenerated": False,
+        }
+
+    lang_instruction = {
+        "mr": "Strictly respond in respectful, compassionate Marathi (मराठी).",
+        "hi": "Strictly respond in respectful, compassionate Hindi (हिन्दी).",
+        "en": "Respond in English with authentic Vedic astrology terminology."
+    }.get(lang_code, "Strictly respond in Marathi.")
+
+    prompt = f"""
+You are an authentic, wise Vedic Astrologer (ज्येष्ठ ज्योतिषाचार्य).
+A seeker has asked this personal life question:
+Question: "{question}"
+Seeker Zodiac: {clean_id.upper()}
+Ruling Planet: {profile['lord']}
+Seeker Name Initial: {initial or 'N/A'}
+Language: {lang_instruction}
+
+Provide honest, compassionate Vedic astrological guidance:
+1. Explain the planetary influence relevant to this matter ({profile['lord']}).
+2. Provide realistic, practical advice (not fake miracles).
+3. Recommend an authentic Vedic remedy (Mantra, deed, or auspicious direction).
+4. Give a favorable window for action.
+
+Respond ONLY with a valid raw JSON object matching this schema:
+{{
+  "headline": "Short 1-sentence respectful summary or auspicious signal",
+  "astrologicalAspect": "1-2 sentences on relevant planetary transit/aspect",
+  "guidance": "2-3 practical, encouraging and pragmatic advice sentences",
+  "remedy": "Specific sacred mantra or deed (e.g. श्री हनुमानाची उपासना किंवा जप)",
+  "favorableTiming": "Auspicious timing or direction (e.g. आगामी ३ आठवडे किंवा उत्तर दिशा)"
+}}
+"""
+
+    raw_text = await asyncio.to_thread(_generate_with_fallback, prompt)
+    cleaned = _clean_json_markdown(raw_text)
+
+    try:
+        data = json.loads(cleaned)
+        data["isAiGenerated"] = True
+    except Exception:
+        data = {
+            "headline": "ग्रहांच्या अनुकूलतेनुसार संयमाने घेतलेले निर्णय यशस्वी ठरतील.",
+            "astrologicalAspect": f"{profile['lord']} च्या प्रभावामुळे आपल्या प्रयत्नांना योग्य दिशा मिळण्याचे योग आहेत.",
+            "guidance": "आपण विचारलेल्या प्रश्नासंदर्भात घाईगडबड न करता योग्य नियोजन करा. वरिष्ठ किंवा जाणकार व्यक्तीचा सल्ला घेतल्यास यश नक्की मिळेल.",
+            "remedy": f"रोज सकाळी 'ॐ श्री गणेशाय नमः' चा २१ वेळा जप करावा व कुलदेवतेचे स्मरण करावे.",
+            "favorableTiming": "सकाळी ०८:०० ते ११:०० ही वेळ महत्त्वपूर्ण निर्णयांसाठी उत्तम आहे.",
+            "isAiGenerated": False,
+        }
+
     return data

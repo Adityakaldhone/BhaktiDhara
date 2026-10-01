@@ -11,6 +11,7 @@ import '../data/datasources/bhajan_catalog.dart';
 import '../data/datasources/catalog.dart';
 import '../data/datasources/marathi_aarti_catalog.dart';
 import '../domain/entities/aarti_item.dart';
+import '../domain/entities/horoscope.dart';
 import '../firebase_options.dart';
 import '../presentation/screens/altar_screen.dart';
 import '../presentation/screens/bhajan_screen.dart';
@@ -83,6 +84,9 @@ class PushNotificationService {
       await _local
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(_channel);
+      await _local
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
 
       final messaging = FirebaseMessaging.instance;
       final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
@@ -126,11 +130,29 @@ class PushNotificationService {
   }
 
   /// Subscribes the device to targeting topics and drops stale ones
-  /// (e.g. after a language change or VIP upgrade).
-  static Future<void> syncTopics({required String locale, required bool isVip}) async {
+  /// (e.g. after a language change, VIP upgrade, or Rashi selection).
+  static Future<void> syncTopics({
+    required String locale,
+    required bool isVip,
+    String? rashiId,
+    bool morningReminderEnabled = true,
+  }) async {
     if (!_initialized) return;
     final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-    final wanted = {'all', 'lang_$locale', isVip ? 'vip' : 'free', platform}.intersection(_allTopics);
+    final allKnown = {
+      ..._allTopics,
+      'morning_horoscope',
+      for (final r in kAllRashis) 'rashi_${r.id}',
+    };
+    final wanted = {
+      'all',
+      'lang_$locale',
+      isVip ? 'vip' : 'free',
+      platform,
+      if (morningReminderEnabled) 'morning_horoscope',
+      if (rashiId != null && rashiId.isNotEmpty) 'rashi_${rashiId.toLowerCase()}',
+    }.intersection(allKnown);
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final current = (prefs.getStringList(_topicsKey) ?? const []).toSet();
@@ -200,7 +222,10 @@ class PushNotificationService {
       case 'jaap':
         return const JaapCounterScreen();
       case 'horoscope':
-        return const HoroscopeScreen();
+        return HoroscopeScreen(
+          initialRashiId: data['rashi']?.toString() ?? data['rashiId']?.toString(),
+          focusSection: data['focus']?.toString(),
+        );
       case 'bhajan':
         return const BhajanScreen();
       case 'aarti':
@@ -209,6 +234,47 @@ class PushNotificationService {
       default:
         return null;
     }
+  }
+
+  /// Displays an immediate local notification simulating the 6:00 AM curiosity push.
+  static Future<void> showMorningHoroscopePreview({
+    required String rashiId,
+    required String rashiName,
+    required String langCode,
+  }) async {
+    final title = langCode == 'mr'
+        ? '🚩 आजचे राशीभविष्य: $rashiName राशीसाठी मोठे ग्रहसंकेत!'
+        : (langCode == 'hi'
+            ? '🚩 आज का राशिफल: $rashiName राशि के लिए बड़े ग्रह संकेत!'
+            : '🚩 Daily Horoscope: Auspicious signs for $rashiName!');
+
+    final body = langCode == 'mr'
+        ? 'आज धनलाभ व प्रगतीचे मोठे योग! पण दुपारी ही एक चूक टाळा... ➔ ॲपमध्ये पहा'
+        : (langCode == 'hi'
+            ? 'आज धन लाभ व उन्नति के योग! लेकिन दोपहर बाद यह गलती न करें... ➔ ऐप में देखें'
+            : 'Planetary alignments favor progress today! But avoid this one mistake... ➔ Open');
+
+    await _local.show(
+      id: 60000 + rashiId.hashCode.abs() % 1000,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          color: const Color(0xFFFF9933),
+          styleInformation: BigTextStyleInformation(body),
+        ),
+      ),
+      payload: jsonEncode({
+        'route': 'horoscope',
+        'rashi': rashiId,
+        'focus': 'caution',
+      }),
+    );
   }
 
   static AartiItem? _findAarti(String? id) {

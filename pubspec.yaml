@@ -1,7 +1,7 @@
 name: nitya_aarti
 description: "BhaktiDhara: Aarti Sangrah"
 publish_to: 'none'
-version: 1.0.4+4
+version: 1.0.6+6
 
 environment:
   sdk: ^3.12.2
@@ -50,6 +50,8 @@ dependencies:
   characters: ^1.4.1
   image_picker: ^1.2.3
   url_launcher: ^6.3.2
+  in_app_purchase: ^3.3.1
+  in_app_purchase_android: ^0.5.3
 
 dev_dependencies:
   flutter_test:

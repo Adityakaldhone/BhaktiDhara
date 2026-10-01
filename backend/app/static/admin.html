@@ -4,183 +4,675 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>BhaktiDhara Admin</title>
+<title>BhaktiDhara — Mandir Control Room</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #0a0914; --panel: #131124; --panel-2: #1a1830; --border: #23203d;
-    --text: #e2e8f0; --muted: #94a3b8; --dim: #64748b;
-    --saffron: #ff9933; --saffron-2: #ff5722; --gold: #ffd700;
-    --blue: #38bdf8; --violet: #a78bfa; --green: #34d399; --red: #f87171;
+    --bg-base: #07060e;
+    --bg-surface: rgba(15, 13, 27, 0.78);
+    --bg-surface-elevated: rgba(22, 19, 40, 0.72);
+    --bg-card: rgba(25, 22, 45, 0.65);
+    --bg-card-hover: rgba(36, 31, 62, 0.85);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-light: rgba(255, 255, 255, 0.14);
+    --border-accent: rgba(255, 153, 51, 0.35);
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --saffron: #ff9933;
+    --saffron-2: #ff5722;
+    --saffron-glow: rgba(255, 153, 51, 0.25);
+    --saffron-gradient: linear-gradient(135deg, #ff9933 0%, #ff5722 100%);
+    --gold: #f59e0b;
+    --gold-glow: rgba(245, 158, 11, 0.25);
+    --blue: #38bdf8;
+    --blue-glow: rgba(56, 189, 248, 0.2);
+    --violet: #818cf8;
+    --violet-glow: rgba(129, 140, 248, 0.2);
+    --green: #10b981;
+    --green-glow: rgba(16, 185, 129, 0.2);
+    --red: #f43f5e;
+    --red-glow: rgba(244, 63, 94, 0.2);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+    --shadow-glow: 0 0 25px -5px rgba(255, 153, 51, 0.25);
+    --glass-blur: blur(20px);
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', system-ui, sans-serif; }
-  body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background-color: var(--bg-base);
+    background-image: 
+      radial-gradient(ellipse 70% 40% at 50% -10%, rgba(255, 153, 51, 0.12), transparent),
+      radial-gradient(ellipse 50% 30% at 100% 40%, rgba(99, 102, 241, 0.08), transparent),
+      radial-gradient(ellipse 40% 30% at 0% 80%, rgba(255, 87, 34, 0.06), transparent);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .brand, .value, .btn, .nav-item {
+    font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
   button, input, select, textarea { font: inherit; color: inherit; }
-  a { color: var(--saffron); }
+  a { color: var(--saffron); text-decoration: none; transition: color .15s; }
+  a:hover { color: #ffaa55; text-decoration: underline; }
 
-  /* Login */
-  #login { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 30%, #2a1a0a, var(--bg) 60%); z-index: 50; }
-  #login .box { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 36px; width: min(380px, 92vw); text-align: center; }
-  #login h1 { color: var(--saffron); font-size: 24px; margin-bottom: 6px; }
-  #login p { color: var(--dim); font-size: 13px; margin-bottom: 22px; }
-  #login .err { color: var(--red); font-size: 13px; min-height: 18px; margin-top: 10px; }
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar-track { background: rgba(10, 8, 20, 0.4); }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 153, 51, 0.4); }
 
-  /* Layout */
+  /* Login Experience */
+  #login {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 40%, #1f140c 0%, #0d0a17 50%, var(--bg-base) 100%);
+    z-index: 50; padding: 20px;
+  }
+  #login::before {
+    content: ''; position: absolute; width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(255,153,51,0.2) 0%, transparent 70%);
+    filter: blur(50px); pointer-events: none;
+  }
+  #login .box {
+    position: relative;
+    background: rgba(19, 16, 34, 0.85);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-lg);
+    padding: 42px 36px;
+    width: min(420px, 94vw);
+    text-align: center;
+    box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8), 0 0 35px -5px rgba(255,153,51,0.2);
+  }
+  .login-badge {
+    width: 60px; height: 60px; margin: 0 auto 18px;
+    background: var(--saffron-gradient);
+    border-radius: 18px; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 10px 25px rgba(255, 153, 51, 0.4);
+  }
+  #login h1 {
+    font-size: 26px; font-weight: 700; color: #fff;
+    letter-spacing: -0.3px; margin-bottom: 6px;
+  }
+  #login p { color: var(--text-muted); font-size: 14px; margin-bottom: 26px; line-height: 1.5; }
+  #login .err { color: var(--red); font-size: 13px; min-height: 20px; margin-top: 12px; font-weight: 500; }
+
+  /* App Layout */
   .app { display: none; min-height: 100vh; }
   .app.ready { display: flex; }
-  aside { width: 230px; background: var(--panel); border-right: 1px solid var(--border); padding: 22px 14px; position: sticky; top: 0; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; }
-  .brand { color: var(--saffron); font-weight: 700; font-size: 19px; padding: 0 10px 20px; }
-  .brand small { display: block; color: var(--dim); font-weight: 500; font-size: 12px; margin-top: 2px; }
-  nav button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; text-align: left; padding: 10px 12px; border-radius: 10px; color: var(--muted); cursor: pointer; font-size: 14px; font-weight: 500; margin-bottom: 2px; }
-  nav button:hover { background: var(--panel-2); color: var(--text); }
-  nav button.active { background: rgba(255,153,51,.14); color: var(--saffron); }
-  aside .foot { margin-top: auto; font-size: 12px; color: var(--dim); padding: 0 10px; }
-  main { flex: 1; padding: 26px 30px 60px; min-width: 0; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; gap: 12px; flex-wrap: wrap; }
-  .topbar h2 { font-size: 22px; font-weight: 700; }
-  .topbar .sub { color: var(--dim); font-size: 13px; }
+  aside {
+    width: 256px;
+    background: rgba(12, 10, 24, 0.82);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: sticky; top: 0; height: 100vh;
+    flex-shrink: 0; display: flex; flex-direction: column;
+    z-index: 20;
+  }
+  .brand-wrap {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 10px 24px; border-bottom: 1px solid var(--border);
+    margin-bottom: 18px;
+  }
+  .brand-icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: var(--saffron-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; box-shadow: 0 6px 16px rgba(255, 153, 51, 0.35);
+    flex-shrink: 0;
+  }
+  .brand {
+    color: #fff; font-weight: 700; font-size: 18px; letter-spacing: -0.2px; line-height: 1.2;
+  }
+  .brand small {
+    display: block; color: var(--saffron); font-weight: 600; font-size: 11px;
+    letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px;
+  }
+  .server-status-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px; background: rgba(16, 185, 129, 0.12);
+    color: var(--green); border: 1px solid rgba(16, 185, 129, 0.25);
+    margin: 0 10px 18px; width: fit-content;
+  }
+  .server-status-chip .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+
+  nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  nav button {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: transparent; border: none; text-align: left;
+    padding: 10px 14px; border-radius: var(--radius-md);
+    color: var(--text-muted); cursor: pointer;
+    font-size: 13.5px; font-weight: 600; transition: all .18s ease;
+    position: relative;
+  }
+  nav button svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 2; opacity: .7; transition: transform .18s, opacity .18s; }
+  nav button:hover {
+    background: var(--bg-card); color: #fff;
+  }
+  nav button:hover svg { opacity: 1; transform: scale(1.08); }
+  nav button.active {
+    background: linear-gradient(90deg, rgba(255, 153, 51, 0.18), rgba(255, 87, 34, 0.08));
+    color: var(--saffron); border: 1px solid rgba(255, 153, 51, 0.3);
+    box-shadow: 0 4px 15px -3px rgba(255, 153, 51, 0.2);
+  }
+  nav button.active svg { opacity: 1; stroke: var(--saffron); }
+
+  aside .foot {
+    margin-top: auto; font-size: 12px; color: var(--text-dim);
+    padding: 14px 10px 0; border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .logout-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-muted); font-weight: 500; font-size: 12.5px;
+    cursor: pointer; transition: color .15s;
+  }
+  .logout-link:hover { color: var(--red); text-decoration: none; }
+
+  /* Main Workspace */
+  main {
+    flex: 1; padding: 28px 36px 80px; min-width: 0; max-width: 1540px; margin: 0 auto; width: 100%;
+  }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 26px; gap: 16px; flex-wrap: wrap;
+    background: rgba(18, 15, 34, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    padding: 16px 22px; border-radius: var(--radius-lg);
+  }
+  .topbar-header h2 {
+    font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.3px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .topbar-header .sub { color: var(--text-muted); font-size: 13.5px; margin-top: 3px; }
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  section.view { display: none; }
+  section.view { display: none; animation: fadeIn .22s ease-out; }
   section.view.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* Components */
-  .btn { background: var(--saffron); color: #1a0f00; border: none; padding: 9px 16px; border-radius: 9px; font-weight: 600; font-size: 13px; cursor: pointer; }
-  .btn:hover { filter: brightness(1.1); }
-  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
-  .btn.danger { background: rgba(248,113,113,.15); color: var(--red); border: 1px solid rgba(248,113,113,.4); }
-  .btn.sm { padding: 6px 11px; font-size: 12px; }
-  .btn:disabled { opacity: .5; cursor: default; }
-  input.inp, select.inp, textarea.inp { background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; font-size: 13px; outline: none; }
-  input.inp:focus, select.inp:focus, textarea.inp:focus { border-color: var(--saffron); }
-  textarea.inp { resize: vertical; min-height: 80px; width: 100%; }
-  .grid { display: grid; gap: 16px; }
-  .kpis { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); margin-bottom: 18px; }
-  .g2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); margin-bottom: 18px; }
-  .g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom: 18px; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; position: relative; overflow: hidden; min-width: 0; }
-  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--saffron), var(--saffron-2)); }
-  .kpi .label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; }
-  .kpi .value { font-size: 30px; font-weight: 700; margin-top: 6px; }
-  .kpi .hint { font-size: 12px; color: var(--dim); margin-top: 2px; }
-  .up { color: var(--green); } .down { color: var(--red); }
-  .card h3 { font-size: 15px; font-weight: 600; color: var(--saffron); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .card h3 small { color: var(--dim); font-weight: 500; font-size: 12px; }
-  .chart { position: relative; height: 260px; }
-  .chart.sm { height: 220px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 10px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  td { padding: 10px; border-bottom: 1px solid #1c1a31; vertical-align: middle; }
+  /* Buttons & Controls */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--saffron-gradient); color: #100a02; border: none;
+    padding: 10px 18px; border-radius: 11px; font-weight: 700; font-size: 13px;
+    cursor: pointer; transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px rgba(255, 153, 51, 0.3);
+    white-space: nowrap;
+  }
+  .btn:hover {
+    filter: brightness(1.12); transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255, 153, 51, 0.42);
+  }
+  .btn:active { transform: translateY(0); filter: brightness(0.95); }
+  .btn.ghost {
+    background: rgba(255, 255, 255, 0.05); color: var(--text);
+    border: 1px solid var(--border-light); box-shadow: none;
+  }
+  .btn.ghost:hover {
+    background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.25);
+    color: #fff;
+  }
+  .btn.accent-outline {
+    background: rgba(255, 153, 51, 0.08); color: var(--saffron);
+    border: 1px solid rgba(255, 153, 51, 0.35); box-shadow: none;
+  }
+  .btn.accent-outline:hover {
+    background: rgba(255, 153, 51, 0.18); border-color: var(--saffron);
+  }
+  .btn.danger {
+    background: rgba(244, 63, 94, 0.15); color: #fda4af;
+    border: 1px solid rgba(244, 63, 94, 0.35); box-shadow: none;
+  }
+  .btn.danger:hover {
+    background: rgba(244, 63, 94, 0.25); border-color: var(--red); color: #fff;
+  }
+  .btn.sm { padding: 7px 13px; font-size: 12px; border-radius: 9px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+
+  input.inp, select.inp, textarea.inp {
+    background: rgba(10, 8, 20, 0.7);
+    border: 1px solid var(--border-light);
+    border-radius: 11px; padding: 10px 14px; font-size: 13.5px;
+    color: var(--text); outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input.inp:focus, select.inp:focus, textarea.inp:focus {
+    border-color: var(--saffron);
+    background: rgba(15, 12, 28, 0.9);
+    box-shadow: 0 0 0 3px rgba(255, 153, 51, 0.2);
+  }
+  select.inp { cursor: pointer; }
+  textarea.inp { resize: vertical; min-height: 84px; width: 100%; line-height: 1.5; }
+
+  /* Cards & Grid System */
+  .grid { display: grid; gap: 18px; }
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom: 22px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); margin-bottom: 22px; }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-bottom: 22px; }
+  
+  .card {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px; position: relative; overflow: hidden; min-width: 0;
+    box-shadow: var(--shadow-card);
+    transition: border-color .2s, box-shadow .2s, transform .2s;
+  }
+  .card:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  /* KPI Stat Card Modernization */
+  .card.kpi {
+    padding: 20px 22px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .card.kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--saffron-gradient); opacity: 0.85;
+  }
+  .kpi-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px;
+  }
+  .kpi .label {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--text-muted); font-weight: 700;
+  }
+  .kpi-icon {
+    width: 32px; height: 32px; border-radius: 9px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--saffron); flex-shrink: 0;
+  }
+  .kpi .value {
+    font-size: 32px; font-weight: 800; color: #fff;
+    letter-spacing: -0.5px; line-height: 1.1; margin: 4px 0 6px;
+  }
+  .kpi .hint {
+    font-size: 12px; color: var(--text-dim); line-height: 1.4;
+    display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  }
+  .up { color: var(--green); font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+  .down { color: var(--red); font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+
+  .card h3 {
+    font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    letter-spacing: -0.2px;
+  }
+  .card h3 small { color: var(--text-dim); font-weight: 500; font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .chart { position: relative; height: 270px; width: 100%; }
+  .chart.sm { height: 230px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+  th {
+    text-align: left; padding: 12px 14px; color: var(--text-muted);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
+    border-bottom: 1px solid var(--border-light); white-space: nowrap;
+    background: rgba(18, 15, 34, 0.6); position: sticky; top: 0; z-index: 5;
+  }
+  td {
+    padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle; transition: background .15s;
+  }
   tbody tr.click { cursor: pointer; }
-  tbody tr.click:hover { background: var(--panel-2); }
-  .scroll-x { overflow-x: auto; }
-  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--saffron); }
-  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #2d294a; color: var(--muted); text-transform: uppercase; }
-  .pill.vip { background: rgba(255,215,0,.14); color: var(--gold); }
-  .pill.granted { background: rgba(167,139,250,.16); color: var(--violet); }
-  .pill.blocked { background: rgba(248,113,113,.15); color: var(--red); }
-  .pill.live { background: rgba(52,211,153,.15); color: var(--green); }
-  .pill.ok { background: rgba(52,211,153,.15); color: var(--green); }
-  .pill.warn { background: rgba(255,153,51,.15); color: var(--saffron); }
-  .bars .bar { display: grid; grid-template-columns: 130px 1fr 50px; gap: 10px; align-items: center; font-size: 13px; margin-bottom: 8px; }
-  .bars .track { background: var(--bg); border-radius: 6px; height: 10px; overflow: hidden; }
-  .bars .fill { height: 100%; background: linear-gradient(90deg, var(--saffron), var(--saffron-2)); border-radius: 6px; }
-  .bars .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
-  .bars .num { text-align: right; color: var(--muted); }
-  .empty { color: var(--dim); font-size: 13px; padding: 18px 0; text-align: center; }
-  .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 13px; color: var(--muted); }
-  .heat td { text-align: center; font-weight: 600; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  tbody tr.click:hover td { background: rgba(255, 153, 51, 0.06); }
+  .scroll-x { overflow-x: auto; border-radius: var(--radius-md); }
+  .mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: var(--saffron); }
+
+  /* Pills & Badges */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    background: rgba(255, 255, 255, 0.07); color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .pill.vip {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1));
+    color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+  }
+  .pill.granted {
+    background: rgba(129, 140, 248, 0.18); color: #a5b4fc;
+    border-color: rgba(129, 140, 248, 0.35);
+  }
+  .pill.blocked {
+    background: rgba(244, 63, 94, 0.16); color: #fda4af;
+    border-color: rgba(244, 63, 94, 0.35);
+  }
+  .pill.live, .pill.ok {
+    background: rgba(16, 185, 129, 0.16); color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.35);
+  }
+  .pill.warn {
+    background: rgba(255, 153, 51, 0.16); color: #fdba74;
+    border-color: rgba(255, 153, 51, 0.35);
+  }
+
+  /* Bar Charts & Progress */
+  .bars .bar {
+    display: grid; grid-template-columns: 130px 1fr 50px; gap: 12px;
+    align-items: center; font-size: 13px; margin-bottom: 10px;
+  }
+  .bars .track {
+    background: rgba(10, 8, 20, 0.8); border-radius: 8px;
+    height: 9px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .bars .fill {
+    height: 100%; background: var(--saffron-gradient); border-radius: 8px;
+    box-shadow: 0 0 8px rgba(255, 153, 51, 0.4);
+  }
+  .bars .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 500; }
+  .bars .num { text-align: right; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--text-dim); font-size: 13.5px; padding: 24px 0; text-align: center; }
+  .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 13px; color: var(--text-muted); }
+  .heat td { text-align: center; font-weight: 700; border-radius: 6px; }
+
+  /* Forms & Switches */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .form-grid .full { grid-column: 1 / -1; }
-  label.f { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 500; }
-  .switch { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #1c1a31; font-size: 14px; }
+  label.f { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+  .switch {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); font-size: 14px; font-weight: 500;
+  }
   .switch:last-child { border-bottom: none; }
-  .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
   .toggle input { opacity: 0; width: 0; height: 0; }
-  .toggle span { position: absolute; inset: 0; background: #2d294a; border-radius: 24px; cursor: pointer; transition: .2s; }
-  .toggle span::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
-  .toggle input:checked + span { background: var(--saffron); }
-  .toggle input:checked + span::before { transform: translateX(18px); }
-  .ann { border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; background: var(--panel-2); }
-  .ann .t { font-weight: 600; margin-bottom: 4px; }
-  .ann .b { color: var(--muted); font-size: 13px; white-space: pre-wrap; }
-  .ann .m { font-size: 12px; color: var(--dim); margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .banner { background: rgba(255,153,51,.1); border: 1px solid rgba(255,153,51,.35); color: #ffc58a; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; }
+  .toggle span {
+    position: absolute; inset: 0; background: rgba(255, 255, 255, 0.12);
+    border-radius: 24px; cursor: pointer; transition: .22s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .toggle span::before {
+    content: ''; position: absolute; width: 18px; height: 18px; left: 2px; top: 2px;
+    background: #fff; border-radius: 50%; transition: .22s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+  .toggle input:checked + span {
+    background: var(--saffron); border-color: var(--saffron);
+    box-shadow: 0 0 12px rgba(255, 153, 51, 0.4);
+  }
+  .toggle input:checked + span::before { transform: translateX(20px); }
 
-  /* Drawer */
-  #drawer-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; z-index: 30; }
-  #drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(520px, 100vw); background: var(--panel); border-left: 1px solid var(--border); transform: translateX(100%); transition: transform .25s; z-index: 31; overflow-y: auto; padding: 24px; }
+  /* Announcements & Banners */
+  .ann {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 16px 18px; margin-bottom: 12px; background: var(--bg-card);
+    transition: border-color .15s;
+  }
+  .ann:hover { border-color: var(--border-light); }
+  .ann .t { font-weight: 700; font-size: 15px; color: #fff; margin-bottom: 6px; }
+  .ann .b { color: var(--text-muted); font-size: 13.5px; white-space: pre-wrap; line-height: 1.5; }
+  .ann .m { font-size: 12px; color: var(--text-dim); margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .banner {
+    background: linear-gradient(90deg, rgba(255, 153, 51, 0.12), rgba(255, 87, 34, 0.08));
+    border: 1px solid rgba(255, 153, 51, 0.35); color: #fed7aa;
+    padding: 12px 18px; border-radius: var(--radius-md); font-size: 13.5px; margin-bottom: 20px;
+    line-height: 1.5; box-shadow: 0 4px 15px -3px rgba(255, 153, 51, 0.15);
+  }
+
+  /* User Detail Drawer */
+  #drawer-bg {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: none; z-index: 30; opacity: 0; transition: opacity .25s ease;
+  }
+  #drawer-bg.open { display: block; opacity: 1; }
+  #drawer {
+    position: fixed; top: 0; right: 0; height: 100vh; width: min(540px, 100vw);
+    background: rgba(16, 13, 30, 0.94);
+    backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+    border-left: 1px solid var(--border-light);
+    transform: translateX(100%); transition: transform .28s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 31; overflow-y: auto; padding: 30px; box-shadow: -15px 0 45px rgba(0,0,0,0.7);
+  }
   #drawer.open { transform: none; }
-  #drawer-bg.open { display: block; }
-  .kv { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; font-size: 13px; margin: 14px 0 18px; }
-  .kv div:nth-child(odd) { color: var(--muted); }
-  .dots { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0 18px; }
-  .dots i { width: 12px; height: 12px; border-radius: 3px; background: #1f1c36; }
-  .dots i.on { background: var(--saffron); }
-  .timeline div { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #1c1a31; display: flex; justify-content: space-between; gap: 12px; }
-  .timeline span.when { color: var(--dim); font-size: 12px; white-space: nowrap; }
+  .kv {
+    display: grid; grid-template-columns: 120px 1fr; gap: 10px 14px;
+    font-size: 13px; margin: 18px 0 22px; background: rgba(255,255,255,0.03);
+    padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border);
+  }
+  .kv div:nth-child(odd) { color: var(--text-muted); font-weight: 600; }
+  .dots { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 20px; }
+  .dots i {
+    width: 13px; height: 13px; border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06); transition: all .15s;
+  }
+  .dots i.on {
+    background: var(--saffron); box-shadow: 0 0 6px rgba(255, 153, 51, 0.5);
+  }
+  .dots i:hover { transform: scale(1.3); }
+  .timeline div {
+    font-size: 13px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex; justify-content: space-between; gap: 12px;
+  }
+  .timeline span.when { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
 
-  .phone { background: #05040b; border: 1px solid var(--border); border-radius: 28px; padding: 18px 14px 26px; max-width: 340px; margin: 0 auto; }
-  .phone .clock { text-align: center; color: #cbd5e1; font-size: 34px; font-weight: 600; margin: 4px 0 14px; }
-  .notif { background: rgba(38,35,62,.92); border-radius: 16px; padding: 12px 14px; display: grid; grid-template-columns: 34px 1fr; gap: 10px; }
-  .notif .ic { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--saffron), var(--saffron-2)); display: flex; align-items: center; justify-content: center; font-size: 18px; }
-  .notif .app { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: .4px; }
-  .notif .tt { font-weight: 600; font-size: 14px; margin-top: 2px; word-break: break-word; }
-  .notif .bd { font-size: 13px; color: #cbd5e1; margin-top: 2px; white-space: pre-wrap; word-break: break-word; }
-  .notif img { width: 100%; border-radius: 10px; margin-top: 8px; max-height: 150px; object-fit: cover; grid-column: 1 / -1; }
-  .reach { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
-  .reach b { display: block; font-size: 28px; color: var(--green); }
-  .tpl { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  /* Phone Mockup Simulator */
+  .phone {
+    background: #08070e;
+    border: 3px solid #2e2848;
+    border-radius: 38px; padding: 18px 16px 28px;
+    max-width: 330px; margin: 0 auto;
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.8), 0 0 25px rgba(255, 153, 51, 0.1);
+    position: relative;
+  }
+  .phone::before {
+    content: ''; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 80px; height: 18px; background: #000; border-radius: 12px;
+  }
+  .phone .clock {
+    text-align: center; color: #fff; font-size: 38px; font-weight: 700;
+    font-family: 'Outfit', sans-serif; margin: 14px 0 16px;
+  }
+  .notif {
+    background: rgba(35, 30, 60, 0.95);
+    backdrop-filter: blur(16px);
+    border-radius: 18px; padding: 14px;
+    display: grid; grid-template-columns: 36px 1fr; gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  }
+  .notif .ic {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--saffron-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; box-shadow: 0 4px 12px rgba(255, 153, 51, 0.4);
+  }
+  .notif .app {
+    font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;
+    text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+  }
+  .notif .tt { font-weight: 700; font-size: 14px; margin-top: 3px; word-break: break-word; color: #fff; }
+  .notif .bd { font-size: 13px; color: #cbd5e1; margin-top: 3px; white-space: pre-wrap; word-break: break-word; line-height: 1.4; }
+  .notif img { width: 100%; border-radius: 12px; margin-top: 10px; max-height: 150px; object-fit: cover; grid-column: 1 / -1; }
+  .reach { text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted); }
+  .reach b { display: block; font-size: 30px; font-weight: 800; color: var(--green); margin: 4px 0; }
+  .tpl { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
   .hidden { display: none !important; }
-  .steps { margin: 8px 0 0 18px; line-height: 1.8; }
+  .steps { margin: 10px 0 0 20px; line-height: 1.8; }
 
-  #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--border); padding: 10px 18px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; }
-  #toast.show { opacity: 1; }
+  /* Floating Toast Notification */
+  #toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(22, 19, 42, 0.95);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-accent);
+    padding: 12px 22px; border-radius: 14px;
+    font-size: 13.5px; font-weight: 600; color: #fff;
+    opacity: 0; transition: all .24s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none; z-index: 60;
+    box-shadow: 0 15px 35px -5px rgba(0,0,0,0.7), 0 0 20px rgba(255, 153, 51, 0.25);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  @media (max-width: 860px) {
+  /* Modern Glassmorphic Confirmation Modal (prevents browser confirm auto-dismiss bugs) */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+    opacity: 0; transition: opacity .2s ease;
+  }
+  .modal-backdrop.open {
+    display: flex; opacity: 1;
+  }
+  .modal-box {
+    background: rgba(20, 17, 38, 0.96);
+    backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px 26px;
+    max-width: 440px; width: 100%;
+    text-align: center;
+    box-shadow: 0 25px 60px -15px rgba(0,0,0,0.9), 0 0 35px -5px rgba(255, 153, 51, 0.25);
+    transform: scale(0.95); transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal-backdrop.open .modal-box { transform: scale(1); }
+  .modal-icon {
+    width: 54px; height: 54px; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255,153,51,0.25), rgba(255,87,34,0.15));
+    border: 1px solid rgba(255,153,51,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; margin: 0 auto 16px;
+    box-shadow: 0 8px 20px rgba(255,153,51,0.25);
+  }
+  .modal-box h3 {
+    font-size: 19px; font-weight: 700; color: #fff; margin-bottom: 8px; letter-spacing: -0.2px;
+  }
+  .modal-body {
+    font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 24px; word-break: break-word;
+  }
+  .modal-actions {
+    display: flex; gap: 12px; justify-content: center;
+  }
+  .modal-actions button { min-width: 120px; }
+
+  /* User Avatar Pill */
+  .avatar-badge {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, rgba(255, 153, 51, 0.25), rgba(99, 102, 241, 0.25));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 11px; color: var(--saffron);
+    margin-right: 8px; vertical-align: middle;
+  }
+
+  /* Responsive Rules */
+  @media (max-width: 960px) {
     .app.ready { flex-direction: column; }
-    aside { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; overflow-x: auto; padding: 10px; }
-    .brand { padding: 0 10px 0 4px; white-space: nowrap; }
-    .brand small, aside .foot { display: none; }
-    nav { display: flex; gap: 4px; }
-    nav button { white-space: nowrap; }
-    main { padding: 18px 14px 60px; }
+    aside {
+      width: 100%; height: auto; position: sticky; top: 0;
+      flex-direction: column; padding: 14px 16px; border-bottom: 1px solid var(--border);
+    }
+    .brand-wrap { padding-bottom: 10px; margin-bottom: 10px; border-bottom: none; }
+    .brand small, aside .foot, .server-status-chip { display: none; }
+    nav { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+    nav button { white-space: nowrap; padding: 8px 12px; font-size: 13px; }
+    main { padding: 20px 16px 60px; }
     .form-grid { grid-template-columns: 1fr; }
+    .g2, .g3 { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
+<!-- Login Screen -->
 <div id="login">
   <form class="box" id="login-form">
-    <h1>🚩 BhaktiDhara Admin</h1>
-    <p>Enter your admin secret to manage the app</p>
-    <input class="inp" id="secret-input" type="password" placeholder="Admin secret" style="width:100%;margin-bottom:12px" autocomplete="current-password" autofocus>
-    <label style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:13px;color:var(--muted);margin-bottom:16px">
-      <input type="checkbox" id="remember"> Remember on this device
+    <div class="login-badge">🚩</div>
+    <h1>BhaktiDhara</h1>
+    <p>Mandir Ops Control Room & Admin Portal</p>
+    <input class="inp" id="secret-input" type="password" placeholder="Admin Secret Key" style="width:100%;margin-bottom:14px" autocomplete="current-password" autofocus>
+    <label style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:13px;color:var(--text-muted);margin-bottom:20px;cursor:pointer">
+      <input type="checkbox" id="remember" style="accent-color:var(--saffron)"> Remember on this device
     </label>
-    <button class="btn" style="width:100%" type="submit">Unlock Dashboard</button>
+    <button class="btn" style="width:100%" type="submit">Unlock Dashboard →</button>
     <div class="err" id="login-err"></div>
   </form>
 </div>
 
+<!-- Main Application -->
 <div class="app" id="app">
   <aside>
-    <div class="brand">🚩 BhaktiDhara<small>Mandir Control Room</small></div>
+    <div class="brand-wrap">
+      <div class="brand-icon">🚩</div>
+      <div>
+        <div class="brand">BhaktiDhara</div>
+        <small>Mandir Control Room</small>
+      </div>
+    </div>
+
+    <div class="server-status-chip">
+      <span class="dot"></span> Hetzner Live · v1.0.4
+    </div>
+
     <nav id="nav">
-      <button data-view="overview" class="active">📊 Overview</button>
-      <button data-view="users">👥 Users</button>
-      <button data-view="engagement">🔥 Engagement</button>
-      <button data-view="retention">🔁 Retention</button>
-      <button data-view="push">🔔 Push</button>
-      <button data-view="announcements">📢 Announcements</button>
-      <button data-view="config">🎛️ App Control</button>
-      <button data-view="system">🖥️ System</button>
+      <button type="button" data-view="overview" class="active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        Overview
+      </button>
+      <button type="button" data-view="users">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        Users
+      </button>
+      <button type="button" data-view="engagement">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"/></svg>
+        Engagement
+      </button>
+      <button type="button" data-view="retention">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+        Retention
+      </button>
+      <button type="button" data-view="push">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+        Push Campaigns
+      </button>
+      <button type="button" data-view="announcements">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.455a28.047 28.047 0 01-2.16-6.038m3.822 1.819c.477-.075.952-.162 1.425-.262M10.34 6.66c.253-.962.584-1.892.985-2.783.247-.55.06-1.21-.463-1.511l-.657-.38c-.551-.318-1.26-.117-1.527.455a28.047 28.047 0 00-2.16 6.038m3.822-1.819c.477.075.952.162 1.425.262m0 0a41.43 41.43 0 015.656-.401m-5.656.401c-.139 1.464-.139 2.946 0 4.41m5.656-.401a41.409 41.409 0 000-3.608m0 3.608l1.792 1.034a1.5 1.5 0 002.046-.548l1.328-2.3a1.5 1.5 0 00-.548-2.046L16 6.252"/></svg>
+        Announcements
+      </button>
+      <button type="button" data-view="config">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>
+        App Control
+      </button>
+      <button type="button" data-view="system">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.75 5.1a2.25 2.25 0 011.8-1.1h8.9a2.25 2.25 0 011.8 1.1l2.1 3.45c.6.9.9 1.8.9 2.7"/></svg>
+        System & Jobs
+      </button>
     </nav>
+
     <div class="foot">
       <div id="last-updated">—</div>
-      <a href="#" id="logout" style="display:inline-block;margin-top:8px">Log out</a>
+      <a href="#" id="logout" class="logout-link">
+        <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+        Log out
+      </a>
     </div>
   </aside>
 
@@ -188,228 +680,499 @@
     <!-- OVERVIEW -->
     <section class="view active" id="view-overview">
       <div class="topbar">
-        <div><h2>Overview</h2><div class="sub">Installs, active devotees and growth at a glance</div></div>
+        <div class="topbar-header">
+          <h2>📊 Overview Dashboard</h2>
+          <div class="sub">Installs, active devotees and app growth telemetry</div>
+        </div>
         <div class="row">
           <select class="inp" id="ov-days">
             <option value="14">Last 14 days</option>
             <option value="30" selected>Last 30 days</option>
             <option value="90">Last 90 days</option>
           </select>
-          <label class="row" style="font-size:13px;color:var(--muted)"><input type="checkbox" id="auto-refresh" checked> Auto-refresh</label>
-          <button class="btn ghost" data-refresh="overview">🔄 Refresh</button>
+          <label class="row" style="font-size:13px;color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" id="auto-refresh" checked style="accent-color:var(--saffron)"> Auto-refresh
+          </label>
+          <button type="button" class="btn ghost sm" data-refresh="overview">🔄 Refresh</button>
         </div>
       </div>
       <div id="ov-banner"></div>
       <div class="grid kpis" id="ov-kpis"></div>
       <div class="grid g2">
-        <div class="card"><h3>Daily active devotees vs new installs</h3><div class="chart"><canvas id="ch-active"></canvas></div></div>
-        <div class="card"><h3>Total downloads (cumulative)</h3><div class="chart"><canvas id="ch-cumulative"></canvas></div></div>
+        <div class="card">
+          <h3>Daily Active Devotees vs New Installs</h3>
+          <div class="chart"><canvas id="ch-active"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Total Downloads (Cumulative)</h3>
+          <div class="chart"><canvas id="ch-cumulative"></canvas></div>
+        </div>
       </div>
       <div class="grid g3">
-        <div class="card"><h3>Platforms</h3><div class="chart sm"><canvas id="ch-platforms"></canvas></div></div>
-        <div class="card"><h3>Languages</h3><div class="chart sm"><canvas id="ch-locales"></canvas></div></div>
-        <div class="card"><h3>App versions</h3><div class="chart sm"><canvas id="ch-versions"></canvas></div></div>
+        <div class="card">
+          <h3>Platforms</h3>
+          <div class="chart sm"><canvas id="ch-platforms"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Languages</h3>
+          <div class="chart sm"><canvas id="ch-locales"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>App Versions</h3>
+          <div class="chart sm"><canvas id="ch-versions"></canvas></div>
+        </div>
       </div>
       <div class="grid g3">
-        <div class="card"><h3>Peak hours <small>IST · last 14 days</small></h3><div class="chart sm"><canvas id="ch-hours"></canvas></div></div>
-        <div class="card"><h3>Top cities</h3><div class="bars" id="ov-cities"></div></div>
-        <div class="card"><h3>Top states</h3><div class="bars" id="ov-states"></div></div>
+        <div class="card">
+          <h3>Peak Hours <small>IST · last 14 days</small></h3>
+          <div class="chart sm"><canvas id="ch-hours"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Top Cities</h3>
+          <div class="bars" id="ov-cities"></div>
+        </div>
+        <div class="card">
+          <h3>Top States</h3>
+          <div class="bars" id="ov-states"></div>
+        </div>
       </div>
     </section>
 
     <!-- USERS -->
     <section class="view" id="view-users">
       <div class="topbar">
-        <div><h2>Users</h2><div class="sub">Every anonymous device that has opened the app</div></div>
+        <div class="topbar-header">
+          <h2>👥 Devotees Directory</h2>
+          <div class="sub">Every active and anonymous device that has opened BhaktiDhara</div>
+        </div>
         <div class="row">
-          <button class="btn ghost" id="u-export">⬇️ Export CSV</button>
+          <button type="button" class="btn ghost sm" id="u-export">⬇️ Export CSV</button>
         </div>
       </div>
-      <div class="card" style="margin-bottom:16px">
+      <div class="card" style="margin-bottom:18px;padding:16px 20px">
         <div class="row">
-          <input class="inp" id="u-search" placeholder="Search name, city, device ID, notes…" style="flex:1;min-width:220px">
+          <input class="inp" id="u-search" placeholder="🔍 Search name, city, device ID, admin notes…" style="flex:1;min-width:240px">
           <select class="inp" id="u-platform"><option value="">All platforms</option><option value="android">Android</option><option value="ios">iOS</option><option value="web">Web</option></select>
           <select class="inp" id="u-locale"><option value="">All languages</option><option value="mr">Marathi</option><option value="hi">Hindi</option><option value="en">English</option></select>
           <select class="inp" id="u-tier"><option value="">All tiers</option><option value="vip">VIP (any)</option><option value="paid">VIP (paid)</option><option value="granted">VIP (granted)</option><option value="free">Free</option></select>
           <select class="inp" id="u-status"><option value="">Any status</option><option value="active7d">Active last 7d</option><option value="new7d">New last 7d</option><option value="dormant">Dormant 30d+</option><option value="blocked">Blocked</option></select>
-          <select class="inp" id="u-sort"><option value="last_seen">Sort: last active</option><option value="first_seen">Sort: newest install</option><option value="pings">Sort: most sessions</option><option value="name">Sort: name</option></select>
+          <select class="inp" id="u-sort"><option value="last_seen">Sort: Last active</option><option value="first_seen">Sort: Newest install</option><option value="pings">Sort: Most sessions</option><option value="name">Sort: Name</option></select>
         </div>
       </div>
       <div class="card">
         <div class="scroll-x">
           <table>
-            <thead><tr><th>Device</th><th>Devotee</th><th>Location</th><th>Platform</th><th>Lang</th><th>Tier</th><th>Installed</th><th>Last active</th><th style="text-align:right">Sessions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Devotee Name</th>
+                <th>Location</th>
+                <th>Platform</th>
+                <th>Lang</th>
+                <th>Tier</th>
+                <th>Installed</th>
+                <th>Last Active</th>
+                <th style="text-align:right">Sessions</th>
+              </tr>
+            </thead>
             <tbody id="u-rows"></tbody>
           </table>
         </div>
-        <div class="pager"><span id="u-count"></span><div class="row"><button class="btn ghost sm" id="u-prev">← Prev</button><span id="u-page"></span><button class="btn ghost sm" id="u-next">Next →</button></div></div>
+        <div class="pager">
+          <span id="u-count"></span>
+          <div class="row">
+            <button type="button" class="btn ghost sm" id="u-prev">← Prev</button>
+            <span id="u-page" style="font-weight:600"></span>
+            <button type="button" class="btn ghost sm" id="u-next">Next →</button>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- ENGAGEMENT -->
     <section class="view" id="view-engagement">
       <div class="topbar">
-        <div><h2>Engagement</h2><div class="sub">Which features and aartis devotees actually use</div></div>
+        <div class="topbar-header">
+          <h2>🔥 Engagement & Features</h2>
+          <div class="sub">Which features, aartis, panchangs, and horoscopes devotees actually open</div>
+        </div>
         <div class="row">
           <select class="inp" id="en-days">
-            <option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option>
+            <option value="1">Today</option>
+            <option value="7" selected>Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
           </select>
-          <button class="btn ghost" data-refresh="engagement">🔄 Refresh</button>
+          <button type="button" class="btn ghost sm" data-refresh="engagement">🔄 Refresh</button>
         </div>
       </div>
       <div class="grid kpis" id="en-kpis"></div>
       <div class="grid g2">
-        <div class="card"><h3>Feature usage <small>events · unique users</small></h3><div class="chart"><canvas id="ch-features"></canvas></div></div>
-        <div class="card"><h3>Daily trend (top features)</h3><div class="chart"><canvas id="ch-feature-trend"></canvas></div></div>
+        <div class="card">
+          <h3>Feature Usage <small>events · unique users</small></h3>
+          <div class="chart"><canvas id="ch-features"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Daily Trend <small>top features</small></h3>
+          <div class="chart"><canvas id="ch-feature-trend"></canvas></div>
+        </div>
       </div>
       <div class="card">
-        <h3>Most popular content <select class="inp" id="en-event" style="font-size:12px;padding:5px 8px"><option value="">All features</option></select></h3>
-        <div class="scroll-x"><table><thead><tr><th>#</th><th>Feature</th><th>Item</th><th style="text-align:right">Opens</th><th style="text-align:right">Unique users</th></tr></thead><tbody id="en-items"></tbody></table></div>
+        <h3>Most Popular Content <select class="inp" id="en-event" style="font-size:12px;padding:5px 10px;margin-left:auto"><option value="">All features</option></select></h3>
+        <div class="scroll-x">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Feature</th>
+                <th>Item / Title</th>
+                <th style="text-align:right">Opens</th>
+                <th style="text-align:right">Unique Users</th>
+              </tr>
+            </thead>
+            <tbody id="en-items"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
     <!-- RETENTION -->
     <section class="view" id="view-retention">
       <div class="topbar">
-        <div><h2>Retention</h2><div class="sub">Do devotees come back after installing?</div></div>
-        <button class="btn ghost" data-refresh="retention">🔄 Refresh</button>
+        <div class="topbar-header">
+          <h2>🔁 Devotee Retention Cohorts</h2>
+          <div class="sub">Do devotees return to do aarti after installing?</div>
+        </div>
+        <button type="button" class="btn ghost sm" data-refresh="retention">🔄 Refresh</button>
       </div>
       <div class="grid kpis" id="rt-kpis"></div>
       <div class="card">
-        <h3>Weekly install cohorts <small>% of cohort active in week N after install</small></h3>
-        <div class="scroll-x"><table class="heat"><thead><tr><th style="text-align:left">Install week</th><th>Installs</th><th>Week 1</th><th>Week 2</th><th>Week 3</th><th>Week 4</th></tr></thead><tbody id="rt-rows"></tbody></table></div>
+        <h3>Weekly Install Cohorts <small>% of cohort active in week N after install</small></h3>
+        <div class="scroll-x">
+          <table class="heat">
+            <thead>
+              <tr>
+                <th style="text-align:left">Install Week</th>
+                <th>Installs</th>
+                <th>Week 1</th>
+                <th>Week 2</th>
+                <th>Week 3</th>
+                <th>Week 4</th>
+              </tr>
+            </thead>
+            <tbody id="rt-rows"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
     <!-- PUSH -->
     <section class="view" id="view-push">
       <div class="topbar">
-        <div><h2>Push Notifications</h2><div class="sub">Firebase Cloud Messaging — reminders, festivals and win-back campaigns</div></div>
-        <button class="btn ghost" data-refresh="push">🔄 Refresh</button>
+        <div class="topbar-header">
+          <h2>🔔 Push Notifications Studio</h2>
+          <div class="sub">Firebase Cloud Messaging — daily reminders, festivals, and Phase 6 morning curiosity cliffhangers</div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn accent-outline sm" id="btn-quick-morning-push">🔔 Test 6 AM Push Now</button>
+          <button type="button" class="btn ghost sm" data-refresh="push">🔄 Refresh</button>
+        </div>
       </div>
       <div id="push-banner"></div>
+      
+      <!-- Phase 6 Highlight Banner Card -->
+      <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg, rgba(255,153,51,0.12), rgba(99,102,241,0.08));border:1px solid rgba(255,153,51,0.3);padding:18px 22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--saffron-gradient);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 14px rgba(255,153,51,0.35);flex-shrink:0">
+              ♈
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:15px;color:#fff;display:flex;align-items:center;gap:8px">
+                Daily 6:00 AM IST Horoscope Curiosity Cliffhanger
+                <span class="pill live">Phase 6 Automated</span>
+              </div>
+              <div style="font-size:13px;color:var(--text-muted);margin-top:3px">
+                Broadcasts personalized curiosity cliffhanger pushes with dynamic Lucky Colors & Rashi deep-links every morning at 6:00 AM IST.
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn sm" id="btn-trigger-morning-horoscope">
+            🔔 Trigger 6 AM Push Immediately
+          </button>
+        </div>
+      </div>
+
       <div class="grid kpis" id="push-kpis"></div>
       <div class="grid g2">
         <div class="card">
-          <h3>Compose</h3>
+          <h3>Compose Notification</h3>
           <div class="tpl" id="push-templates"></div>
           <form id="push-form" class="form-grid">
-            <label class="f full">Title<input class="inp" name="title" required maxlength="200" placeholder="🪔 सकाळची आरती"></label>
-            <label class="f full">Message<textarea class="inp" name="body" required maxlength="1000" placeholder="आजची आरती करूया 🙏"></textarea></label>
-            <label class="f full">Image URL (optional)<input class="inp" name="imageUrl" placeholder="https://… (JPG/PNG, under 1 MB)"></label>
-            <label class="f">Open screen on tap
+            <label class="f full">Title
+              <input class="inp" name="title" required maxlength="200" placeholder="🪔 सकाळची आरती">
+            </label>
+            <label class="f full">Message Body
+              <textarea class="inp" name="body" required maxlength="1000" placeholder="आजची आरती करूया 🙏"></textarea>
+            </label>
+            <label class="f full">Image URL (Optional)
+              <input class="inp" name="imageUrl" placeholder="https://… (JPG/PNG, under 1 MB)">
+            </label>
+            <label class="f">Open Screen on Tap
               <select class="inp" name="route">
-                <option value="">Home</option><option value="aarti">Specific aarti</option><option value="panchang">Panchang</option>
-                <option value="jaap">Jaap mala</option><option value="horoscope">Horoscope</option><option value="bhajan">Bhajans</option>
-              </select></label>
-            <label class="f" data-show="route=aarti">Aarti ID<input class="inp" name="aartiId" placeholder="e.g. ganpati_sukhakarta"></label>
+                <option value="">Home</option>
+                <option value="aarti">Specific Aarti</option>
+                <option value="panchang">Panchang</option>
+                <option value="jaap">Jaap Mala</option>
+                <option value="horoscope">Horoscope</option>
+                <option value="bhajan">Bhajans</option>
+              </select>
+            </label>
+            <label class="f" data-show="route=aarti">Aarti ID
+              <input class="inp" name="aartiId" placeholder="e.g. ganpati_sukhakarta">
+            </label>
             <label class="f">Audience
               <select class="inp" name="audience">
-                <option value="all">Everyone</option><option value="vip">VIP members</option><option value="free">Free users</option>
-                <option value="dormant">Inactive users (win-back)</option><option value="user">Single device (test)</option>
-              </select></label>
-            <label class="f" data-show="audience=dormant">Inactive for at least (days)<input class="inp" type="number" name="dormantDays" value="7" min="1" max="365"></label>
-            <label class="f" data-show="audience=user">Device ID<input class="inp" name="deviceId" placeholder="Paste from Users tab"></label>
+                <option value="all">Everyone</option>
+                <option value="vip">VIP Members</option>
+                <option value="free">Free Users</option>
+                <option value="dormant">Inactive Users (Win-Back)</option>
+                <option value="user">Single Device (Test)</option>
+              </select>
+            </label>
+            <label class="f" data-show="audience=dormant">Inactive for at least (days)
+              <input class="inp" type="number" name="dormantDays" value="7" min="1" max="365">
+            </label>
+            <label class="f" data-show="audience=user">Device ID
+              <input class="inp" name="deviceId" placeholder="Paste device ID from Users tab">
+            </label>
             <label class="f">Language
-              <select class="inp" name="locale"><option value="">All languages</option><option value="mr">Marathi</option><option value="hi">Hindi</option><option value="en">English</option></select></label>
+              <select class="inp" name="locale">
+                <option value="">All Languages</option>
+                <option value="mr">Marathi</option>
+                <option value="hi">Hindi</option>
+                <option value="en">English</option>
+              </select>
+            </label>
             <label class="f">Platform
-              <select class="inp" name="platform"><option value="">All platforms</option><option value="android">Android</option><option value="ios">iOS</option></select></label>
-            <label class="f">When
-              <select class="inp" name="when"><option value="now">Send now</option><option value="later">Schedule</option></select></label>
-            <label class="f" data-show="when=later">Send at (your local time)<input class="inp" type="datetime-local" name="sendAt"></label>
-            <label class="f row" data-show="when=later" style="flex-direction:row;align-items:center;gap:8px;color:var(--text);font-size:13px"><input type="checkbox" name="repeatDaily"> Repeat every day at this time</label>
-            <div class="full row"><button class="btn" type="submit" id="push-submit">🔔 Send notification</button><span id="push-hint" style="font-size:12px;color:var(--dim)"></span></div>
+              <select class="inp" name="platform">
+                <option value="">All Platforms</option>
+                <option value="android">Android</option>
+                <option value="ios">iOS</option>
+              </select>
+            </label>
+            <label class="f">Schedule
+              <select class="inp" name="when">
+                <option value="now">Send Immediately</option>
+                <option value="later">Schedule for Later</option>
+              </select>
+            </label>
+            <label class="f" data-show="when=later">Send At (Local Time)
+              <input class="inp" type="datetime-local" name="sendAt">
+            </label>
+            <label class="f row full" data-show="when=later" style="flex-direction:row;align-items:center;gap:10px;color:var(--text);font-size:13px;text-transform:none">
+              <input type="checkbox" name="repeatDaily" style="accent-color:var(--saffron)"> Repeat Every Day at This Time
+            </label>
+            <div class="full row" style="margin-top:8px">
+              <button class="btn" type="submit" id="push-submit">🔔 Send Notification</button>
+              <span id="push-hint" style="font-size:12px;color:var(--text-dim)"></span>
+            </div>
           </form>
         </div>
-        <div class="card">
-          <h3>Preview</h3>
+        <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+          <h3>Device Preview</h3>
           <div class="phone">
-            <div class="clock" id="pv-clock">6:30</div>
+            <div class="clock" id="pv-clock">06:30</div>
             <div class="notif">
               <div class="ic">🚩</div>
-              <div><div class="app"><span>BhaktiDhara</span><span>now</span></div><div class="tt" id="pv-title">Notification title</div><div class="bd" id="pv-body">Your message will appear here</div></div>
+              <div>
+                <div class="app"><span>BhaktiDhara</span><span>now</span></div>
+                <div class="tt" id="pv-title">Notification title</div>
+                <div class="bd" id="pv-body">Your message will appear here</div>
+              </div>
               <img id="pv-img" class="hidden" alt="">
             </div>
           </div>
-          <div class="reach">Estimated reach<b id="pv-reach">—</b><span id="pv-target"></span></div>
+          <div class="reach">
+            Estimated Reach
+            <b id="pv-reach">—</b>
+            <span id="pv-target"></span>
+          </div>
         </div>
       </div>
       <div class="card">
-        <h3>Campaigns <small>opens are tracked when devotees tap the notification</small></h3>
-        <div class="scroll-x"><table>
-          <thead><tr><th>Notification</th><th>Audience</th><th>Schedule</th><th>Status</th><th style="text-align:right">Delivered</th><th style="text-align:right">Reach</th><th style="text-align:right">Opens</th><th style="text-align:right">Open rate</th><th></th></tr></thead>
-          <tbody id="push-rows"></tbody>
-        </table></div>
+        <h3>Campaign History & Delivery Log <small>tap opens tracked when devotees open the notification</small></h3>
+        <div class="scroll-x">
+          <table>
+            <thead>
+              <tr>
+                <th>Notification</th>
+                <th>Audience</th>
+                <th>Schedule</th>
+                <th>Status</th>
+                <th style="text-align:right">Delivered</th>
+                <th style="text-align:right">Reach</th>
+                <th style="text-align:right">Opens</th>
+                <th style="text-align:right">Open Rate</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="push-rows"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
     <!-- ANNOUNCEMENTS -->
     <section class="view" id="view-announcements">
       <div class="topbar">
-        <div><h2>Announcements</h2><div class="sub">In-app messages for festivals, new aartis and updates</div></div>
+        <div class="topbar-header">
+          <h2>📢 In-App Announcements</h2>
+          <div class="sub">Display celebratory festival cards, new aarti banners, and mandir news inside the app</div>
+        </div>
       </div>
       <div class="grid g2">
         <div class="card">
-          <h3>New announcement</h3>
+          <h3>Create Announcement</h3>
           <form id="ann-form" class="form-grid">
-            <label class="f full">Title<input class="inp" name="title" required maxlength="200" placeholder="🪔 Happy Navratri!"></label>
-            <label class="f full">Message<textarea class="inp" name="body" required maxlength="2000" placeholder="New Durga aartis are now available…"></textarea></label>
-            <label class="f">Audience language<select class="inp" name="locale"><option value="all">Everyone</option><option value="mr">Marathi</option><option value="hi">Hindi</option><option value="en">English</option></select></label>
-            <label class="f">Expires (optional)<input class="inp" type="datetime-local" name="expiresAt"></label>
-            <label class="f full">Link (optional)<input class="inp" name="link" placeholder="https://…"></label>
-            <div class="full"><button class="btn" type="submit">📢 Publish</button></div>
+            <label class="f full">Title
+              <input class="inp" name="title" required maxlength="200" placeholder="🪔 Happy Navratri!">
+            </label>
+            <label class="f full">Message
+              <textarea class="inp" name="body" required maxlength="2000" placeholder="New Durga aartis and special stotras are now available in BhaktiDhara…"></textarea>
+            </label>
+            <label class="f">Language
+              <select class="inp" name="locale">
+                <option value="all">Everyone (All)</option>
+                <option value="mr">Marathi</option>
+                <option value="hi">Hindi</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+            <label class="f">Expires (Optional)
+              <input class="inp" type="datetime-local" name="expiresAt">
+            </label>
+            <label class="f full">Action Link (Optional)
+              <input class="inp" name="link" placeholder="https://…">
+            </label>
+            <div class="full" style="margin-top:8px">
+              <button class="btn" type="submit">📢 Publish Announcement</button>
+            </div>
           </form>
         </div>
-        <div class="card"><h3>All announcements</h3><div id="ann-list"></div></div>
+        <div class="card">
+          <h3>Active & Past Announcements</h3>
+          <div id="ann-list"></div>
+        </div>
       </div>
     </section>
 
     <!-- CONFIG -->
     <section class="view" id="view-config">
       <div class="topbar">
-        <div><h2>App Control</h2><div class="sub">Remote config served at <span class="mono">/api/v1/config</span></div></div>
-        <button class="btn" id="cfg-save">💾 Save changes</button>
+        <div class="topbar-header">
+          <h2>🎛️ App Remote Control</h2>
+          <div class="sub">Dynamic config flags served instantly at <span class="mono">/api/v1/config</span></div>
+        </div>
+        <button type="button" class="btn" id="cfg-save">💾 Save Changes</button>
       </div>
       <div class="grid g2">
         <div class="card">
-          <h3>Versions & updates</h3>
+          <h3>Versions & Mandatory Updates</h3>
           <div class="form-grid">
-            <label class="f">Latest version<input class="inp" id="cfg-latest" placeholder="1.0.4"></label>
-            <label class="f">Minimum supported version<input class="inp" id="cfg-min" placeholder="1.0.0"></label>
-            <label class="f full">Store / update URL<input class="inp" id="cfg-url" placeholder="https://play.google.com/store/apps/details?id=…"></label>
+            <label class="f">Latest Version
+              <input class="inp" id="cfg-latest" placeholder="1.0.4">
+            </label>
+            <label class="f">Minimum Supported Version
+              <input class="inp" id="cfg-min" placeholder="1.0.0">
+            </label>
+            <label class="f full">Store / Update Download URL
+              <input class="inp" id="cfg-url" placeholder="https://play.google.com/store/apps/details?id=…">
+            </label>
           </div>
-          <div class="switch" style="margin-top:8px"><span>Force update below minimum version</span><label class="toggle"><input type="checkbox" id="cfg-force"><span></span></label></div>
-          <h3 style="margin-top:18px">Maintenance</h3>
-          <div class="switch"><span>Maintenance mode <small style="color:var(--dim)">(show message instead of online features)</small></span><label class="toggle"><input type="checkbox" id="cfg-maint"><span></span></label></div>
-          <label class="f" style="margin-top:10px">Maintenance message<textarea class="inp" id="cfg-maint-msg" placeholder="We are upgrading the mandir servers. Back soon 🙏"></textarea></label>
+          <div class="switch" style="margin-top:14px">
+            <span>Force update below minimum version</span>
+            <label class="toggle"><input type="checkbox" id="cfg-force"><span></span></label>
+          </div>
+          <h3 style="margin-top:24px">Maintenance Mode</h3>
+          <div class="switch">
+            <span>Maintenance Mode <small style="color:var(--text-dim)">(show banner instead of online features)</small></span>
+            <label class="toggle"><input type="checkbox" id="cfg-maint"><span></span></label>
+          </div>
+          <label class="f" style="margin-top:12px">Maintenance Notice Message
+            <textarea class="inp" id="cfg-maint-msg" placeholder="We are upgrading the mandir servers. Back soon 🙏"></textarea>
+          </label>
         </div>
-        <div class="card"><h3>Feature flags</h3><div id="cfg-flags"></div></div>
+        <div class="card">
+          <h3>Feature Toggles</h3>
+          <div id="cfg-flags"></div>
+        </div>
       </div>
     </section>
 
     <!-- SYSTEM -->
     <section class="view" id="view-system">
       <div class="topbar">
-        <div><h2>System</h2><div class="sub">Server health, Gemini usage, cache and jobs</div></div>
+        <div class="topbar-header">
+          <h2>🖥️ System & Gemini Health</h2>
+          <div class="sub">Hetzner server status, Gemini 2.5 Flash token quotas, SQLite database, and nightly precache jobs</div>
+        </div>
         <div class="row">
-          <button class="btn ghost" id="sys-precache">⚡ Run precache now</button>
-          <button class="btn ghost" id="sys-clear-old">🧹 Clear cache older than 7d</button>
-          <button class="btn danger" id="sys-clear-all">Clear all cache</button>
+          <button type="button" class="btn ghost sm" id="sys-precache">⚡ Run Precache Now</button>
+          <button type="button" class="btn ghost sm" id="sys-clear-old">🧹 Clean 7d+ Cache</button>
+          <button type="button" class="btn danger sm" id="sys-clear-all">Clear All Cache</button>
         </div>
       </div>
       <div id="sys-banner"></div>
       <div class="grid kpis" id="sys-kpis"></div>
       <div class="grid g2">
-        <div class="card"><h3>API traffic <small>last 14 days</small></h3><div class="chart"><canvas id="ch-api"></canvas></div></div>
-        <div class="card"><h3>Job runs</h3><div class="scroll-x"><table><thead><tr><th>Job</th><th>Started</th><th>Status</th><th>Detail</th></tr></thead><tbody id="sys-jobs"></tbody></table></div></div>
+        <div class="card">
+          <h3>API Traffic <small>last 14 days</small></h3>
+          <div class="chart"><canvas id="ch-api"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Job Runs & Crons</h3>
+          <div class="scroll-x">
+            <table>
+              <thead>
+                <tr>
+                  <th>Job Name</th>
+                  <th>Started</th>
+                  <th>Status</th>
+                  <th>Execution Detail</th>
+                </tr>
+              </thead>
+              <tbody id="sys-jobs"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <div class="card"><h3>Admin activity log</h3><div class="timeline" id="sys-audit"></div></div>
+      <div class="card">
+        <h3>Admin Audit & Activity Log</h3>
+        <div class="timeline" id="sys-audit"></div>
+      </div>
     </section>
   </main>
 </div>
 
+<!-- Drawer for Devotee Details -->
 <div id="drawer-bg"></div>
 <div id="drawer"></div>
+
+<!-- Modern In-Page Glassmorphic Confirmation Modal (Immune to browser confirm auto-dismiss bugs) -->
+<div id="modal-confirm" class="modal-backdrop">
+  <div class="modal-box">
+    <div class="modal-icon" id="modal-icon">🔔</div>
+    <h3 id="modal-title">Confirm Action</h3>
+    <div id="modal-body" class="modal-body">Are you sure you want to proceed?</div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost sm" id="modal-btn-cancel">Cancel</button>
+      <button type="button" class="btn sm" id="modal-btn-confirm">Confirm & Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Global Toast Notification -->
 <div id="toast"></div>
 
 <script>
@@ -418,7 +1181,7 @@
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = (n) => n == null ? '—' : Number(n).toLocaleString('en-IN');
-  const PALETTE = ['#ff9933', '#38bdf8', '#a78bfa', '#34d399', '#f472b6', '#ffd700', '#f87171', '#94a3b8', '#fb923c', '#22d3ee'];
+  const PALETTE = ['#ff9933', '#38bdf8', '#818cf8', '#10b981', '#f472b6', '#f59e0b', '#f43f5e', '#94a3b8', '#fb923c', '#06b6d4'];
   const LANG = { mr: 'Marathi', hi: 'Hindi', en: 'English' };
   const charts = {};
   let secret = sessionStorage.getItem('bd_admin') || localStorage.getItem('bd_admin') || '';
@@ -426,13 +1189,48 @@
   let refreshTimer = null;
 
   Chart.defaults.color = '#94a3b8';
-  Chart.defaults.borderColor = '#23203d';
-  Chart.defaults.font.family = 'Outfit, system-ui, sans-serif';
+  Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.06)';
+  Chart.defaults.font.family = "'Plus Jakarta Sans', system-ui, sans-serif";
+  Chart.defaults.font.size = 12;
 
   // ── helpers ────────────────────────────────────────────────
   function toast(msg) {
-    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2400);
+    const t = $('#toast'); t.innerHTML = msg; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  // Robust, in-DOM confirmation dialog that NEVER closes prematurely
+  function showConfirm({ title, body, icon = '🔔', confirmText = 'Confirm & Send', confirmClass = 'btn sm' }) {
+    return new Promise((resolve) => {
+      $('#modal-title').textContent = title;
+      $('#modal-body').innerHTML = body;
+      $('#modal-icon').textContent = icon;
+      const cBtn = $('#modal-btn-confirm');
+      cBtn.textContent = confirmText;
+      cBtn.className = confirmClass;
+
+      const modal = $('#modal-confirm');
+      modal.classList.add('open');
+
+      function finish(val) {
+        modal.classList.remove('open');
+        cBtn.removeEventListener('click', onConfirm);
+        cancelBtn.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        resolve(val);
+      }
+      function onConfirm() { finish(true); }
+      function onCancel() { finish(false); }
+      function onBackdrop(e) { if (e.target === modal) finish(false); }
+      function onKey(e) { if (e.key === 'Escape') finish(false); }
+
+      const cancelBtn = $('#modal-btn-cancel');
+      cBtn.addEventListener('click', onConfirm);
+      cancelBtn.addEventListener('click', onCancel);
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+    });
   }
 
   async function api(path, opts = {}) {
@@ -440,7 +1238,7 @@
       ...opts,
       headers: { 'X-Admin-Secret': secret, ...(opts.body ? { 'Content-Type': 'application/json' } : {}), ...(opts.headers || {}) },
     });
-    if (res.status === 401) { logout('Session expired or wrong secret'); throw new Error('unauthorized'); }
+    if (res.status === 401) { logout('Session expired or invalid secret'); throw new Error('unauthorized'); }
     if (!res.ok) {
       let detail = res.statusText;
       try { detail = (await res.json()).detail || detail; } catch (_) {}
@@ -465,24 +1263,63 @@
   const shortDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 
   function kpi(label, value, hint = '', color = '') {
-    return `<div class="card kpi"><div class="label">${esc(label)}</div><div class="value" ${color ? `style="color:${color}"` : ''}>${value}</div><div class="hint">${hint}</div></div>`;
+    return `
+      <div class="card kpi">
+        <div>
+          <div class="kpi-header">
+            <span class="label">${esc(label)}</span>
+            <div class="kpi-icon">
+              <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            </div>
+          </div>
+          <div class="value" ${color ? `style="color:${color}"` : ''}>${value}</div>
+        </div>
+        <div class="hint">${hint}</div>
+      </div>`;
   }
 
   function bars(el, map, labeler = (k) => k) {
     const entries = Object.entries(map || {});
-    if (!entries.length) { el.innerHTML = '<div class="empty">No data yet</div>'; return; }
+    if (!entries.length) { el.innerHTML = '<div class="empty">No telemetry recorded yet</div>'; return; }
     const max = Math.max(...entries.map(e => e[1]));
     el.innerHTML = entries.map(([k, v]) => `
-      <div class="bar"><span class="name" title="${esc(labeler(k))}">${esc(labeler(k))}</span>
-      <div class="track"><div class="fill" style="width:${(v / max * 100).toFixed(1)}%"></div></div>
-      <span class="num">${fmt(v)}</span></div>`).join('');
+      <div class="bar">
+        <span class="name" title="${esc(labeler(k))}">${esc(labeler(k))}</span>
+        <div class="track"><div class="fill" style="width:${(v / max * 100).toFixed(1)}%"></div></div>
+        <span class="num">${fmt(v)}</span>
+      </div>`).join('');
   }
 
   function chart(id, config) {
     if (charts[id]) charts[id].destroy();
     charts[id] = new Chart(document.getElementById(id), {
       ...config,
-      options: { responsive: true, maintainAspectRatio: false, ...(config.options || {}) },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              boxWidth: 10,
+              padding: 14,
+              font: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: 600 },
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(16, 13, 30, 0.94)',
+            titleFont: { family: "'Outfit', sans-serif", size: 13, weight: 700 },
+            bodyFont: { family: "'Plus Jakarta Sans', sans-serif", size: 12 },
+            padding: 12,
+            cornerRadius: 10,
+            borderColor: 'rgba(255, 153, 51, 0.35)',
+            borderWidth: 1,
+            boxPadding: 6,
+          }
+        },
+        ...(config.options || {}),
+      },
     });
   }
 
@@ -490,8 +1327,21 @@
     const keys = Object.keys(map || {});
     chart(id, {
       type: 'doughnut',
-      data: { labels: keys.map(k => labeler(k)), datasets: [{ data: keys.map(k => map[k]), backgroundColor: PALETTE, borderWidth: 0 }] },
-      options: { cutout: '62%', plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } } },
+      data: {
+        labels: keys.map(k => labeler(k)),
+        datasets: [{
+          data: keys.map(k => map[k]),
+          backgroundColor: PALETTE,
+          borderWidth: 2,
+          borderColor: '#0d0b1a'
+        }]
+      },
+      options: {
+        cutout: '66%',
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 10, padding: 12 } }
+        }
+      },
     });
   }
 
@@ -504,7 +1354,9 @@
     return out.join('');
   }
 
-  function stamp() { $('#last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN'); }
+  function stamp() {
+    $('#last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+  }
 
   // ── auth ───────────────────────────────────────────────────
   function logout(msg) {
@@ -516,7 +1368,10 @@
 
   async function tryLogin(candidate, remember) {
     const res = await fetch('/api/v1/admin/stats', { headers: { 'X-Admin-Secret': candidate } });
-    if (!res.ok) { $('#login-err').textContent = res.status === 401 ? 'Invalid admin secret' : 'Server error: ' + res.status; return false; }
+    if (!res.ok) {
+      $('#login-err').textContent = res.status === 401 ? 'Invalid admin secret key' : 'Server error: ' + res.status;
+      return false;
+    }
     secret = candidate;
     (remember ? localStorage : sessionStorage).setItem('bd_admin', candidate);
     $('#login').style.display = 'none'; $('#app').classList.add('ready');
@@ -542,7 +1397,10 @@
     loaders[view]().catch(err => console.error(err));
   }
   $('#nav').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
-  document.addEventListener('click', (e) => { const b = e.target.closest('[data-refresh]'); if (b) loaders[b.dataset.refresh]().then(() => toast('Refreshed')); });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-refresh]');
+    if (b) loaders[b.dataset.refresh]().then(() => toast('✨ Dashboard Refreshed'));
+  });
 
   function startAutoRefresh() {
     clearInterval(refreshTimer);
@@ -559,12 +1417,12 @@
     const growth = k.new_7d_growth_pct == null ? 'vs prev week: —'
       : `<span class="${k.new_7d_growth_pct >= 0 ? 'up' : 'down'}">${k.new_7d_growth_pct >= 0 ? '▲' : '▼'} ${Math.abs(k.new_7d_growth_pct)}%</span> vs prev week`;
     $('#ov-kpis').innerHTML = [
-      kpi('Total downloads', fmt(k.total_installs), `${fmt(k.new_today)} new today`),
-      kpi('New installs (7d)', fmt(k.new_7d), growth),
-      kpi('Active today (DAU)', fmt(k.dau), `${fmt(k.sessions_today)} sessions · ${k.avg_sessions_per_dau}/user`, 'var(--blue)'),
-      kpi('Active 7 days (WAU)', fmt(k.wau), '', 'var(--violet)'),
-      kpi('Active 30 days (MAU)', fmt(k.mau), `Stickiness DAU/MAU: <b>${k.stickiness_pct}%</b>`, 'var(--violet)'),
-      kpi('VIP members', '⭐ ' + fmt(k.vip_paid + k.vip_granted), `${fmt(k.vip_paid)} paid · ${fmt(k.vip_granted)} granted · ${k.vip_conversion_pct}% conv.`, 'var(--gold)'),
+      kpi('Total Downloads', fmt(k.total_installs), `${fmt(k.new_today)} new installs today`),
+      kpi('New Installs (7d)', fmt(k.new_7d), growth),
+      kpi('Active Today (DAU)', fmt(k.dau), `${fmt(k.sessions_today)} sessions · ${k.avg_sessions_per_dau}/user`, 'var(--blue)'),
+      kpi('Active 7 Days (WAU)', fmt(k.wau), '', 'var(--violet)'),
+      kpi('Active 30 Days (MAU)', fmt(k.mau), `Stickiness DAU/MAU: <b style="color:#fff">${k.stickiness_pct}%</b>`, 'var(--violet)'),
+      kpi('VIP Members', '⭐ ' + fmt(k.vip_paid + k.vip_granted), `${fmt(k.vip_paid)} paid · ${fmt(k.vip_granted)} granted · ${k.vip_conversion_pct}% conv.`, 'var(--gold)'),
       kpi('Dormant (30d+)', fmt(k.dormant_30d), k.total_installs ? `${(k.dormant_30d / k.total_installs * 100).toFixed(1)}% of installs` : '', 'var(--red)'),
     ].join('');
 
@@ -572,14 +1430,14 @@
     chart('ch-active', {
       type: 'bar',
       data: { labels, datasets: [
-        { type: 'line', label: 'Active devotees', data: data.series.active, borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,.15)', fill: true, tension: .35, pointRadius: 0, yAxisID: 'y' },
-        { type: 'bar', label: 'New installs', data: data.series.installs, backgroundColor: 'rgba(255,153,51,.7)', borderRadius: 4, yAxisID: 'y' },
+        { type: 'line', label: 'Active devotees', data: data.series.active, borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,.12)', fill: true, tension: .38, pointRadius: 2, yAxisID: 'y' },
+        { type: 'bar', label: 'New installs', data: data.series.installs, backgroundColor: 'rgba(255,153,51,.75)', borderRadius: 5, yAxisID: 'y' },
       ] },
       options: { interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
     });
     chart('ch-cumulative', {
       type: 'line',
-      data: { labels, datasets: [{ label: 'Total downloads', data: data.series.cumulative_installs, borderColor: '#ff9933', backgroundColor: 'rgba(255,153,51,.15)', fill: true, tension: .3, pointRadius: 0 }] },
+      data: { labels, datasets: [{ label: 'Total downloads', data: data.series.cumulative_installs, borderColor: '#ff9933', backgroundColor: 'rgba(255,153,51,.12)', fill: true, tension: .35, pointRadius: 2 }] },
       options: { plugins: { legend: { display: false } }, interaction: { mode: 'index', intersect: false }, scales: { y: { ticks: { precision: 0 } } } },
     });
     const b = data.breakdowns;
@@ -587,12 +1445,12 @@
     doughnut('ch-locales', b.locales, (l) => LANG[l] || l);
     chart('ch-versions', {
       type: 'bar',
-      data: { labels: Object.keys(b.versions).map(v => 'v' + v), datasets: [{ data: Object.values(b.versions), backgroundColor: '#a78bfa', borderRadius: 4 }] },
+      data: { labels: Object.keys(b.versions).map(v => 'v' + v), datasets: [{ data: Object.values(b.versions), backgroundColor: '#818cf8', borderRadius: 5 }] },
       options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } },
     });
     chart('ch-hours', {
       type: 'bar',
-      data: { labels: [...Array(24).keys()].map(h => (h % 12 || 12) + (h < 12 ? 'a' : 'p')), datasets: [{ data: data.hourly_activity, backgroundColor: data.hourly_activity.map((v, i) => i >= 4 && i <= 8 || i >= 18 && i <= 21 ? '#ff9933' : '#3b3566'), borderRadius: 3 }] },
+      data: { labels: [...Array(24).keys()].map(h => (h % 12 || 12) + (h < 12 ? 'a' : 'p')), datasets: [{ data: data.hourly_activity, backgroundColor: data.hourly_activity.map((v, i) => i >= 4 && i <= 8 || i >= 18 && i <= 21 ? '#ff9933' : 'rgba(129, 140, 248, 0.4)'), borderRadius: 4 }] },
       options: { plugins: { legend: { display: false }, tooltip: { callbacks: { title: (i) => i[0].label + ' IST' } } }, scales: { y: { ticks: { precision: 0 } } } },
     });
     bars($('#ov-cities'), b.cities);
@@ -604,31 +1462,36 @@
   // ── users ──────────────────────────────────────────────────
   const uState = { page: 1, pageSize: 25, total: 0 };
   function userQuery() {
-    const p = new URLSearchParams({
+    return new URLSearchParams({
       search: $('#u-search').value.trim(), platform: $('#u-platform').value, locale: $('#u-locale').value,
       tier: $('#u-tier').value, status: $('#u-status').value, sort: $('#u-sort').value,
     });
-    return p;
   }
   loaders.users = async () => {
     const p = userQuery(); p.set('page', uState.page); p.set('page_size', uState.pageSize);
     const data = await api('/api/v1/admin/users?' + p);
     uState.total = data.total;
-    $('#u-rows').innerHTML = data.users.map(u => `
+    $('#u-rows').innerHTML = data.users.map(u => {
+      const initial = (u.userName || 'D').slice(0, 1).toUpperCase();
+      return `
       <tr class="click" data-id="${esc(u.deviceId)}">
         <td class="mono">${esc(u.deviceId.slice(0, 10))}…</td>
-        <td style="font-weight:600">${esc(u.userName) || '<span style="color:var(--dim);font-weight:400">Anonymous</span>'}</td>
-        <td>${esc([u.city, u.state].filter(Boolean).join(', ')) || '<span style="color:var(--dim)">—</span>'}</td>
-        <td><span class="pill">${esc(u.platform)}</span> <span style="color:var(--dim);font-size:12px">v${esc(u.appVersion)}</span></td>
+        <td style="font-weight:600">
+          <span class="avatar-badge">${initial}</span>
+          ${esc(u.userName) || '<span style="color:var(--text-dim);font-weight:400">Anonymous Devotee</span>'}
+        </td>
+        <td>${esc([u.city, u.state].filter(Boolean).join(', ')) || '<span style="color:var(--text-dim)">—</span>'}</td>
+        <td><span class="pill">${esc(u.platform)}</span> <span style="color:var(--text-dim);font-size:12px">v${esc(u.appVersion)}</span></td>
         <td>${esc(LANG[u.locale] || u.locale)}</td>
         <td>${tierPills(u)}</td>
-        <td style="color:var(--muted)">${timeAgo(u.firstSeen)}</td>
-        <td style="color:var(--muted)">${timeAgo(u.lastSeen)}</td>
-        <td style="text-align:right;color:var(--blue);font-weight:600">${fmt(u.pingCount)}</td>
-      </tr>`).join('') || '<tr><td colspan="9" class="empty">No users match these filters</td></tr>';
+        <td style="color:var(--text-muted)">${timeAgo(u.firstSeen)}</td>
+        <td style="color:var(--text-muted)">${timeAgo(u.lastSeen)}</td>
+        <td style="text-align:right;color:var(--blue);font-weight:700">${fmt(u.pingCount)}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="9" class="empty">No devotees match these filters</td></tr>';
     const pages = Math.max(1, Math.ceil(data.total / uState.pageSize));
-    $('#u-count').textContent = `${fmt(data.total)} users`;
-    $('#u-page').textContent = `Page ${uState.page} / ${pages}`;
+    $('#u-count').textContent = `${fmt(data.total)} total devotees`;
+    $('#u-page').textContent = `Page ${uState.page} of ${pages}`;
     $('#u-prev').disabled = uState.page <= 1;
     $('#u-next').disabled = uState.page >= pages;
     stamp();
@@ -670,34 +1533,34 @@
     const feats = Object.entries(d.topFeatures);
     $('#drawer').innerHTML = `
       <div class="row" style="justify-content:space-between">
-        <h2 style="font-size:20px">${esc(u.userName) || 'Anonymous devotee'}</h2>
-        <button class="btn ghost sm" id="dr-close">✕</button>
+        <h2 style="font-size:22px;color:#fff">${esc(u.userName) || 'Anonymous Devotee'}</h2>
+        <button type="button" class="btn ghost sm" id="dr-close">✕</button>
       </div>
-      <div style="margin-top:6px">${tierPills(u)}</div>
+      <div style="margin-top:8px">${tierPills(u)}</div>
       <div class="kv">
         <div>Device ID</div><div class="mono" style="word-break:break-all">${esc(u.deviceId)}</div>
         <div>Location</div><div>${esc([u.city, u.state, u.country].filter(Boolean).join(', ')) || '—'}</div>
         <div>Platform</div><div>${esc(u.platform)} · v${esc(u.appVersion)}</div>
         <div>Language</div><div>${esc(LANG[u.locale] || u.locale)}</div>
         <div>Installed</div><div>${dateIN(u.firstSeen)}</div>
-        <div>Last active</div><div>${dateIN(u.lastSeen)} (${timeAgo(u.lastSeen)})</div>
-        <div>Sessions</div><div>${fmt(u.pingCount)} total · ${d.activeDays.length} active days (60d)</div>
+        <div>Last Active</div><div>${dateIN(u.lastSeen)} (${timeAgo(u.lastSeen)})</div>
+        <div>Total Sessions</div><div>${fmt(u.pingCount)} sessions · ${d.activeDays.length} active days (60d)</div>
       </div>
-      <div class="label" style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600">Activity · last 60 days</div>
+      <div class="label" style="font-size:12px;color:var(--text-muted);text-transform:uppercase;font-weight:700">Activity Heatmap · Last 60 Days</div>
       <div class="dots">${dots}</div>
-      <div class="card" style="background:var(--panel-2);margin-bottom:16px">
-        <div class="switch"><span>🎁 Grant complimentary VIP</span><label class="toggle"><input type="checkbox" id="dr-vip" ${u.vipGranted ? 'checked' : ''}><span></span></label></div>
-        <div class="switch"><span>🚫 Block device <small style="color:var(--dim)">(flag returned to app)</small></span><label class="toggle"><input type="checkbox" id="dr-block" ${u.blocked ? 'checked' : ''}><span></span></label></div>
-        <label class="f" style="margin-top:10px">Admin notes<textarea class="inp" id="dr-notes" placeholder="e.g. Temple trustee, gave feedback on Marathi lyrics">${esc(u.notes)}</textarea></label>
-        <div class="row" style="margin-top:10px;justify-content:space-between">
-          <div class="row"><button class="btn sm" id="dr-save">Save</button><button class="btn ghost sm" id="dr-push">🔔 Test push</button></div>
-          <button class="btn danger sm" id="dr-delete">Delete user data</button>
+      <div class="card" style="background:var(--bg-card);margin-bottom:18px">
+        <div class="switch"><span>🎁 Grant Complimentary VIP</span><label class="toggle"><input type="checkbox" id="dr-vip" ${u.vipGranted ? 'checked' : ''}><span></span></label></div>
+        <div class="switch"><span>🚫 Block Device <small style="color:var(--text-dim)">(flags returned to app)</small></span><label class="toggle"><input type="checkbox" id="dr-block" ${u.blocked ? 'checked' : ''}><span></span></label></div>
+        <label class="f" style="margin-top:12px">Admin Notes<textarea class="inp" id="dr-notes" placeholder="e.g. Temple trustee, provided feedback on Marathi stotras">${esc(u.notes)}</textarea></label>
+        <div class="row" style="margin-top:14px;justify-content:space-between">
+          <div class="row"><button type="button" class="btn sm" id="dr-save">Save Changes</button><button type="button" class="btn ghost sm" id="dr-push">🔔 Test Push</button></div>
+          <button type="button" class="btn danger sm" id="dr-delete">Delete Devotee</button>
         </div>
       </div>
-      <h3 style="font-size:15px;color:var(--saffron);margin-bottom:8px">Favourite features</h3>
+      <h3 style="font-size:16px;color:var(--saffron);margin-bottom:10px">Favorite Features</h3>
       <div class="bars" id="dr-feats"></div>
-      <h3 style="font-size:15px;color:var(--saffron);margin:16px 0 4px">Recent activity</h3>
-      <div class="timeline">${d.events.map(e => `<div><span>${esc(prettyEvent(e.name))}${e.item ? ' · <b>' + esc(e.item) + '</b>' : ''}</span><span class="when">${timeAgo(e.at)}</span></div>`).join('') || '<div class="empty">No feature events yet</div>'}</div>
+      <h3 style="font-size:16px;color:var(--saffron);margin:20px 0 6px">Recent Devotional Activity</h3>
+      <div class="timeline">${d.events.map(e => `<div><span>${esc(prettyEvent(e.name))}${e.item ? ' · <b>' + esc(e.item) + '</b>' : ''}</span><span class="when">${timeAgo(e.at)}</span></div>`).join('') || '<div class="empty">No feature events recorded yet</div>'}</div>
     `;
     bars($('#dr-feats'), Object.fromEntries(feats), prettyEvent);
     $('#dr-close').onclick = closeDrawer;
@@ -706,25 +1569,32 @@
         method: 'PATCH',
         body: JSON.stringify({ vipGranted: $('#dr-vip').checked, blocked: $('#dr-block').checked, notes: $('#dr-notes').value }),
       });
-      renderDrawer(updated); toast('✅ Saved'); loaders.users();
+      renderDrawer(updated); toast('✅ Devotee updated'); loaders.users();
     };
     $('#dr-push').onclick = async () => {
       const r = await api('/api/v1/admin/push/campaigns', { method: 'POST', body: JSON.stringify({
-        audience: 'user', deviceId: u.deviceId, title: '🙏 Test notification', body: 'BhaktiDhara push notifications are working!',
+        audience: 'user', deviceId: u.deviceId, title: '🙏 BhaktiDhara', body: 'Namaskar! Push notifications are working perfectly on your device.',
       }) });
-      toast(r.success ? '🔔 Test push sent' : `⚠️ ${r.error || 'Failed'}`);
+      toast(r.success ? '🔔 Test push sent to device' : `⚠️ ${r.error || 'Failed'}`);
     };
     $('#dr-delete').onclick = async () => {
-      if (!confirm('Permanently delete all data for this device? This cannot be undone.')) return;
+      const ok = await showConfirm({
+        title: 'Delete Devotee Records?',
+        body: `Permanently delete all session telemetry, notes, and records for device <b>${esc(u.deviceId)}</b>? This action cannot be undone.`,
+        icon: '⚠️',
+        confirmText: 'Delete Permanently',
+        confirmClass: 'btn danger sm',
+      });
+      if (!ok) return;
       await api('/api/v1/admin/users/' + encodeURIComponent(u.deviceId), { method: 'DELETE' });
-      closeDrawer(); toast('🗑️ Deleted'); loaders.users();
+      closeDrawer(); toast('🗑️ Devotee records deleted'); loaders.users();
     };
   }
 
   const EVENT_NAMES = {
-    aarti_open: '🪔 Aarti opened', bhajan_open: '🎵 Bhajans opened', jaap_open: '📿 Jaap opened', jaap_mala_complete: '📿 Mala completed',
-    horoscope_view: '♈ Horoscope viewed', panchang_open: '📅 Panchang opened', vip_unlock: '⭐ VIP unlocked', paywall_view: '🔒 Paywall viewed',
-    share: '📤 Shared', app_open: '📱 App opened',
+    aarti_open: '🪔 Aarti Opened', bhajan_open: '🎵 Bhajans Opened', jaap_open: '📿 Jaap Opened', jaap_mala_complete: '📿 Mala Completed',
+    horoscope_view: '♈ Horoscope Viewed', panchang_open: '📅 Panchang Opened', vip_unlock: '⭐ VIP Unlocked', paywall_view: '🔒 Paywall Viewed',
+    share: '📤 Shared App', app_open: '📱 App Opened',
   };
   const prettyEvent = (n) => EVENT_NAMES[n] || n.replace(/_/g, ' ');
 
@@ -736,10 +1606,10 @@
     const total = data.features.reduce((s, f) => s + f.count, 0);
     const conv = data.funnel.paywall_views ? (data.funnel.vip_unlocks / data.funnel.paywall_views * 100).toFixed(1) + '%' : '—';
     $('#en-kpis').innerHTML = [
-      kpi('Feature events', fmt(total), `${data.features.length} distinct features`),
-      kpi('Top feature', data.features[0] ? fmt(data.features[0].users) : '—', data.features[0] ? `users · ${esc(prettyEvent(data.features[0].name))}` : ''),
-      kpi('Paywall views', fmt(data.funnel.paywall_views), 'unique devices', 'var(--violet)'),
-      kpi('VIP unlocks', fmt(data.funnel.vip_unlocks), `Paywall → VIP: <b>${conv}</b>`, 'var(--gold)'),
+      kpi('Feature Events', fmt(total), `${data.features.length} distinct features used`),
+      kpi('Top Feature', data.features[0] ? fmt(data.features[0].users) : '—', data.features[0] ? `unique users · ${esc(prettyEvent(data.features[0].name))}` : ''),
+      kpi('Paywall Views', fmt(data.funnel.paywall_views), 'unique devices opened paywall', 'var(--violet)'),
+      kpi('VIP Unlocks', fmt(data.funnel.vip_unlocks), `Paywall → VIP: <b style="color:#fff">${conv}</b>`, 'var(--gold)'),
     ].join('');
 
     const sel = $('#en-event'); const prev = sel.value;
@@ -749,22 +1619,27 @@
     chart('ch-features', {
       type: 'bar',
       data: { labels: data.features.slice(0, 10).map(f => prettyEvent(f.name)), datasets: [
-        { label: 'Events', data: data.features.slice(0, 10).map(f => f.count), backgroundColor: '#ff9933', borderRadius: 4 },
-        { label: 'Unique users', data: data.features.slice(0, 10).map(f => f.users), backgroundColor: '#38bdf8', borderRadius: 4 },
+        { label: 'Events', data: data.features.slice(0, 10).map(f => f.count), backgroundColor: '#ff9933', borderRadius: 5 },
+        { label: 'Unique users', data: data.features.slice(0, 10).map(f => f.users), backgroundColor: '#38bdf8', borderRadius: 5 },
       ] },
       options: { indexAxis: 'y', scales: { x: { ticks: { precision: 0 } } } },
     });
     chart('ch-feature-trend', {
       type: 'line',
       data: { labels: data.trend.days.map(shortDay), datasets: Object.entries(data.trend.series).map(([n, vals], i) => ({
-        label: prettyEvent(n), data: vals, borderColor: PALETTE[i % PALETTE.length], tension: .3, pointRadius: 0,
+        label: prettyEvent(n), data: vals, borderColor: PALETTE[i % PALETTE.length], tension: .35, pointRadius: 2,
       })) },
       options: { interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
     });
     $('#en-items').innerHTML = data.items.map((it, i) => `
-      <tr><td style="color:var(--dim)">${i + 1}</td><td>${esc(prettyEvent(it.event))}</td><td style="font-weight:600">${esc(it.item)}</td>
-      <td style="text-align:right">${fmt(it.count)}</td><td style="text-align:right;color:var(--blue)">${fmt(it.users)}</td></tr>`).join('')
-      || '<tr><td colspan="5" class="empty">No content events yet — update the app to start tracking</td></tr>';
+      <tr>
+        <td style="color:var(--text-dim);font-weight:600">${i + 1}</td>
+        <td>${esc(prettyEvent(it.event))}</td>
+        <td style="font-weight:600">${esc(it.item)}</td>
+        <td style="text-align:right">${fmt(it.count)}</td>
+        <td style="text-align:right;color:var(--blue);font-weight:700">${fmt(it.users)}</td>
+      </tr>`).join('')
+      || '<tr><td colspan="5" class="empty">No specific content events recorded yet</td></tr>';
     stamp();
   };
   $('#en-days').addEventListener('change', () => loaders.engagement());
@@ -776,14 +1651,14 @@
     const r = (x, label, hint) => kpi(label, x.eligible ? x.pct + '%' : '—', `${fmt(x.retained)} of ${fmt(x.eligible)} ${hint}`,
       x.pct >= 40 ? 'var(--green)' : x.pct >= 20 ? 'var(--saffron)' : 'var(--red)');
     $('#rt-kpis').innerHTML = [
-      r(data.d1, 'Day 1 retention', 'came back next day'),
-      r(data.d7, 'Day 7 retention', 'active in week 2'),
-      r(data.d30, 'Day 30 retention', 'active after a month'),
+      r(data.d1, 'Day 1 Retention', 'came back next day'),
+      r(data.d7, 'Day 7 Retention', 'active in week 2'),
+      r(data.d30, 'Day 30 Retention', 'active after a month'),
     ].join('');
-    const cell = (v) => v == null ? '<td style="color:var(--dim)">·</td>'
-      : `<td style="background:rgba(255,153,51,${Math.min(0.85, 0.08 + v / 100)});color:${v > 45 ? '#1a0f00' : '#fff'}">${v}%</td>`;
+    const cell = (v) => v == null ? '<td style="color:var(--text-dim)">·</td>'
+      : `<td style="background:rgba(255,153,51,${Math.min(0.85, 0.08 + v / 100)});color:${v > 45 ? '#100a02' : '#fff'};border-radius:4px">${v}%</td>`;
     $('#rt-rows').innerHTML = data.cohorts.slice().reverse().map(c => `
-      <tr><td style="text-align:left">${shortDay(c.week)}</td><td>${fmt(c.size)}</td>${c.weeks.map(cell).join('')}</tr>`).join('');
+      <tr><td style="text-align:left;font-weight:600">${shortDay(c.week)}</td><td>${fmt(c.size)}</td>${c.weeks.map(cell).join('')}</tr>`).join('');
     stamp();
   };
 
@@ -801,11 +1676,11 @@
   }
 
   const PUSH_TEMPLATES = [
-    { label: '🌅 Morning aarti (daily)', title: '🪔 सकाळची आरती', body: 'शुभ प्रभात! आजची आरती करूया — एका टॅपवर आरती सुरू करा 🙏', route: '', when: 'later', at: [6, 30], daily: true },
-    { label: '📅 Daily panchang', title: '📅 आजचे पंचांग', body: 'आजची तिथी, शुभ मुहूर्त आणि राहुकाल पहा.', route: 'panchang', when: 'later', at: [7, 0], daily: true },
-    { label: '📿 Evening jaap', title: '📿 आजचा जप पूर्ण झाला का?', body: 'फक्त ५ मिनिटे — १०८ जप पूर्ण करून आपली साखळी कायम ठेवा 🔥', route: 'jaap', when: 'later', at: [20, 0], daily: true },
-    { label: '🎉 Festival', title: '🎉 गणेश चतुर्थीच्या हार्दिक शुभेच्छा!', body: 'गणपती बाप्पा मोरया! आजच्या खास आरत्या ऐका 🐘', route: '', when: 'now' },
-    { label: '💤 Win-back', title: '🙏 बाप्पा तुमची वाट पाहत आहेत', body: 'बऱ्याच दिवसांपासून आरती केली नाही — आज एक आरती करूया?', route: '', when: 'now', audience: 'dormant' },
+    { label: '🌅 Morning Aarti (Daily)', title: '🪔 सकाळची आरती', body: 'शुभ प्रभात! आजची आरती करूया — एका टॅपवर आरती सुरू करा 🙏', route: '', when: 'later', at: [6, 30], daily: true },
+    { label: '📅 Daily Panchang', title: '📅 आजचे पंचांग', body: 'आजची तिथी, शुभ मुहूर्त आणि राहुकाल पहा.', route: 'panchang', when: 'later', at: [7, 0], daily: true },
+    { label: '📿 Evening Jaap', title: '📿 आजचा जप पूर्ण झाला का?', body: 'फक्त ५ मिनिटे — १०८ जप पूर्ण करून आपली साखळी कायम ठेवा 🔥', route: 'jaap', when: 'later', at: [20, 0], daily: true },
+    { label: '🎉 Festival Greeting', title: '🎉 गणेश चतुर्थीच्या हार्दिक शुभेच्छा!', body: 'गणपती बाप्पा मोरया! आजच्या खास आरत्या ऐका 🐘', route: '', when: 'now' },
+    { label: '💤 Win-Back Inactive', title: '🙏 बाप्पा तुमची वाट पाहत आहेत', body: 'बऱ्याच दिवसांपासून आरती केली नाही — आज एक आरती करूया?', route: '', when: 'now', audience: 'dormant' },
   ];
   $('#push-templates').innerHTML = PUSH_TEMPLATES.map((t, i) => `<button type="button" class="btn ghost sm" data-tpl="${i}">${esc(t.label)}</button>`).join('');
   $('#push-templates').addEventListener('click', (e) => {
@@ -838,7 +1713,7 @@
     if (/^https?:\/\//.test(img)) $('#pv-img').src = img;
     const later = pe.when.value === 'later';
     $('#pv-clock').textContent = later && pe.sendAt.value ? pe.sendAt.value.slice(11, 16) : new Date().toTimeString().slice(0, 5);
-    $('#push-submit').textContent = later ? (pe.repeatDaily.checked ? '🔁 Schedule daily' : '⏰ Schedule') : '🔔 Send now';
+    $('#push-submit').textContent = later ? (pe.repeatDaily.checked ? '🔁 Schedule Daily' : '⏰ Schedule Push') : '🔔 Send Notification Now';
     clearTimeout(estimateTimer);
     estimateTimer = setTimeout(async () => {
       try {
@@ -853,15 +1728,27 @@
 
   pf.addEventListener('submit', async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     const later = pe.when.value === 'later';
-    if (later && !pe.sendAt.value) { toast('Pick a date and time'); return; }
+    if (later && !pe.sendAt.value) { toast('Please pick a date and time'); return; }
     const payload = {
       ...pushTarget(), title: pe.title.value, body: pe.body.value, imageUrl: pe.imageUrl.value.trim(),
       route: pe.route.value, aartiId: pe.aartiId.value.trim(),
       sendAt: later ? new Date(pe.sendAt.value).toISOString() : null,
       repeat: later && pe.repeatDaily.checked ? 'daily' : 'none',
     };
-    if (!later && payload.audience !== 'user' && !confirm(`Send "${payload.title}" to ${$('#pv-reach').textContent} now?`)) return;
+
+    if (!later && payload.audience !== 'user') {
+      const confirmed = await showConfirm({
+        title: 'Send Notification Now?',
+        body: `Deliver <b>"${esc(payload.title)}"</b> to approximately <b>${esc($('#pv-reach').textContent)}</b> immediately?`,
+        icon: '🔔',
+        confirmText: 'Send Notification',
+        confirmClass: 'btn sm',
+      });
+      if (!confirmed) return;
+    }
+
     $('#push-submit').disabled = true;
     try {
       const r = await api('/api/v1/admin/push/campaigns', { method: 'POST', body: JSON.stringify(payload) });
@@ -871,6 +1758,29 @@
       loaders.push();
     } finally { $('#push-submit').disabled = false; }
   });
+
+  // Morning 6 AM Horoscope Push Trigger with non-blocking modal confirmation
+  async function triggerMorningHoroscopePush() {
+    const confirmed = await showConfirm({
+      title: 'Trigger Daily 6 AM Push?',
+      body: 'Broadcast personalized 6:00 AM IST daily curiosity cliffhangers with Lucky Colors and astrological guidance to all active devotee devices right now?',
+      icon: '♈',
+      confirmText: 'Broadcast Now',
+      confirmClass: 'btn sm',
+    });
+    if (!confirmed) return;
+
+    try {
+      toast('⏳ Broadcasting 6 AM Horoscope Push...');
+      const res = await api('/api/v1/admin/push/send-morning-horoscope', { method: 'POST' });
+      toast('🔔 6 AM Horoscope Push broadcasted successfully!');
+      loaders.push();
+    } catch (err) {
+      toast('⚠️ Morning push failed: ' + (err.message || err));
+    }
+  }
+  $('#btn-trigger-morning-horoscope')?.addEventListener('click', triggerMorningHoroscopePush);
+  $('#btn-quick-morning-push')?.addEventListener('click', triggerMorningHoroscopePush);
 
   function pushStatus(c) {
     const cls = { sent: 'ok', scheduled: 'live', sending: 'warn', failed: 'blocked', cancelled: '' }[c.status] || '';
@@ -886,37 +1796,43 @@
       <ol class="steps">
         <li>Open <a href="https://console.firebase.google.com/project/bhaktidhara-app/settings/serviceaccounts/adminsdk" target="_blank" rel="noopener">Firebase console → Service accounts</a> and click <b>Generate new private key</b>.</li>
         <li>Upload it to the server as <span class="mono">/root/bhaktidhara-backend/data/firebase-service-account.json</span>.</li>
-        <li>Restart: <span class="mono">docker compose up -d --force-recreate</span></li>
+        <li>Restart backend container: <span class="mono">docker compose up -d --force-recreate</span></li>
       </ol></div>`;
     const plat = s.by_platform || {};
     $('#push-kpis').innerHTML = [
-      kpi('Reachable devices', fmt(s.tokens_enabled), `${fmt(plat.android || 0)} Android · ${fmt(plat.ios || 0)} iOS`, 'var(--green)'),
-      kpi('Notification opt-in', s.opt_in_pct + '%', `of ${fmt(s.tokens_total)} registered tokens`),
-      kpi('Pushes sent (30d)', fmt(s.campaigns_sent_30d), `${fmt(s.scheduled)} scheduled`, 'var(--violet)'),
-      kpi('Taps (30d)', fmt(s.opens_30d), 'notification opens', 'var(--saffron)'),
-      kpi('Sender', d.status.configured ? '<span class="pill ok" style="font-size:14px">● Ready</span>' : '<span class="pill blocked" style="font-size:14px">Not set up</span>', esc(d.status.project_id || 'bhaktidhara-app')),
+      kpi('Reachable Devices', fmt(s.tokens_enabled), `${fmt(plat.android || 0)} Android · ${fmt(plat.ios || 0)} iOS`, 'var(--green)'),
+      kpi('Notification Opt-In', s.opt_in_pct + '%', `of ${fmt(s.tokens_total)} registered tokens`),
+      kpi('Pushes Sent (30d)', fmt(s.campaigns_sent_30d), `${fmt(s.scheduled)} scheduled`, 'var(--violet)'),
+      kpi('Taps / Opens (30d)', fmt(s.opens_30d), 'notification opens', 'var(--saffron)'),
+      kpi('FCM Sender', d.status.configured ? '<span class="pill ok" style="font-size:13px">● Online Ready</span>' : '<span class="pill blocked" style="font-size:13px">Not Configured</span>', esc(d.status.project_id || 'bhaktidhara-app')),
     ].join('');
     $('#push-rows').innerHTML = d.campaigns.map(c => {
       const aud = [AUDIENCE_LABELS[c.audience] || c.audience, c.audience === 'dormant' ? `${c.dormant_days}d+` : '', c.locale ? (LANG[c.locale] || c.locale) : '', c.platform].filter(Boolean).join(' · ');
       const sched = c.repeat === 'daily'
-        ? `🔁 Daily ${new Date(c.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}${c.status === 'scheduled' ? '<br><small style="color:var(--dim)">next ' + timeAgo(c.scheduled_at).replace(' ago', '') + '</small>' : ''}`
+        ? `🔁 Daily ${new Date(c.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}${c.status === 'scheduled' ? '<br><small style="color:var(--text-dim)">next ' + timeAgo(c.scheduled_at).replace(' ago', '') + '</small>' : ''}`
         : (c.status === 'scheduled' ? '⏰ ' + dateIN(c.scheduled_at) : (c.last_sent_at ? timeAgo(c.last_sent_at) : '—'));
       const actions = [
-        `<button class="btn ghost sm" data-push-act="send" data-id="${c.id}" title="Send again now">Send now</button>`,
-        c.status === 'scheduled' ? `<button class="btn ghost sm" data-push-act="cancel" data-id="${c.id}">Pause</button>` : '',
-        c.status === 'cancelled' ? `<button class="btn ghost sm" data-push-act="resume" data-id="${c.id}">Resume</button>` : '',
-        `<button class="btn danger sm" data-push-act="delete" data-id="${c.id}">✕</button>`,
+        `<button type="button" class="btn ghost sm" data-push-act="send" data-id="${c.id}" title="Send again now">Send Now</button>`,
+        c.status === 'scheduled' ? `<button type="button" class="btn ghost sm" data-push-act="cancel" data-id="${c.id}">Pause</button>` : '',
+        c.status === 'cancelled' ? `<button type="button" class="btn ghost sm" data-push-act="resume" data-id="${c.id}">Resume</button>` : '',
+        `<button type="button" class="btn danger sm" data-push-act="delete" data-id="${c.id}">✕</button>`,
       ].join(' ');
       return `<tr>
-        <td style="max-width:280px"><b>${esc(c.title)}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.body)}</div>
-          <small style="color:var(--dim)">→ ${esc(ROUTE_LABELS[c.route] || c.route)}${c.aarti_id ? ' ' + esc(c.aarti_id) : ''}</small>
-          ${c.last_error ? `<div style="color:var(--red);font-size:11px" title="${esc(c.last_error)}">⚠ ${esc(c.last_error.slice(0, 80))}</div>` : ''}</td>
-        <td>${esc(aud)}</td><td style="font-size:12px">${sched}</td><td>${pushStatus(c)}</td>
+        <td style="max-width:280px">
+          <b>${esc(c.title)}</b>
+          <div style="color:var(--text-muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.body)}</div>
+          <small style="color:var(--text-dim)">→ ${esc(ROUTE_LABELS[c.route] || c.route)}${c.aarti_id ? ' ' + esc(c.aarti_id) : ''}</small>
+          ${c.last_error ? `<div style="color:var(--red);font-size:11px" title="${esc(c.last_error)}">⚠ ${esc(c.last_error.slice(0, 80))}</div>` : ''}
+        </td>
+        <td>${esc(aud)}</td>
+        <td style="font-size:12px">${sched}</td>
+        <td>${pushStatus(c)}</td>
         <td style="text-align:right">${fmt(c.success_count)}${c.failure_count ? ` <span style="color:var(--red)">/ ${fmt(c.failure_count)}✕</span>` : ''}</td>
         <td style="text-align:right">${fmt(c.total_reach)}</td>
-        <td style="text-align:right;color:var(--saffron);font-weight:600">${fmt(c.opens)}</td>
+        <td style="text-align:right;color:var(--saffron);font-weight:700">${fmt(c.opens)}</td>
         <td style="text-align:right">${c.open_rate_pct == null ? '—' : c.open_rate_pct + '%'}</td>
-        <td style="white-space:nowrap">${actions}</td></tr>`;
+        <td style="white-space:nowrap">${actions}</td>
+      </tr>`;
     }).join('') || '<tr><td colspan="9" class="empty">No push campaigns yet — try a template above</td></tr>';
     updatePushForm();
     stamp();
@@ -925,8 +1841,26 @@
   $('#push-rows').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-push-act]'); if (!b) return;
     const { pushAct: act, id } = b.dataset;
-    if (act === 'delete' && !confirm('Delete this campaign and its history?')) return;
-    if (act === 'send' && !confirm('Send this notification again right now?')) return;
+    if (act === 'delete') {
+      const ok = await showConfirm({
+        title: 'Delete Campaign?',
+        body: 'Permanently remove this campaign and its delivery statistics from the database?',
+        icon: '🗑️',
+        confirmText: 'Delete Campaign',
+        confirmClass: 'btn danger sm',
+      });
+      if (!ok) return;
+    }
+    if (act === 'send') {
+      const ok = await showConfirm({
+        title: 'Send Campaign Now?',
+        body: 'Broadcast this push notification to all targeted devotees right now?',
+        icon: '🚀',
+        confirmText: 'Send Now',
+        confirmClass: 'btn sm',
+      });
+      if (!ok) return;
+    }
     const r = await api(`/api/v1/admin/push/campaigns/${id}${act === 'delete' ? '' : '/' + act}`, { method: act === 'delete' ? 'DELETE' : 'POST' });
     if (act === 'send') toast(r.success ? `🔔 Sent — ~${fmt(r.reach)} devices` : `⚠️ ${r.error || 'Failed'}`);
     loaders.push();
@@ -943,12 +1877,12 @@
         <div class="t">${esc(a.title)}</div><div class="b">${esc(a.body)}</div>
         <div class="m">${state}<span class="pill">${a.locale === 'all' ? 'Everyone' : esc(LANG[a.locale] || a.locale)}</span>
           <span>${timeAgo(a.createdAt)}</span>${a.expiresAt ? `<span>· expires ${dateIN(a.expiresAt)}</span>` : ''}
-          ${a.link ? `<a href="${esc(a.link)}" target="_blank" rel="noopener">link</a>` : ''}
+          ${a.link ? `<a href="${esc(a.link)}" target="_blank" rel="noopener">Link ↗</a>` : ''}
           <span style="flex:1"></span>
-          <button class="btn ghost sm" data-ann-toggle="${a.id}" data-active="${a.active}">${a.active ? 'Pause' : 'Resume'}</button>
-          <button class="btn danger sm" data-ann-del="${a.id}">Delete</button>
+          <button type="button" class="btn ghost sm" data-ann-toggle="${a.id}" data-active="${a.active}">${a.active ? 'Pause' : 'Resume'}</button>
+          <button type="button" class="btn danger sm" data-ann-del="${a.id}">Delete</button>
         </div></div>`;
-    }).join('') || '<div class="empty">No announcements yet</div>';
+    }).join('') || '<div class="empty">No announcements published yet</div>';
     stamp();
   };
   $('#ann-form').addEventListener('submit', async (e) => {
@@ -959,14 +1893,22 @@
       title: f.get('title'), body: f.get('body'), locale: f.get('locale'), link: f.get('link'),
       expiresAt: expires ? new Date(expires).toISOString() : null,
     }) });
-    e.target.reset(); toast('📢 Published'); loaders.announcements();
+    e.target.reset(); toast('📢 Announcement published'); loaders.announcements();
   });
   $('#ann-list').addEventListener('click', async (e) => {
     const t = e.target.closest('[data-ann-toggle]'); const d = e.target.closest('[data-ann-del]');
     if (t) {
       await api('/api/v1/admin/announcements/' + t.dataset.annToggle, { method: 'PATCH', body: JSON.stringify({ active: t.dataset.active !== 'true' }) });
       loaders.announcements();
-    } else if (d && confirm('Delete this announcement?')) {
+    } else if (d) {
+      const ok = await showConfirm({
+        title: 'Delete Announcement?',
+        body: 'Permanently remove this in-app announcement?',
+        icon: '🗑️',
+        confirmText: 'Delete',
+        confirmClass: 'btn danger sm',
+      });
+      if (!ok) return;
       await api('/api/v1/admin/announcements/' + d.dataset.annDel, { method: 'DELETE' });
       loaders.announcements();
     }
@@ -974,10 +1916,10 @@
 
   // ── config ─────────────────────────────────────────────────
   const FLAG_LABELS = {
-    horoscope: '♈ Horoscope (Rashi bhavishya)', panchang: '📅 Panchang', jaap: '📿 Jaap mala counter',
-    bhajan: '🎵 Bhajans', ads: '📺 Show ads', premium_paywall: '⭐ Premium paywall',
-    status_cards: '🪔 WhatsApp status cards',
-    status_card_photo: '🖼️ Photo on status cards',
+    horoscope: '♈ Horoscope (Rashi Bhavishya & Predictions)', panchang: '📅 Panchang (Tithi, Nakshatra & Muhurat)',
+    jaap: '📿 Jaap Mala Counter', bhajan: '🎵 Bhajans & Stotras Audio',
+    ads: '📺 Show Ads (Monetization)', premium_paywall: '⭐ Premium VIP Paywall',
+    status_cards: '🪔 WhatsApp Status Cards', status_card_photo: '🖼️ Custom Photo on Status Cards',
   };
   loaders.config = async () => {
     const c = await api('/api/v1/admin/config');
@@ -988,7 +1930,10 @@
     $('#cfg-maint').checked = !!c.maintenance_mode;
     $('#cfg-maint-msg').value = c.maintenance_message || '';
     $('#cfg-flags').innerHTML = Object.entries(c.feature_flags || {}).map(([k, v]) => `
-      <div class="switch"><span>${esc(FLAG_LABELS[k] || k)}</span><label class="toggle"><input type="checkbox" data-flag="${esc(k)}" ${v ? 'checked' : ''}><span></span></label></div>`).join('');
+      <div class="switch">
+        <span>${esc(FLAG_LABELS[k] || k)}</span>
+        <label class="toggle"><input type="checkbox" data-flag="${esc(k)}" ${v ? 'checked' : ''}><span></span></label>
+      </div>`).join('');
     stamp();
   };
   $('#cfg-save').addEventListener('click', async () => {
@@ -999,54 +1944,68 @@
       maintenance_mode: $('#cfg-maint').checked, maintenance_message: $('#cfg-maint-msg').value,
       feature_flags: flags,
     }) });
-    toast('✅ Config saved — apps pick it up on next launch');
+    toast('✅ Remote config saved — apps will fetch changes on next launch');
   });
 
   // ── system ─────────────────────────────────────────────────
   const METRIC_LABELS = {
-    horoscope_cache_hit: 'Horoscope (cache)', horoscope_gemini: 'Horoscope (Gemini)', panchang_cache_hit: 'Panchang (cache)',
-    panchang_gemini: 'Panchang (Gemini)', precache_gemini: 'Nightly precache (Gemini)', gemini_error: 'Gemini errors',
-    gemini_busy: 'Rate-limited (served by app)',
+    horoscope_cache_hit: 'Horoscope (Cache Hit)', horoscope_gemini: 'Horoscope (Gemini 2.5)',
+    panchang_cache_hit: 'Panchang (Cache Hit)', panchang_gemini: 'Panchang (Gemini 2.5)',
+    precache_gemini: 'Nightly Precache (Gemini)', gemini_error: 'Gemini Errors',
+    gemini_busy: 'Rate-Limited (Fallback to App)',
   };
   let precacheInfo = { items: 36, rpm: 5 };
   loaders.system = async () => {
     const s = await api('/api/v1/admin/system');
     const sv = s.server;
-    const up = sv.uptime_seconds; const upText = up > 86400 ? Math.floor(up / 86400) + 'd ' + Math.floor(up % 86400 / 3600) + 'h' : Math.floor(up / 3600) + 'h ' + Math.floor(up % 3600 / 60) + 'm';
+    const up = sv.uptime_seconds;
+    const upText = up > 86400 ? Math.floor(up / 86400) + 'd ' + Math.floor(up % 86400 / 3600) + 'h' : Math.floor(up / 3600) + 'h ' + Math.floor(up % 3600 / 60) + 'm';
     const warnings = [];
-    if (sv.default_admin_secret) warnings.push('⚠️ ADMIN_SECRET is still the default value — change it in <span class="mono">.env</span> on the server.');
-    if (!sv.gemini_key_configured) warnings.push('⚠️ GEMINI_API_KEY is not configured — horoscope/panchang generation will fail.');
+    if (sv.default_admin_secret) warnings.push('⚠️ ADMIN_SECRET is still set to the default value — configure a unique secret in <span class="mono">.env</span>.');
+    if (!sv.gemini_key_configured) warnings.push('⚠️ GEMINI_API_KEY is not configured — horoscope and panchang generation will fail.');
     $('#sys-banner').innerHTML = warnings.map(w => `<div class="banner">${w}</div>`).join('');
     const t = s.api.today;
     const geminiToday = (t.horoscope_gemini || 0) + (t.panchang_gemini || 0) + (t.precache_gemini || 0);
     $('#sys-kpis').innerHTML = [
-      kpi('Server', '<span class="pill ok" style="font-size:14px">● Healthy</span>', `v${esc(sv.version)} · up ${upText}`),
-      kpi('Cache hit rate today', s.cache.hit_rate_today_pct == null ? '—' : s.cache.hit_rate_today_pct + '%', 'requests served without Gemini', 'var(--green)'),
-      kpi('Gemini calls today', fmt(geminiToday), `${fmt(t.gemini_error || 0)} errors · ${fmt(t.gemini_busy || 0)} rate-limited · ${esc(sv.gemini_model || 'default model')}`, 'var(--violet)'),
-      kpi('Gemini quota (last minute)', `${sv.gemini_calls_last_minute ?? 0} / ${sv.gemini_rpm ?? '—'}`, `precache paced at ${sv.precache_rpm ?? '—'}/min · rest reserved for users`),
-      kpi('Cached today', fmt(s.cache.horoscope_today + s.cache.panchang_today), `${s.cache.horoscope_today} horoscope · ${s.cache.panchang_today} panchang`),
-      kpi('Database', (s.db.size_bytes / 1048576).toFixed(1) + ' MB', `${fmt(s.db.events_total)} events stored`),
+      kpi('Server Health', '<span class="pill ok" style="font-size:13px">● Healthy Online</span>', `v${esc(sv.version)} · up ${upText}`),
+      kpi('Cache Hit Rate Today', s.cache.hit_rate_today_pct == null ? '—' : s.cache.hit_rate_today_pct + '%', 'requests served from SQLite cache', 'var(--green)'),
+      kpi('Gemini Calls Today', fmt(geminiToday), `${fmt(t.gemini_error || 0)} errors · ${fmt(t.gemini_busy || 0)} rate-limited · ${esc(sv.gemini_model || 'default model')}`, 'var(--violet)'),
+      kpi('Gemini Quota (Last Minute)', `${sv.gemini_calls_last_minute ?? 0} / ${sv.gemini_rpm ?? '—'}`, `precache paced at ${sv.precache_rpm ?? '—'}/min`),
+      kpi('Cached Today', fmt(s.cache.horoscope_today + s.cache.panchang_today), `${s.cache.horoscope_today} horoscope · ${s.cache.panchang_today} panchang`),
+      kpi('SQLite Database', (s.db.size_bytes / 1048576).toFixed(1) + ' MB', `${fmt(s.db.events_total)} events stored`),
       sv.precache_running
-        ? kpi('Precache', '<span class="pill" style="font-size:14px">● Running</span>', 'progress in Job runs below')
-        : kpi('Next precache', sv.next_precache_run ? new Date(sv.next_precache_run).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', sv.next_precache_run ? dateIN(sv.next_precache_run) : ''),
+        ? kpi('Precache Job', '<span class="pill" style="font-size:13px">● Running</span>', 'progress logged in Job Runs below')
+        : kpi('Next Precache Run', sv.next_precache_run ? new Date(sv.next_precache_run).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', sv.next_precache_run ? dateIN(sv.next_precache_run) : ''),
     ].join('');
     precacheInfo = { items: sv.precache_items || 36, rpm: sv.precache_rpm || 5 };
     chart('ch-api', {
       type: 'bar',
       data: { labels: s.api.days.map(shortDay), datasets: Object.entries(s.api.series).map(([m, vals], i) => ({
-        label: METRIC_LABELS[m] || m, data: vals, backgroundColor: m === 'gemini_error' ? '#f87171' : PALETTE[i % PALETTE.length], borderRadius: 3,
+        label: METRIC_LABELS[m] || m, data: vals, backgroundColor: m === 'gemini_error' ? '#f43f5e' : PALETTE[i % PALETTE.length], borderRadius: 4,
       })) },
       options: { interaction: { mode: 'index', intersect: false }, scales: { x: { stacked: true }, y: { stacked: true, ticks: { precision: 0 } } } },
     });
-    $('#sys-jobs').innerHTML = s.jobs.map(j => `<tr><td>${esc(j.job)}</td><td style="color:var(--muted)">${timeAgo(j.startedAt)}</td>
-      <td><span class="pill ${j.status === 'success' ? 'ok' : j.status === 'running' ? '' : 'warn'}">${esc(j.status)}</span></td>
-      <td style="color:var(--muted);font-size:12px">${esc(j.detail)}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">No job runs recorded yet</td></tr>';
-    $('#sys-audit').innerHTML = s.audit.map(a => `<div><span><b>${esc(a.action.replace(/_/g, ' '))}</b> ${esc(a.detail)}</span><span class="when">${timeAgo(a.at)}</span></div>`).join('') || '<div class="empty">No admin actions yet</div>';
+    $('#sys-jobs').innerHTML = s.jobs.map(j => `
+      <tr>
+        <td style="font-weight:600">${esc(j.job)}</td>
+        <td style="color:var(--text-muted)">${timeAgo(j.startedAt)}</td>
+        <td><span class="pill ${j.status === 'success' ? 'ok' : j.status === 'running' ? '' : 'warn'}">${esc(j.status)}</span></td>
+        <td style="color:var(--text-muted);font-size:12px">${esc(j.detail)}</td>
+      </tr>`).join('') || '<tr><td colspan="4" class="empty">No background job runs recorded yet</td></tr>';
+    $('#sys-audit').innerHTML = s.audit.map(a => `<div><span><b>${esc(a.action.replace(/_/g, ' '))}</b> ${esc(a.detail)}</span><span class="when">${timeAgo(a.at)}</span></div>`).join('') || '<div class="empty">No admin actions recorded yet</div>';
     stamp();
   };
   $('#sys-precache').addEventListener('click', async () => {
     const { items, rpm } = precacheInfo;
-    if (!confirm(`Run the Gemini precache job now?\n\nUp to ${items} readings, paced at ${rpm} Gemini calls/min (~${Math.ceil(items / rpm)} min). Readings already cached today are skipped.`)) return;
+    const ok = await showConfirm({
+      title: 'Run Gemini Precache Job?',
+      body: `This will precache up to <b>${items}</b> Vedic readings, paced at <b>${rpm}</b> Gemini calls/min (~${Math.ceil(items / rpm)} min). Already cached items today will be skipped.`,
+      icon: '⚡',
+      confirmText: 'Run Precache',
+      confirmClass: 'btn sm',
+    });
+    if (!ok) return;
+
     const r = await api('/api/v1/admin/trigger-precache', { method: 'POST' });
     if (r.status === 'already_running') { toast('Precache is already running — see Job runs'); return; }
     toast('⚡ Precache started — progress updates in Job runs');
@@ -1054,12 +2013,20 @@
   });
   $('#sys-clear-old').addEventListener('click', async () => {
     const r = await api('/api/v1/admin/cache/clear?older_than_days=7', { method: 'POST' });
-    toast(`🧹 Removed ${r.horoscope_deleted + r.panchang_deleted} old entries`); loaders.system();
+    toast(`🧹 Removed ${r.horoscope_deleted + r.panchang_deleted} expired cache entries`); loaders.system();
   });
   $('#sys-clear-all').addEventListener('click', async () => {
-    if (!confirm('Clear ALL cached horoscopes and panchangs? The next requests will call Gemini again.')) return;
+    const ok = await showConfirm({
+      title: 'Clear All Cached Data?',
+      body: 'Permanently remove all cached horoscopes and panchangs from SQLite? Next incoming requests will invoke Gemini 2.5 directly.',
+      icon: '🧹',
+      confirmText: 'Clear All Cache',
+      confirmClass: 'btn danger sm',
+    });
+    if (!ok) return;
+
     const r = await api('/api/v1/admin/cache/clear', { method: 'POST' });
-    toast(`Removed ${r.horoscope_deleted + r.panchang_deleted} entries`); loaders.system();
+    toast(`Removed ${r.horoscope_deleted + r.panchang_deleted} cached items`); loaders.system();
   });
 
   // ── boot ───────────────────────────────────────────────────

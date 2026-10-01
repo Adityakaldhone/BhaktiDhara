@@ -121,13 +121,14 @@ void main() {
       expect(find.text('मासिक'), findsOneWidget);
       expect(find.text('वार्षिक'), findsOneWidget);
 
-      // Scroll to dev instant activate button to activate premium
+      // Tap subscribe button to activate premium in test
+      final subscribeBtn = find.byType(ElevatedButton).last;
       await tester.scrollUntilVisible(
-        find.text('Dev: Paid Member'),
+        subscribeBtn,
         150,
         scrollable: find.byType(Scrollable).last,
       );
-      await tester.tap(find.text('Dev: Paid Member'));
+      await tester.tap(subscribeBtn);
       await tester.pumpAndSettle();
 
       // The sheet should close and premium should be unlocked

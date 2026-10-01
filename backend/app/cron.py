@@ -131,3 +131,145 @@ async def run_daily_precache_job():
         status = "success" if ok == len(items) else ("partial" if ok else "failed")
         await finish_job_run(run_id, status, f"{progress()}, {pruned} old events pruned")
         logger.info("Daily Vedic Precaching Job finished: %s.", progress())
+
+
+# ── Phase 6: Daily 6:00 AM IST Curiosity Cliffhanger Push Notification ──────────
+
+MORNING_CLIFFHANGER_TEMPLATES = [
+    # 0: Monday
+    {
+        "title": "🔱 आजचे राशीभविष्य: महादेवांचा आशीर्वाद व ग्रहसंकेत!",
+        "body": "कामात यश व कौटुंबिक सौख्य कोणाला लाभणार? आजचा सावधगिरीचा इशारा व शुभ काळ पहा ➔",
+    },
+    # 1: Tuesday
+    {
+        "title": "🚩 आजचे राशीभविष्य: मंगळ ग्रहाचे मोठे संक्रमण!",
+        "body": "संकटमुक्तीसाठी आज कोणती रास ठरेल भाग्यवान? दुपारी ही एक चूक टाळा ➔ तुमचे भविष्य पहा",
+    },
+    # 2: Wednesday
+    {
+        "title": "🐘 आजचे राशीभविष्य: श्री गणेशाची विशेष कृपा!",
+        "body": "नोकरी, व्यवसाय व आर्थिक स्थितीचे आजचे शुभ संकेत! आजची मैत्री रास व बीजमंत्र पहा ➔",
+    },
+    # 3: Thursday
+    {
+        "title": "✨ आजचे राशीभविष्य: गुरु ग्रहाचे शुभ भ्रमण!",
+        "body": "आज भाग्य कोणाची साथ देणार? तुमचा ३-वेळचा शुभ काळ व विशेष उपाय ➔ ॲपमध्ये पहा",
+    },
+    # 4: Friday
+    {
+        "title": "🌺 आजचे राशीभविष्य: धनलाभाचे विशेष योग!",
+        "body": "आर्थिक प्रगती व नवीन संधी कोणाला मिळणार? आज काय टाळावे हे नक्की पहा ➔",
+    },
+    # 5: Saturday
+    {
+        "title": "🪐 आजचे राशीभविष्य: शनीदेवाची दृष्टी व सावधगिरी!",
+        "body": "कोणत्या राशींनी आज विशेष काळजी घ्यावी? ग्रह शांतीचा सिद्ध उपाय व शुभ वेळ ➔ त्वरित पहा",
+    },
+    # 6: Sunday
+    {
+        "title": "☀️ आजचे राशीभविष्य: सूर्यदेवाची विशेष कृपा!",
+        "body": "आज कोणत्या राशींसाठी धनलाभ व प्रगतीचा मोठा योग? पण दुपारी काय टाळावे? ➔ त्वरित जाणून घ्या",
+    },
+]
+
+RASHI_CLIFFHANGERS = {
+    "aries": {
+        "title": "🚩 आज मेष राशीसाठी धनलाभाचा मोठा योग!",
+        "body": "ग्रहांची मोठी अनुकूलता! पण दुपारी ही एक चूक टाळा... ➔ ॲपमध्ये पहा",
+    },
+    "taurus": {
+        "title": "🚩 आज वृषभ राशीसाठी शुभ समाचार!",
+        "body": "व्यापारात वाढ व नवे करार! आज कोणता वेळ टाळावा? ➔ त्वरित जाणून घ्या",
+    },
+    "gemini": {
+        "title": "🚩 आज मिथुन राशीसाठी भाग्योदयाचे संकेत!",
+        "body": "महत्त्वाच्या कामात यश! आजची अनुकूल मैत्री रास कोणती? ➔ ॲपमध्ये पहा",
+    },
+    "cancer": {
+        "title": "🚩 आज कर्क राशीसाठी कौटुंबिक सौख्याचे योग!",
+        "body": "अचानक धनलाभ व मनातील इच्छा पूर्ण! आज काय टाळावे? ➔ त्वरित पहा",
+    },
+    "leo": {
+        "title": "🚩 आज सिंह राशीवर सूर्यदेवाची विशेष कृपा!",
+        "body": "कामात मान-सन्मान व अधिकार वाढेल! आजचा ३-वेळचा शुभ काळ पहा ➔",
+    },
+    "virgo": {
+        "title": "🚩 आज कन्या राशीसाठी अनपेक्षित लाभ!",
+        "body": "बुद्धिमत्तेच्या जोरावर मोठे काम सिद्ध होईल! आजचा सावधगिरीचा इशारा ➔",
+    },
+    "libra": {
+        "title": "🚩 आज तुला राशीसाठी संपत्ती वाढीचे संकेत!",
+        "body": "भागीदारीत फायदा व सुख-समृद्धी! दुपारी १२ नंतर सावध राहा ➔",
+    },
+    "scorpio": {
+        "title": "🚩 आज वृश्चिक राशीसाठी संकटनिवारण योग!",
+        "body": "मंगळाचे शुभ भ्रमण! आजचा इष्टदेवता बीजमंत्र काय आहे? ➔ त्वरित पहा",
+    },
+    "sagittarius": {
+        "title": "🚩 आज धनु राशीसाठी नशिबाची पूर्ण साथ!",
+        "body": "अडकलेले पैसे परत मिळण्याची शक्यता! आजचा विशेष उपाय पहा ➔",
+    },
+    "capricorn": {
+        "title": "🚩 आज मकर राशीसाठी करिअरमध्ये प्रगती!",
+        "body": "शनीदेवांची कृपा व मेहनतीचे फळ! कोणाशी वाद टाळावा? ➔ ॲपमध्ये पहा",
+    },
+    "aquarius": {
+        "title": "🚩 आज कुंभ राशीसाठी नवीन संधींचे द्वार!",
+        "body": "मोठ्या यशाचे वेदिक संकेत! आजची शुभ वेळ व दिशा जाणून घ्या ➔",
+    },
+    "pisces": {
+        "title": "🚩 आज मीन राशीसाठी आत्मिक शांती व भरभराट!",
+        "body": "गुरु ग्रहाची शुभ दृष्टी! आज कोणता मंत्र जपावा? ➔ तुमचे भविष्य पहा",
+    },
+}
+
+
+async def send_daily_morning_horoscope_push():
+    """
+    Sends the 6:00 AM IST daily curiosity cliffhanger push notification
+    to bring devotees into the app for their daily horoscope, hourly breakdown,
+    caution alert, and deity mantra.
+    """
+    from app.push_service import send_to_topic_target, PushNotConfigured
+
+    ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+    weekday = ist_now.weekday()  # 0 = Monday, 6 = Sunday
+    template = MORNING_CLIFFHANGER_TEMPLATES[weekday]
+
+    general_campaign = {
+        "id": f"morning_push_{ist_now.strftime('%Y%m%d')}",
+        "title": template["title"],
+        "body": template["body"],
+        "route": "horoscope",
+        "focus": "caution",
+    }
+
+    try:
+        # 1. Send personalized Rashi pushes to devotees subscribed to their Rashi
+        for rashi_id, rashi_data in RASHI_CLIFFHANGERS.items():
+            try:
+                rashi_campaign = {
+                    "id": f"rashi_push_{rashi_id}_{ist_now.strftime('%Y%m%d')}",
+                    "title": rashi_data["title"],
+                    "body": rashi_data["body"],
+                    "route": "horoscope",
+                    "rashi": rashi_id,
+                    "focus": "caution",
+                }
+                await send_to_topic_target(rashi_campaign, {"topic": f"rashi_{rashi_id}"})
+            except Exception as e:
+                logger.warning(f"Error dispatching morning push for rashi {rashi_id}: {e}")
+
+        # 2. Send to devotees subscribed to morning_horoscope (who haven't selected a rashi)
+        result = await send_to_topic_target(general_campaign, {"topic": "morning_horoscope"})
+        logger.info(f"Daily 6 AM Horoscope curiosity push sent: {result}")
+        return result
+    except PushNotConfigured:
+        logger.info("Firebase push credentials not configured; morning push skipped.")
+        return {"success": 0, "skipped": True}
+    except Exception as e:
+        logger.error(f"Failed to send 6 AM morning horoscope push: {e}")
+        return {"success": 0, "error": str(e)}
+
+

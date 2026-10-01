@@ -868,10 +868,10 @@ class _SubscriptionPaywallSheetState
                             Expanded(
                               child: Text(
                                 lang == 'en'
-                                    ? '🎉 Premium is now active! Enjoy 7 days free.'
+                                    ? '🎉 Premium is now active!'
                                     : (lang == 'hi'
-                                          ? '🎉 प्रीमियम सक्रिय! 7 दिन मुफ्त ट्रायल शुरू।'
-                                          : '🎉 प्रीमियम सक्रिय! ७ दिवस मोफत ट्रायल सुरू.'),
+                                          ? '🎉 प्रीमियम सक्रिय!'
+                                          : '🎉 प्रीमियम सक्रिय!'),
                                 style: GoogleFonts.mukta(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -884,6 +884,40 @@ class _SubscriptionPaywallSheetState
                         duration: const Duration(seconds: 3),
                       ),
                     );
+                  } else if (mounted) {
+                    final errorMsg =
+                        ref.read(subscriptionProvider.notifier).lastError;
+                    if (errorMsg != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: Colors.red.shade900,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          content: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  errorMsg,
+                                  style: GoogleFonts.mukta(
+                                    fontSize: 13,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          duration: const Duration(seconds: 6),
+                        ),
+                      );
+                    }
                   }
                 },
           child: _isPurchasing
@@ -991,60 +1025,7 @@ class _SubscriptionPaywallSheetState
             ),
           ),
         ),
-
-        // Developer testing buttons (for previewing all states easily)
-        Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 6),
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 6,
-            runSpacing: 4,
-            children: [
-              ActionChip(
-                backgroundColor: const Color(0xFFFFF3D6),
-                avatar: const Icon(Icons.celebration_rounded, size: 14, color: Color(0xFFE65100)),
-                label: Text('Dev: 7-Day Trial', style: GoogleFonts.mukta(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF7A0C08))),
-                onPressed: () async {
-                  await ref.read(subscriptionProvider.notifier).startFreeTrial();
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('🎉 7-Day Free Trial Activated!'), duration: Duration(seconds: 1)),
-                    );
-                  }
-                },
-              ),
-              ActionChip(
-                backgroundColor: const Color(0xFFFFEBEE),
-                avatar: const Icon(Icons.timer_off_rounded, size: 14, color: Color(0xFFC62828)),
-                label: Text('Dev: Expire Trial', style: GoogleFonts.mukta(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFFB71C1C))),
-                onPressed: () async {
-                  await ref.read(subscriptionProvider.notifier).expireTrialForDev();
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('⏳ Trial Expired! Now in Free tier (1 card/day & blurred text).'), duration: Duration(seconds: 2)),
-                    );
-                  }
-                },
-              ),
-              ActionChip(
-                backgroundColor: const Color(0xFFE8F5E9),
-                avatar: const Icon(Icons.workspace_premium_rounded, size: 14, color: Color(0xFF2E7D32)),
-                label: Text('Dev: Paid Member', style: GoogleFonts.mukta(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1B5E20))),
-                onPressed: () async {
-                  await ref.read(subscriptionProvider.notifier).purchasePlan(kSubscriptionPlans[0]);
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('👑 Paid Member Activated!'), duration: Duration(seconds: 1)),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
+        const SizedBox(height: 8),
 
         // Legal footnote
         Text(

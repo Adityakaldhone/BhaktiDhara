@@ -5,13 +5,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../../core/theme/theme.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/locale_provider.dart';
+import '../providers/premium_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
+import '../widgets/premium_blurred_gate.dart';
 import 'bhajan_screen.dart';
 import 'deity_aarti_list_screen.dart';
 import 'horoscope_screen.dart';
@@ -340,8 +345,11 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             ),
           ),
 
-          // ── AdMob Banner ───────────────────────────────────────────────
-          if (!kIsWeb && _isBannerAdLoaded && _bannerAd != null)
+          // ── AdMob Banner (Ad-Free for Premium & Free Trial) ────────────
+          if (!kIsWeb &&
+              _isBannerAdLoaded &&
+              _bannerAd != null &&
+              !ref.watch(isPremiumProvider))
             Container(
               color: MandirTheme.backgroundCream,
               width: _bannerAd!.size.width.toDouble(),
@@ -495,6 +503,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   }
 
   Widget _buildCollapsedHeader(AppLocalizations l10n) {
+    final localeCode = ref.watch(localeProvider).languageCode;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -513,6 +522,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               ),
             ),
           ),
+          _buildVipHeaderBadge(localeCode),
+          const SizedBox(width: 8),
           Container(
             width: 36,
             height: 36,
@@ -527,7 +538,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 color: MandirTheme.goldenAccent,
                 size: 20,
               ),
-              onPressed: () {},
+              onPressed: () => _showSettingsSheet(context, ref, localeCode),
             ),
           ),
         ],
@@ -539,6 +550,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   //  HEADER (Om + BhaktiDhara + Aarti Sangrah + Tagline + Settings Icon)
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildHeader(AppLocalizations l10n) {
+    final localeCode = ref.watch(localeProvider).languageCode;
     return SizedBox(
       width: double.infinity,
       child: Stack(
@@ -590,6 +602,13 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         ),
                       ),
 
+                      // VIP Crown Badge in Header
+                      Positioned(
+                        right: 122,
+                        top: 5,
+                        child: _buildVipHeaderBadge(localeCode),
+                      ),
+
                       // Settings icon (positioned inward, not overlapping bell)
                       Positioned(
                         right: 76,
@@ -610,7 +629,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                               color: MandirTheme.goldenAccent,
                               size: 20,
                             ),
-                            onPressed: () {},
+                            onPressed: () =>
+                                _showSettingsSheet(context, ref, localeCode),
                           ),
                         ),
                       ),
@@ -624,51 +644,40 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                             // Om symbol (decorative image)
                             Image.asset(
                               'assets/decorations/om.png',
-                              height: 44,
-                              fit: BoxFit.contain,
+                              height: 48,
+                              width: 48,
                             ),
-
-                            // App Title — "BhaktiDhara"
+                            const SizedBox(height: 6),
+                            // App title
                             Text(
                               l10n.appTitle,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.yatraOne(
-                                fontSize: 34,
-                                fontWeight: FontWeight.w400,
+                                fontSize: 32,
                                 color: MandirTheme.secondaryMaroon,
-                                height: 1.0,
+                                height: 1.1,
                               ),
                             ),
-
-                            // Subtitle — "Aarti Sangrah"
+                            const SizedBox(height: 2),
+                            // Subtitle
                             Text(
                               l10n.appSubtitle,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.mukta(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                color: MandirTheme.textDark,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: MandirTheme.goldenAccent,
+                                letterSpacing: 1.2,
                               ),
                             ),
-
-                            // Decorative horizontal bar
-                            Image.asset(
-                              'assets/decorations/horizontal_bar.png',
-                              width: (MediaQuery.sizeOf(context).width * 0.65)
-                                  .clamp(200.0, 360.0),
-                              height: 24,
-                              fit: BoxFit.fitWidth,
-                            ),
-
+                            const SizedBox(height: 4),
                             // Tagline
                             Text(
                               l10n.appTagline,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.mukta(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: MandirTheme.goldenAccent,
-                                fontStyle: FontStyle.italic,
+                                color: MandirTheme.textMuted,
                               ),
                             ),
                           ],
@@ -682,6 +691,583 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  VIP CROWN BADGE & SETTINGS BOTTOM SHEET
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildVipHeaderBadge(String localeCode) {
+    final isPremium = ref.watch(isPremiumProvider);
+    final sub = ref.watch(subscriptionProvider);
+
+    if (isPremium) {
+      return GestureDetector(
+        onTap: () => _showMembershipDetails(context, ref, localeCode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFD54F), Color(0xFFD4AF37)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.35),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('👑', style: TextStyle(fontSize: 13)),
+              const SizedBox(width: 4),
+              Text(
+                sub.isTrial ? 'TRIAL' : 'VIP',
+                style: GoogleFonts.mukta(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF5D120B),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => showPremiumPaywallSheet(context, ref, localeCode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF3DC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD4AF37), width: 1.2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('👑', style: TextStyle(fontSize: 12)),
+            const SizedBox(width: 4),
+            Text(
+              localeCode == 'en' ? 'VIP' : 'प्रीमियम',
+              style: GoogleFonts.mukta(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF8B1D18),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMembershipDetails(
+    BuildContext context,
+    WidgetRef ref,
+    String localeCode,
+  ) {
+    final sub = ref.watch(subscriptionProvider);
+    final expiryFormatted = sub.expiresAt != null
+        ? '${sub.expiresAt!.day}/${sub.expiresAt!.month}/${sub.expiresAt!.year}'
+        : 'Active';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFFBF2),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('👑', style: TextStyle(fontSize: 24)),
+                  const SizedBox(width: 8),
+                  Text(
+                    localeCode == 'en'
+                        ? 'BhaktiDhara VIP Member'
+                        : (localeCode == 'hi'
+                            ? 'भक्तिधारा वीआईपी सदस्य'
+                            : 'भक्तिधारा व्हीआयपी सदस्य'),
+                    style: GoogleFonts.yatraOne(
+                      fontSize: 20,
+                      color: const Color(0xFF5D120B),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF5D120B), Color(0xFF8B1D18)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFD4AF37),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          sub.isTrial
+                              ? (localeCode == 'en'
+                                  ? '7-Day Free Trial'
+                                  : '७-दिवसीय मोफत ट्रायल')
+                              : (localeCode == 'en'
+                                  ? 'Annual VIP Plan'
+                                  : 'वार्षिक व्हीआयपी योजना'),
+                          style: GoogleFonts.mukta(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFFFD54F),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            localeCode == 'en' ? 'ACTIVE' : 'सक्रिय',
+                            style: GoogleFonts.mukta(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      localeCode == 'en'
+                          ? 'Valid until: $expiryFormatted'
+                          : 'वैधता: $expiryFormatted',
+                      style: GoogleFonts.mukta(
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildBenefitRow(
+                '🚫',
+                localeCode == 'en'
+                    ? 'Completely Ad-Free Experience'
+                    : 'पूर्णपणे जाहिरातमुक्त अनुभव',
+              ),
+              _buildBenefitRow(
+                '🔮',
+                localeCode == 'en'
+                    ? 'Full Horoscope (All Periods Unlocked)'
+                    : 'संपूर्ण साप्ताहिक व मासिक राशीभविष्य',
+              ),
+              _buildBenefitRow(
+                '⏳',
+                localeCode == 'en'
+                    ? 'Deep Panchang & Shubh Muhurta Timings'
+                    : 'सर्व शुभ मुहूर्त व सखोल पंचांग',
+              ),
+              _buildBenefitRow(
+                '🖼️',
+                localeCode == 'en'
+                    ? 'Unlimited Watermark-Free Greeting Cards'
+                    : 'वॉटरमार्कशिवाय अमर्याद शुभेच्छा पत्रे',
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    showPremiumPaywallSheet(context, ref, localeCode);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF8B1D18),
+                    side: const BorderSide(color: Color(0xFFD4AF37)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                    localeCode == 'en' ? 'View All Plans' : 'सर्व योजना पहा',
+                    style: GoogleFonts.mukta(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: () async {
+                  await ref
+                      .read(subscriptionProvider.notifier)
+                      .cancelSubscription();
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          '🔄 Reset to Free Tier! You can now test the Paywall & Purchase flow.',
+                        ),
+                        backgroundColor: Color(0xFF8B1D18),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(
+                  Icons.restart_alt_rounded,
+                  size: 18,
+                  color: Color(0xFF8B1D18),
+                ),
+                label: Text(
+                  localeCode == 'en'
+                      ? 'Reset to Free Tier (Test Flow)'
+                      : 'चाचणीसाठी रीसेट करा (Free Tier)',
+                  style: GoogleFonts.mukta(
+                    fontSize: 13,
+                    color: const Color(0xFF8B1D18),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBenefitRow(String icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.mukta(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF2C2416),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSettingsSheet(
+    BuildContext context,
+    WidgetRef ref,
+    String localeCode,
+  ) {
+    final isPremium = ref.watch(isPremiumProvider);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFFBF2),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Image.asset(
+                    'assets/decorations/om.png',
+                    height: 26,
+                    width: 26,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    localeCode == 'en'
+                        ? 'Settings & Preferences'
+                        : (localeCode == 'hi'
+                            ? 'सेटिंग्स व प्राथमिकताएं'
+                            : 'सेटिंग्ज व प्राधान्ये'),
+                    style: GoogleFonts.yatraOne(
+                      fontSize: 19,
+                      color: const Color(0xFF5D120B),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Membership banner
+              InkWell(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  if (isPremium) {
+                    _showMembershipDetails(context, ref, localeCode);
+                  } else {
+                    showPremiumPaywallSheet(context, ref, localeCode);
+                  }
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isPremium
+                          ? [
+                              const Color(0xFF5D120B),
+                              const Color(0xFF8B1D18),
+                            ]
+                          : [
+                              const Color(0xFFFFF3DC),
+                              const Color(0xFFFFE8B8),
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        isPremium ? '👑' : '⭐',
+                        style: const TextStyle(fontSize: 26),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isPremium
+                                  ? (localeCode == 'en'
+                                      ? 'BhaktiDhara VIP Active'
+                                      : 'भक्तिधारा व्हीआयपी सक्रिय')
+                                  : (localeCode == 'en'
+                                      ? 'Upgrade to VIP (7 Days Free)'
+                                      : 'व्हीआयपी व्हा (७ दिवस मोफत)'),
+                              style: GoogleFonts.mukta(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: isPremium
+                                    ? const Color(0xFFFFD54F)
+                                    : const Color(0xFF5D120B),
+                              ),
+                            ),
+                            Text(
+                              isPremium
+                                  ? (localeCode == 'en'
+                                      ? 'Tap to view membership details'
+                                      : 'तपशील पाहण्यासाठी टॅप करा')
+                                  : (localeCode == 'en'
+                                      ? 'Remove ads & unlock full panchang'
+                                      : 'जाहिरातमुक्त व सखोल पंचांग अनलॉक करा'),
+                              style: GoogleFonts.mukta(
+                                fontSize: 12,
+                                color: isPremium
+                                    ? Colors.white.withValues(alpha: 0.85)
+                                    : const Color(0xFF8B1D18),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: isPremium
+                            ? const Color(0xFFFFD54F)
+                            : const Color(0xFF8B1D18),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Restore Purchases
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.restore_rounded,
+                    color: Color(0xFF8B1D18),
+                    size: 22,
+                  ),
+                ),
+                title: Text(
+                  localeCode == 'en'
+                      ? 'Restore Purchases'
+                      : 'खरेदी पुनर्संचयित करा',
+                  style: GoogleFonts.mukta(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2C2416),
+                  ),
+                ),
+                subtitle: Text(
+                  localeCode == 'en'
+                      ? 'Sync Play Store or previous subscription'
+                      : 'प्ले स्टोअर सदस्यता सिंक करा',
+                  style: GoogleFonts.mukta(
+                    fontSize: 12,
+                    color: MandirTheme.textMuted,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final restored = await ref
+                      .read(subscriptionProvider.notifier)
+                      .restorePurchase();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFF5D120B),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        content: Text(
+                          restored
+                              ? (localeCode == 'en'
+                                  ? '✅ Purchases restored successfully!'
+                                  : '✅ सदस्यता यशस्वीरीत्या पुनर्संचयित केली!')
+                              : (localeCode == 'en'
+                                  ? 'No active subscription found.'
+                                  : 'कोणतीही सक्रिय सदस्यता आढळली नाही.'),
+                          style: GoogleFonts.mukta(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+
+              // Privacy Policy Link
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.privacy_tip_outlined,
+                    color: Color(0xFF8B1D18),
+                    size: 22,
+                  ),
+                ),
+                title: Text(
+                  localeCode == 'en'
+                      ? 'Privacy Policy'
+                      : 'गोपनीयता धोरण',
+                  style: GoogleFonts.mukta(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2C2416),
+                  ),
+                ),
+                subtitle: Text(
+                  'Privacy-first • Zero tracking',
+                  style: GoogleFonts.mukta(
+                    fontSize: 12,
+                    color: MandirTheme.textMuted,
+                  ),
+                ),
+                trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                onTap: () async {
+                  final uri = Uri.parse('http://46.225.142.210/privacy.html');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+              ),
+
+              const SizedBox(height: 12),
+              Center(
+                child: Text(
+                  'BhaktiDhara Aarti Sangrah v1.0.4\nHetzner Mandir Cloud • Powered by Gemini AI',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.mukta(
+                    fontSize: 11,
+                    color: MandirTheme.textMuted,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

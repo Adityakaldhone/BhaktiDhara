@@ -157,6 +157,44 @@ const List<Rashi> kAllRashis = [
   ),
 ];
 
+/// Daily 3-time-slot astrological forecast (Phase 2).
+class TimeSlotForecast {
+  final String morning; // ०६:०० AM - १२:०० PM (सकाळ / Morning)
+  final String afternoon; // १२:०० PM - ०५:०० PM (दुपार / Afternoon)
+  final String evening; // ०५:०० PM - १०:०० PM (संध्याकाळ / Evening)
+
+  const TimeSlotForecast({
+    required this.morning,
+    required this.afternoon,
+    required this.evening,
+  });
+
+  const TimeSlotForecast.empty()
+      : morning = '',
+        afternoon = '',
+        evening = '';
+
+  bool get isEmpty => morning.isEmpty && afternoon.isEmpty && evening.isEmpty;
+  bool get isNotEmpty => !isEmpty;
+
+  factory TimeSlotForecast.fromJson(dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      return const TimeSlotForecast.empty();
+    }
+    return TimeSlotForecast(
+      morning: json['morning']?.toString() ?? '',
+      afternoon: json['afternoon']?.toString() ?? '',
+      evening: json['evening']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'morning': morning,
+    'afternoon': afternoon,
+    'evening': evening,
+  };
+}
+
 /// Structured astrological horoscope reading returned from Gemini / Vedic source.
 class HoroscopeReading {
   final String rashiId;
@@ -169,6 +207,16 @@ class HoroscopeReading {
   final String luckyNumber;
   final String luckyColor;
   final String remedy;
+  final String cautionTitle;
+  final String cautionDetail;
+  final String cautionWindow;
+  final TimeSlotForecast timeSlots;
+  final String compatibleRashi;
+  final String cautionRashi;
+  final String compatibilityTip;
+  final String rulingDeity;
+  final String deityMantra;
+  final String mantraBenefit;
   final int auspiciousPercentage;
   final bool isAiGenerated;
 
@@ -183,6 +231,16 @@ class HoroscopeReading {
     required this.luckyNumber,
     required this.luckyColor,
     required this.remedy,
+    this.cautionTitle = '',
+    this.cautionDetail = '',
+    this.cautionWindow = '',
+    this.timeSlots = const TimeSlotForecast.empty(),
+    this.compatibleRashi = '',
+    this.cautionRashi = '',
+    this.compatibilityTip = '',
+    this.rulingDeity = '',
+    this.deityMantra = '',
+    this.mantraBenefit = '',
     this.auspiciousPercentage = 85,
     this.isAiGenerated = true,
   });
@@ -205,6 +263,18 @@ class HoroscopeReading {
       luckyNumber: json['luckyNumber']?.toString() ?? '७',
       luckyColor: json['luckyColor']?.toString() ?? 'केशरी (Saffron)',
       remedy: json['remedy']?.toString() ?? 'श्री गणेशाय नमः जप करा.',
+      cautionTitle: json['cautionTitle']?.toString() ?? '',
+      cautionDetail: json['cautionDetail']?.toString() ?? '',
+      cautionWindow: json['cautionWindow']?.toString() ?? '',
+      timeSlots: json['timeSlots'] != null
+          ? TimeSlotForecast.fromJson(json['timeSlots'])
+          : const TimeSlotForecast.empty(),
+      compatibleRashi: json['compatibleRashi']?.toString() ?? '',
+      cautionRashi: json['cautionRashi']?.toString() ?? '',
+      compatibilityTip: json['compatibilityTip']?.toString() ?? '',
+      rulingDeity: json['rulingDeity']?.toString() ?? '',
+      deityMantra: json['deityMantra']?.toString() ?? '',
+      mantraBenefit: json['mantraBenefit']?.toString() ?? '',
       auspiciousPercentage:
           (json['auspiciousPercentage'] is num)
               ? (json['auspiciousPercentage'] as num).toInt()
@@ -213,3 +283,51 @@ class HoroscopeReading {
     );
   }
 }
+
+/// Personalized Vedic astrological AI consultation reading for a user question.
+class VedicAiConsultation {
+  final String headline;
+  final String astrologicalAspect;
+  final String guidance;
+  final String remedy;
+  final String favorableTiming;
+  final bool isAiGenerated;
+
+  const VedicAiConsultation({
+    required this.headline,
+    required this.astrologicalAspect,
+    required this.guidance,
+    required this.remedy,
+    required this.favorableTiming,
+    this.isAiGenerated = true,
+  });
+
+  const VedicAiConsultation.empty()
+      : headline = '',
+        astrologicalAspect = '',
+        guidance = '',
+        remedy = '',
+        favorableTiming = '',
+        isAiGenerated = false;
+
+  factory VedicAiConsultation.fromJson(Map<String, dynamic> json) {
+    return VedicAiConsultation(
+      headline: json['headline']?.toString() ?? '',
+      astrologicalAspect: json['astrologicalAspect']?.toString() ?? '',
+      guidance: json['guidance']?.toString() ?? '',
+      remedy: json['remedy']?.toString() ?? '',
+      favorableTiming: json['favorableTiming']?.toString() ?? '',
+      isAiGenerated: json['isAiGenerated'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'headline': headline,
+        'astrologicalAspect': astrologicalAspect,
+        'guidance': guidance,
+        'remedy': remedy,
+        'favorableTiming': favorableTiming,
+        'isAiGenerated': isAiGenerated,
+      };
+}
+

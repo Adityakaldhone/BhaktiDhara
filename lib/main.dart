@@ -10,6 +10,7 @@ import 'core/theme/theme.dart';
 import 'presentation/providers/locale_provider.dart';
 import 'presentation/providers/premium_provider.dart';
 import 'presentation/providers/subscription_provider.dart';
+import 'presentation/providers/horoscope_provider.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'services/backend_service.dart';
 import 'services/push_notification_service.dart';
@@ -51,9 +52,13 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> {
   }
 
   void _syncPushTopics() {
+    final rashi = ref.read(selectedRashiProvider);
+    final isMorningOn = ref.read(morningReminderEnabledProvider);
     PushNotificationService.syncTopics(
       locale: ref.read(localeProvider).languageCode,
       isVip: ref.read(isPremiumProvider),
+      rashiId: rashi.id,
+      morningReminderEnabled: isMorningOn,
     );
   }
 
@@ -62,6 +67,8 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> {
     final currentLocale = ref.watch(localeProvider);
     ref.listen(localeProvider, (_, _) => _syncPushTopics());
     ref.listen(isPremiumProvider, (_, _) => _syncPushTopics());
+    ref.listen(selectedRashiProvider, (_, _) => _syncPushTopics());
+    ref.listen(morningReminderEnabledProvider, (_, _) => _syncPushTopics());
 
     return MaterialApp(
       title: 'Digital Mandir',

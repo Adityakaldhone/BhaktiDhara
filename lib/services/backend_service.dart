@@ -331,4 +331,42 @@ class BackendService {
     }
     return null;
   }
+
+  /// Consults the Hetzner Vedic AI backend for personalized answers to user's question.
+  static Future<VedicAiConsultation?> consultVedicAi({
+    required Rashi rashi,
+    required String question,
+    required String langCode,
+    String? initial,
+  }) async {
+    if (backendUrl.trim().isEmpty) return null;
+
+    try {
+      final uri = Uri.parse('${backendUrl.trim()}/api/v1/vedic-ai/consult');
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'rashi': rashi.id,
+              'question': question,
+              'lang': langCode,
+              if (initial != null && initial.isNotEmpty) 'initial': initial,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic> && decoded.containsKey('result')) {
+          final resultMap = decoded['result'] as Map<String, dynamic>;
+          return VedicAiConsultation.fromJson(resultMap);
+        }
+      }
+    } catch (_) {
+      // Backend error or timeout -> fall back to client AI or local engine
+    }
+    return null;
+  }
 }
+
