@@ -11,14 +11,21 @@ class LocationService {
   static PanchangCity? _cachedCity;
 
   /// Detects the user's current location city.
-  Future<PanchangCity> detectCurrentCity() async {
-    if (_cachedCity != null) {
+  ///
+  /// - If [requestPermission] is false (default), it will only use GPS if already
+  ///   granted by the user; otherwise it falls back to instant IP Geolocation (zero permissions).
+  /// - If [forceGps] is true, it ignores any cached city and re-queries the device GPS.
+  Future<PanchangCity> detectCurrentCity({
+    bool requestPermission = false,
+    bool forceGps = false,
+  }) async {
+    if (!forceGps && _cachedCity != null) {
       return _cachedCity!;
     }
 
     // 1. Try Device GPS (Geolocator)
     try {
-      final gpsCity = await _detectViaGps();
+      final gpsCity = await _detectViaGps(requestPermission: requestPermission);
       if (gpsCity != null) {
         _cachedCity = gpsCity;
         return gpsCity;
@@ -43,7 +50,7 @@ class LocationService {
     return kDefaultCity;
   }
 
-  Future<PanchangCity?> _detectViaGps() async {
+  Future<PanchangCity?> _detectViaGps({bool requestPermission = false}) async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return null;
@@ -51,6 +58,10 @@ class LocationService {
 
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
+      if (!requestPermission) {
+        // Do NOT pop up a dialog during background auto-detection!
+        return null;
+      }
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         return null;

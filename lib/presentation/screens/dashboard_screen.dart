@@ -9,10 +9,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../core/theme/theme.dart';
+import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/premium_provider.dart';
+import '../providers/review_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
@@ -21,6 +23,7 @@ import 'bhajan_screen.dart';
 import 'deity_aarti_list_screen.dart';
 import 'horoscope_screen.dart';
 import 'panchang_screen.dart';
+import '../../services/app_permission_service.dart';
 
 /// Screen 1 — BhaktiDhara Dashboard (pixel-perfect match to UI mockup)
 class MandirDashboardScreen extends ConsumerStatefulWidget {
@@ -50,6 +53,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     _homeScrollController.addListener(_onHomeScroll);
     _initSpeech();
     // _loadBannerAd();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppPermissionService.checkAndRequestStartupPermissions(ref);
+    });
   }
 
   void _onHomeScroll() {
@@ -416,9 +422,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   static const double _collapsedHeaderHeight = 60;
 
   Widget _buildSliverHeader(AppLocalizations l10n) {
-    // Om, decorative bar and padding are fixed; the three text lines scale.
-    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final expandedHeight = 84 + 100 * textScale;
+    const expandedHeight = 124.0;
 
     return SliverAppBar(
       primary: false,
@@ -503,12 +507,11 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   }
 
   Widget _buildCollapsedHeader(AppLocalizations l10n) {
-    final localeCode = ref.watch(localeProvider).languageCode;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Image.asset('assets/decorations/om.png', height: 30, width: 30),
+          Image.asset('assets/decorations/om.png', height: 28, width: 28),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -516,29 +519,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.yatraOne(
-                fontSize: 24,
+                fontSize: 22,
                 color: MandirTheme.secondaryMaroon,
                 height: 1.0,
               ),
-            ),
-          ),
-          _buildVipHeaderBadge(localeCode),
-          const SizedBox(width: 8),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: MandirTheme.goldenAccent.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: Icon(
-                Icons.settings_outlined,
-                color: MandirTheme.goldenAccent,
-                size: 20,
-              ),
-              onPressed: () => _showSettingsSheet(context, ref, localeCode),
             ),
           ),
         ],
@@ -547,10 +531,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  //  HEADER (Om + BhaktiDhara + Aarti Sangrah + Tagline + Settings Icon)
+  //  HEADER (Om + BhaktiDhara + Aarti Sangrah + Tagline)
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildHeader(AppLocalizations l10n) {
-    final localeCode = ref.watch(localeProvider).languageCode;
     return SizedBox(
       width: double.infinity,
       child: Stack(
@@ -568,10 +551,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
           // ── Main Header Content ────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, 6, 0, 10),
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 4),
             child: Column(
               children: [
-                // Top row: Bells on sides, Om + Settings in center-right
+                // Top row: Bells on sides, Om + Title + Subtitle + Tagline in center
                 SizedBox(
                   width: double.infinity,
                   child: Stack(
@@ -584,8 +567,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         top: -15,
                         child: Image.asset(
                           'assets/decorations/bell.png',
-                          width: 55,
-                          height: 110,
+                          width: 48,
+                          height: 96,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -596,42 +579,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         top: -15,
                         child: Image.asset(
                           'assets/decorations/bell.png',
-                          width: 55,
-                          height: 110,
+                          width: 48,
+                          height: 96,
                           fit: BoxFit.contain,
-                        ),
-                      ),
-
-                      // VIP Crown Badge in Header
-                      Positioned(
-                        right: 122,
-                        top: 5,
-                        child: _buildVipHeaderBadge(localeCode),
-                      ),
-
-                      // Settings icon (positioned inward, not overlapping bell)
-                      Positioned(
-                        right: 76,
-                        top: 4,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: MandirTheme.goldenAccent.withValues(
-                              alpha: 0.15,
-                            ),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            icon: Icon(
-                              Icons.settings_outlined,
-                              color: MandirTheme.goldenAccent,
-                              size: 20,
-                            ),
-                            onPressed: () =>
-                                _showSettingsSheet(context, ref, localeCode),
-                          ),
                         ),
                       ),
 
@@ -644,16 +594,16 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                             // Om symbol (decorative image)
                             Image.asset(
                               'assets/decorations/om.png',
-                              height: 48,
-                              width: 48,
+                              height: 42,
+                              width: 42,
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
                             // App title
                             Text(
                               l10n.appTitle,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.yatraOne(
-                                fontSize: 32,
+                                fontSize: 28,
                                 color: MandirTheme.secondaryMaroon,
                                 height: 1.1,
                               ),
@@ -664,19 +614,19 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                               l10n.appSubtitle,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.mukta(
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontWeight: FontWeight.bold,
                                 color: MandirTheme.goldenAccent,
                                 letterSpacing: 1.2,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             // Tagline
                             Text(
                               l10n.appTagline,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.mukta(
-                                fontSize: 13,
+                                fontSize: 12.5,
                                 color: MandirTheme.textMuted,
                               ),
                             ),
@@ -698,6 +648,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   //  VIP CROWN BADGE & SETTINGS BOTTOM SHEET
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // ignore: unused_element
   Widget _buildVipHeaderBadge(String localeCode) {
     final isPremium = ref.watch(isPremiumProvider);
     final sub = ref.watch(subscriptionProvider);
@@ -1000,6 +951,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     );
   }
 
+  // ignore: unused_element
   void _showSettingsSheet(
     BuildContext context,
     WidgetRef ref,
@@ -1210,6 +1162,63 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 },
               ),
 
+              // ── Rate BhaktiDhara ─────────────────────────────────────
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFF3DC), Color(0xFFFFE8B8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.star_rounded,
+                    color: Color(0xFFD4AF37),
+                    size: 22,
+                  ),
+                ),
+                title: Text(
+                  localeCode == 'en'
+                      ? 'Rate BhaktiDhara'
+                      : (localeCode == 'hi'
+                          ? 'भक्तिधारा को रेटिंग दें'
+                          : 'भक्तिधारा ला रेटिंग द्या'),
+                  style: GoogleFonts.mukta(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2C2416),
+                  ),
+                ),
+                subtitle: Text(
+                  localeCode == 'en'
+                      ? 'Share your blessings on Play Store'
+                      : (localeCode == 'hi'
+                          ? 'Play Store पर अपना आशीर्वाद दें'
+                          : 'Play Store वर तुमचा आशीर्वाद द्या'),
+                  style: GoogleFonts.mukta(
+                    fontSize: 12,
+                    color: MandirTheme.textMuted,
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.open_in_new_rounded,
+                  size: 18,
+                  color: Color(0xFFD4AF37),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ref.read(reviewServiceProvider).openStoreListing();
+                },
+              ),
+
               // Privacy Policy Link
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -1277,7 +1286,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   Widget _buildSearchBar(AppLocalizations l10n, String localeCode) {
     final query = ref.watch(searchQueryProvider);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
         height: 48,
         decoration: BoxDecoration(
@@ -1687,41 +1696,62 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     AppLocalizations l10n,
     String localeCode,
   ) {
-    final localizedTitle = item.localizedTitle(localeCode);
-    final englishTitle = item.title; // Always show English as subtitle
+    final query = ref.watch(searchQueryProvider).trim();
+    final bool isSearch = query.isNotEmpty;
+
+    // In Sacred Collection browsing:
+    // Display the canonical Deity Aarti collection title!
+    // E.g., for English: "Shri Gondavlekar Maharaj Aarti", subtitle: "श्री गोंदवलेकर महाराज आरती"
+    // E.g., for Marathi/Hindi: "श्री गोंदवलेकर महाराज आरती", subtitle: "Shri Gondavlekar Maharaj Aarti"
+    // If a search query is active, display the matched aarti title.
+    final String primaryTitle;
+    final String subtitle;
+
+    if (isSearch) {
+      primaryTitle = item.localizedTitle(localeCode);
+      subtitle = item.title;
+    } else {
+      if (localeCode == 'en') {
+        primaryTitle = item.deityAartiTitle('en');
+        subtitle = item.deityAartiTitle('mr');
+      } else {
+        primaryTitle = item.deityAartiTitle(localeCode);
+        subtitle = item.deityAartiTitle('en');
+      }
+    }
 
     return Container(
       decoration: BoxDecoration(
         color: MandirTheme.cardBackground,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: MandirTheme.cardBorder, width: 1),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF8A5A2B).withValues(alpha: 0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 3),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(18),
           onTap: () => _openAarti(item),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(18),
             child: Stack(
               children: [
                 // 1. Right-side decorative mandala
                 Positioned(
-                  right: -30,
-                  bottom: -30,
+                  right: -20,
+                  bottom: -20,
                   child: Opacity(
-                    opacity: 0.25,
+                    opacity: 0.22,
                     child: Image.asset(
                       'assets/decorations/card_right_design.png',
-                      width: 150,
-                      height: 150,
+                      width: 100,
+                      height: 100,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -1729,25 +1759,26 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
                 // 2. Main content row
                 Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(7),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Artwork Container
+                      // Artwork Container (compact & proportional)
                       Container(
-                        width: 104,
-                        height: 112,
+                        width: 82,
+                        height: 86,
                         decoration: BoxDecoration(
                           color: MandirTheme.imageSurface,
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(14),
                           child: Padding(
-                            padding: const EdgeInsets.all(6.0),
+                            padding: const EdgeInsets.all(4.0),
                             child: Image.asset(
                               _getDeityImageAsset(item.deity),
                               fit: BoxFit.contain,
+                              cacheHeight: 240,
                               errorBuilder: (context, error, stackTrace) {
                                 return Image.asset(
                                   'assets/decorations/om.png',
@@ -1755,7 +1786,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                   errorBuilder: (_, _, _) => Center(
                                     child: Text(
                                       item.deityEmoji,
-                                      style: const TextStyle(fontSize: 40),
+                                      style: const TextStyle(fontSize: 34),
                                     ),
                                   ),
                                 );
@@ -1772,12 +1803,13 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Hindi/Localized Title
+                              // Primary Title (Deity Aarti Title)
                               Text(
-                                localizedTitle,
+                                primaryTitle,
                                 style: GoogleFonts.notoSansDevanagari(
-                                  fontSize: 17,
+                                  fontSize: 15.5,
                                   fontWeight: FontWeight.w700,
                                   color: MandirTheme.cardTitle,
                                   height: 1.15,
@@ -1785,50 +1817,41 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              const SizedBox(height: 2),
 
-                              // English Title
+                              // Subtitle (English or Marathi counterpart)
                               Text(
-                                englishTitle,
+                                subtitle,
                                 style: GoogleFonts.notoSans(
-                                  fontSize: 12.5,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: MandirTheme.cardSubtitle,
-                                  height: 1.2,
+                                  height: 1.15,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 6),
 
-                              // Content tags
-                              Wrap(
-                                spacing: 2,
-                                runSpacing: 2,
-                                children: item.tags
-                                    .map((tag) => _buildContentTag(tag))
-                                    .toList(),
-                              ),
-
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
 
                               // Read & Play Button and Arrow
                               Row(
                                 children: [
                                   Container(
-                                    height: 34,
+                                    height: 30,
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
+                                      horizontal: 12,
                                     ),
                                     decoration: BoxDecoration(
                                       color: MandirTheme.cardPrimaryButton,
-                                      borderRadius: BorderRadius.circular(21),
+                                      borderRadius: BorderRadius.circular(16),
                                       boxShadow: [
                                         BoxShadow(
                                           color: Colors.black.withValues(
-                                            alpha: 0.12,
+                                            alpha: 0.10,
                                           ),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
                                         ),
                                       ],
                                     ),
@@ -1838,14 +1861,14 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                         const Icon(
                                           Icons.play_arrow,
                                           color: MandirTheme.cardButtonText,
-                                          size: 18,
+                                          size: 16,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           l10n.readAndPlay,
                                           style: GoogleFonts.notoSans(
                                             color: MandirTheme.cardButtonText,
-                                            fontSize: 12.5,
+                                            fontSize: 11.5,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -1855,26 +1878,26 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                   const Spacer(),
                                   // Circular Arrow Button
                                   Container(
-                                    width: 36,
-                                    height: 36,
-                                    margin: const EdgeInsets.only(right: 6),
+                                    width: 30,
+                                    height: 30,
+                                    margin: const EdgeInsets.only(right: 4),
                                     decoration: BoxDecoration(
                                       color: MandirTheme.arrowBackground,
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
                                           color: Colors.black.withValues(
-                                            alpha: 0.05,
+                                            alpha: 0.04,
                                           ),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
+                                          blurRadius: 3,
+                                          offset: const Offset(0, 1),
                                         ),
                                       ],
                                     ),
                                     child: const Icon(
                                       Icons.chevron_right,
                                       color: MandirTheme.arrowIcon,
-                                      size: 22,
+                                      size: 19,
                                     ),
                                   ),
                                 ],
@@ -1890,45 +1913,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildContentTag(String tag) {
-    IconData iconData;
-    if (tag.toLowerCase().contains('aarti') ||
-        tag.toLowerCase().contains('आरती')) {
-      iconData = Icons.music_note; // ♫
-    } else if (tag.toLowerCase().contains('chalisa') ||
-        tag.toLowerCase().contains('चालीसा')) {
-      iconData = Icons.menu_book; // ▢
-    } else {
-      iconData = Icons.spa; // ♧
-    }
-
-    return Container(
-      height: 20,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: MandirTheme.tagBackground,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: MandirTheme.tagBorder),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(iconData, color: const Color(0xFF9A4A27), size: 14),
-          const SizedBox(width: 4),
-          Text(
-            tag,
-            style: GoogleFonts.notoSans(
-              color: MandirTheme.tagText,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -2042,6 +2026,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   //  DEITY IMAGE ASSETS
   // ═══════════════════════════════════════════════════════════════════════════
   String _getDeityImageAsset(String deity) {
+    for (final bhaktiDeity in kBhaktiDeities) {
+      if (bhaktiDeity.matches(deity)) return bhaktiDeity.imageAsset;
+    }
     return MandirTheme.getDeityImageAsset(deity);
   }
 }
@@ -2052,8 +2039,8 @@ class _PinnedSearchBarDelegate extends SliverPersistentHeaderDelegate {
 
   const _PinnedSearchBarDelegate({required this.child});
 
-  // 48px field + 12px vertical padding on each side.
-  static const double _height = 72;
+  // 48px field + 4px vertical padding on each side.
+  static const double _height = 56;
 
   @override
   double get minExtent => _height;

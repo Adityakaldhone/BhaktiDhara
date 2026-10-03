@@ -11,21 +11,27 @@ import 'presentation/providers/locale_provider.dart';
 import 'presentation/providers/premium_provider.dart';
 import 'presentation/providers/subscription_provider.dart';
 import 'presentation/providers/horoscope_provider.dart';
+import 'presentation/providers/review_provider.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'services/backend_service.dart';
 import 'services/push_notification_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (!kIsWeb) {
     MobileAds.instance.initialize();
   }
   // Send anonymous install/active user heartbeat in background (fire-and-forget)
   BackendService.sendAnonymousPing(locale: getInitialDeviceLocale().languageCode);
+
+  // Initialise the review service (tracks distinct open-days, loads prefs)
+  final reviewOverride = await createReviewServiceOverride();
+
   runApp(
     // ProviderScope is required for Riverpod
-    const ProviderScope(
-      child: NityaAartiApp(),
+    ProviderScope(
+      overrides: [reviewOverride],
+      child: const NityaAartiApp(),
     ),
   );
 }

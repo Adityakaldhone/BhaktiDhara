@@ -52,6 +52,7 @@ dependencies:
   url_launcher: ^6.3.2
   in_app_purchase: ^3.3.1
   in_app_purchase_android: ^0.5.3
+  in_app_review: ^2.0.9
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +69,7 @@ flutter:
     - assets/decorations/
     - assets/aarti_screen/
     - assets/aarti_list/
+    - assets/bhakti/
     - assets/sounds/
     # One repetition per mantra for chant-along (currently TTS placeholders)
     - assets/sounds/jaap/

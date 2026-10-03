@@ -11,6 +11,7 @@ import '../../services/card_share_service.dart';
 import '../providers/greeting_card_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/premium_provider.dart';
+import '../providers/review_provider.dart';
 import '../widgets/premium_blurred_gate.dart';
 import 'greeting_strings.dart';
 
@@ -108,6 +109,9 @@ Future<void> shareGreetingCard(
       'emoji': card.emojis != null,
       'is_premium': isPremium,
     });
+
+    // Track card share for review eligibility
+    ref.read(reviewServiceProvider).trackCardShared();
   } catch (_) {
     messenger?.hideCurrentSnackBar();
     messenger?.showSnackBar(SnackBar(content: Text(s.shareFailed)));

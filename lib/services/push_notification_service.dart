@@ -84,14 +84,11 @@ class PushNotificationService {
       await _local
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(_channel);
-      await _local
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+
+      // Check current permission status non-intrusively without showing a system prompt
+      await checkPermissionGranted();
 
       final messaging = FirebaseMessaging.instance;
-      final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
-      _permissionGranted = settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional;
       // iOS shows banners natively in the foreground; Android needs a local notification.
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
 
@@ -127,6 +124,60 @@ class PushNotificationService {
     if (token == null || token.isEmpty) return;
     _token = token;
     await BackendService.registerPushToken(token, enabled: _permissionGranted);
+  }
+
+  /// Explicitly requests notification permission from the user.
+  /// Managed by [AppPermissionService] to ensure collision-free sequencing.
+  static Future<bool> requestNotificationPermission() async {
+    if (!_supported) return false;
+    try {
+      bool granted = false;
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final localResult = await _local
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+            ?.requestNotificationsPermission();
+        granted = localResult ?? false;
+      }
+
+      final messaging = FirebaseMessaging.instance;
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      granted = granted ||
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+
+      _permissionGranted = granted;
+      if (_token != null) {
+        await BackendService.registerPushToken(_token!, enabled: _permissionGranted);
+      }
+      return _permissionGranted;
+    } catch (e) {
+      debugPrint('[PushNotificationService] requestNotificationPermission error: $e');
+      return false;
+    }
+  }
+
+  /// Checks whether notifications are already enabled without prompting the user.
+  static Future<bool> checkPermissionGranted() async {
+    if (!_supported) return false;
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final enabled = await _local
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+            ?.areNotificationsEnabled();
+        _permissionGranted = enabled ?? false;
+        return _permissionGranted;
+      } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final settings = await FirebaseMessaging.instance.getNotificationSettings();
+        _permissionGranted = settings.authorizationStatus == AuthorizationStatus.authorized ||
+            settings.authorizationStatus == AuthorizationStatus.provisional;
+        return _permissionGranted;
+      }
+    } catch (_) {}
+    return false;
   }
 
   /// Subscribes the device to targeting topics and drops stale ones

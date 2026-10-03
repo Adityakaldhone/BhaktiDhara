@@ -137,67 +137,67 @@ void main() {
 
     test('never maps one god portrait onto another god', () {
       expect(MandirTheme.getDeityImageAsset('Lord Shiva'),
-          'assets/decorations/mahadev.png');
+          'assets/bhakti/shiva.png');
       expect(MandirTheme.getDeityImageAsset('Lord Hanuman'),
-          'assets/decorations/hanuman.png');
+          'assets/bhakti/hanuman.png');
       expect(MandirTheme.getDeityImageAsset('Lord Ganesha'),
-          'assets/decorations/ganesh.png');
+          'assets/bhakti/ganesh.png');
       expect(MandirTheme.getDeityImageAsset('Lord Vitthal'),
-          'assets/decorations/vitthal.png');
+          'assets/bhakti/vitthal.png');
       expect(MandirTheme.getDeityImageAsset('Lord Rama'),
-          'assets/decorations/rama.png');
+          'assets/bhakti/rama.png');
       expect(MandirTheme.getDeityImageAsset('Lord Krishna'),
-          'assets/decorations/krishna.png');
+          'assets/bhakti/krishna.png');
       expect(MandirTheme.getDeityImageAsset('Goddess Durga'),
-          'assets/decorations/durga.png');
+          'assets/bhakti/durga.png');
       expect(MandirTheme.getDeityImageAsset('Lord Datta'),
-          'assets/decorations/datta.png');
+          'assets/bhakti/dutt.png');
       expect(MandirTheme.getDeityImageAsset('Sai Baba'),
-          'assets/decorations/saibaba.png');
+          'assets/bhakti/saibaba.png');
       expect(MandirTheme.getDeityImageAsset('Gajanan Maharaj'),
-          'assets/decorations/gajanan_maharaj.png');
+          'assets/bhakti/gajanan_maharaj.png');
       expect(MandirTheme.getDeityImageAsset('Lord Vishnu'),
-          'assets/decorations/vishnu.png');
+          'assets/bhakti/vishnu.png');
       expect(MandirTheme.getDeityImageAsset('Lord Khandoba'),
-          'assets/decorations/khandoba.png');
+          'assets/bhakti/khandoba.png');
       expect(MandirTheme.getDeityImageAsset('Lord Shani'),
-          'assets/decorations/shani.png');
+          'assets/bhakti/shanidev.png');
       expect(MandirTheme.getDeityImageAsset('Goddess Lakshmi'),
-          'assets/decorations/lakshmi.png');
+          'assets/bhakti/laxmi.png');
       expect(MandirTheme.getDeityImageAsset('Lord Venkatesh'),
-          'assets/decorations/venkatesh.png');
+          'assets/bhakti/Venkateswara.png');
       expect(MandirTheme.getDeityImageAsset('Goddess Tulsi'),
-          'assets/decorations/tulsi.png');
+          'assets/bhakti/tulasi.png');
       expect(MandirTheme.getDeityImageAsset('Goddess Santoshi Mata'),
           'assets/decorations/santoshi_mata.png');
       expect(MandirTheme.getDeityImageAsset('Goddess Renuka Mata'),
-          'assets/decorations/renuka_mata.png');
+          'assets/bhakti/renuka.png');
       expect(MandirTheme.getDeityImageAsset('Lord Siddhanath'),
-          'assets/decorations/siddhanath.png');
+          'assets/bhakti/siddhanth.png');
       expect(MandirTheme.getDeityImageAsset('Sant Balumama'),
-          'assets/decorations/balumama.png');
+          'assets/bhakti/balumama.png');
       expect(MandirTheme.getDeityImageAsset('Gondavalekar Maharaj'),
-          'assets/decorations/gondavalekar_maharaj.png');
+          'assets/bhakti/gondavalekar_maharaj.png');
       expect(MandirTheme.getDeityImageAsset('Navnath'),
-          'assets/decorations/navnath.png');
+          'assets/bhakti/navnath.png');
       expect(MandirTheme.getDeityImageAsset('Swami Samarth'),
-          'assets/decorations/swami_samarth.png');
+          'assets/bhakti/swami_samartha.png');
       expect(MandirTheme.getDeityImageAsset('Sant'),
-          'assets/decorations/sant.png');
+          'assets/bhakti/dnyaneshwar.png');
       expect(MandirTheme.getDeityImageAsset('Lord Bhairavnath'),
-          'assets/decorations/bhairavnath.png');
+          'assets/bhakti/bhairavnath.png');
       expect(MandirTheme.getDeityImageAsset('Chandra Dev'),
-          'assets/decorations/chandra.png');
+          'assets/bhakti/chandra.png');
       expect(MandirTheme.getDeityImageAsset('Surya Dev'),
-          'assets/decorations/surya.png');
+          'assets/bhakti/surya.png');
       expect(MandirTheme.getDeityImageAsset('Goddess Narmada'),
-          'assets/decorations/narmada.png');
+          'assets/bhakti/narmada.png');
       expect(MandirTheme.getDeityImageAsset('Goddess Gayatri'),
           'assets/decorations/gayatri.png');
       expect(MandirTheme.getDeityImageAsset('Gayatri'),
           'assets/decorations/gayatri.png');
       expect(MandirTheme.getDeityImageAsset('Radha'),
-          'assets/decorations/radha.png');
+          'assets/bhakti/radha.png');
     });
 
     test('Marathi aartis have valid matching YouTube videos and full lyrics', () {

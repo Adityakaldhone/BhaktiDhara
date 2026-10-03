@@ -93,157 +93,157 @@ class MandirTheme {
   static String getDeityImageAsset(String deity) {
     switch (deity) {
       case 'Lord Ganesha':
-        return 'assets/decorations/ganesh.png';
+        return 'assets/bhakti/ganesh.png';
       case 'Lord Hanuman':
-        return 'assets/decorations/hanuman.png';
+        return 'assets/bhakti/hanuman.png';
       case 'Lord Shiva':
-        return 'assets/decorations/mahadev.png';
+        return 'assets/bhakti/shiva.png';
       case 'Goddess Durga':
-        return 'assets/decorations/durga.png';
+        return 'assets/bhakti/durga.png';
       case 'Lord Krishna':
-        return 'assets/decorations/krishna.png';
+        return 'assets/bhakti/krishna.png';
       case 'Radha':
       case 'Goddess Radha':
       case 'Radha Rani':
-        return 'assets/decorations/radha.png';
+        return 'assets/bhakti/radha.png';
       case 'Lord Rama':
-        return 'assets/decorations/rama.png';
+        return 'assets/bhakti/rama.png';
       case 'Lord Vitthal':
-        return 'assets/decorations/vitthal.png';
+        return 'assets/bhakti/vitthal.png';
       case 'Lord Datta':
-        return 'assets/decorations/datta.png';
+        return 'assets/bhakti/dutt.png';
       case 'Sai Baba':
-        return 'assets/decorations/saibaba.png';
+        return 'assets/bhakti/saibaba.png';
       case 'Gajanan Maharaj':
-        return 'assets/decorations/gajanan_maharaj.png';
+        return 'assets/bhakti/gajanan_maharaj.png';
       case 'Lord Vishnu':
       case 'Lord Narayana':
       case 'Lord Satyanarayan':
-        return 'assets/decorations/vishnu.png';
+        return 'assets/bhakti/vishnu.png';
       case 'Lord Khandoba':
-        return 'assets/decorations/khandoba.png';
+        return 'assets/bhakti/khandoba.png';
       case 'Lord Shani':
-        return 'assets/decorations/shani.png';
+        return 'assets/bhakti/shanidev.png';
       case 'Goddess Lakshmi':
-        return 'assets/decorations/lakshmi.png';
+        return 'assets/bhakti/laxmi.png';
       case 'Lord Venkatesh':
-        return 'assets/decorations/venkatesh.png';
+        return 'assets/bhakti/Venkateswara.png';
       case 'Goddess Tulsi':
-        return 'assets/decorations/tulsi.png';
+        return 'assets/bhakti/tulasi.png';
       case 'Goddess Santoshi Mata':
         return 'assets/decorations/santoshi_mata.png';
       case 'Goddess Renuka Mata':
       case 'Renuka Mata':
       case 'Renuka':
-        return 'assets/decorations/renuka_mata.png';
+        return 'assets/bhakti/renuka.png';
       case 'Lord Siddhanath':
       case 'Siddhanath':
-        return 'assets/decorations/siddhanath.png';
+        return 'assets/bhakti/siddhanth.png';
       case 'Lord Bhairavnath':
       case 'Bhairavnath':
       case 'Bhairav':
-        return 'assets/decorations/bhairavnath.png';
+        return 'assets/bhakti/bhairavnath.png';
       case 'Chandra Dev':
       case 'Chandra':
       case 'Lord Chandra':
-        return 'assets/decorations/chandra.png';
+        return 'assets/bhakti/chandra.png';
       case 'Surya Dev':
       case 'Surya':
       case 'Lord Surya':
       case 'Surya Narayan':
-        return 'assets/decorations/surya.png';
+        return 'assets/bhakti/surya.png';
       case 'Goddess Narmada':
       case 'Narmada':
       case 'Narmada Mata':
       case 'Reva':
-        return 'assets/decorations/narmada.png';
+        return 'assets/bhakti/narmada.png';
       case 'Gayatri':
       case 'Goddess Gayatri':
       case 'Gayatri Mata':
         return 'assets/decorations/gayatri.png';
       case 'Sant Balumama':
       case 'Balumama':
-        return 'assets/decorations/balumama.png';
+        return 'assets/bhakti/balumama.png';
       case 'Gondavalekar Maharaj':
       case 'Brahmachaitanya Gondavalekar Maharaj':
-        return 'assets/decorations/gondavalekar_maharaj.png';
+        return 'assets/bhakti/gondavalekar_maharaj.png';
       case 'Navnath':
       case 'Shri Navnath':
-        return 'assets/decorations/navnath.png';
+        return 'assets/bhakti/navnath.png';
       case 'Swami Samarth':
       case 'Shri Swami Samarth':
-        return 'assets/decorations/swami_samarth.png';
+        return 'assets/bhakti/swami_samartha.png';
       case 'Sant':
-        return 'assets/decorations/sant.png';
+        return 'assets/bhakti/dnyaneshwar.png';
       default:
         // Case-insensitive & Devanagari fallback matching
         final clean = deity.trim().toLowerCase();
-        if (clean.contains('bhairav')) return 'assets/decorations/bhairavnath.png';
+        if (clean.contains('bhairav')) return 'assets/bhakti/bhairavnath.png';
         if (clean.contains('chandra') || clean.contains('shashi') || clean.contains('som') || clean.contains('चंद्र')) {
-          return 'assets/decorations/chandra.png';
+          return 'assets/bhakti/chandra.png';
         }
         if (clean.contains('surya') || clean.contains('dinkar') || clean.contains('bhaskar') || clean.contains('aditya') || clean.contains('सूर्य')) {
-          return 'assets/decorations/surya.png';
+          return 'assets/bhakti/surya.png';
         }
         if (clean.contains('narmada') || clean.contains('reva') || clean.contains('नर्मदा')) {
-          return 'assets/decorations/narmada.png';
+          return 'assets/bhakti/narmada.png';
         }
         if (clean.contains('gayatri') || clean.contains('गायत्री')) {
           return 'assets/decorations/gayatri.png';
         }
-        if (clean.contains('balumama') || clean.contains('बाळू')) return 'assets/decorations/balumama.png';
+        if (clean.contains('balumama') || clean.contains('बाळू')) return 'assets/bhakti/balumama.png';
         if (clean.contains('gondavalekar') || clean.contains('गोंदवलेकर')) {
-          return 'assets/decorations/gondavalekar_maharaj.png';
+          return 'assets/bhakti/gondavalekar_maharaj.png';
         }
-        if (clean.contains('navnath') || clean.contains('नवनाथ')) return 'assets/decorations/navnath.png';
+        if (clean.contains('navnath') || clean.contains('नवनाथ')) return 'assets/bhakti/navnath.png';
         if (clean.contains('swami samarth') || clean.contains('स्वामी समर्थ')) {
-          return 'assets/decorations/swami_samarth.png';
+          return 'assets/bhakti/swami_samartha.png';
         }
-        if (clean.contains('siddhanath') || clean.contains('सिद्धनाथ')) return 'assets/decorations/siddhanath.png';
-        if (clean.contains('renuka') || clean.contains('रेणुका')) return 'assets/decorations/renuka_mata.png';
-        if (clean.contains('radha') || clean.contains('राधा')) return 'assets/decorations/radha.png';
+        if (clean.contains('siddhanath') || clean.contains('सिद्धनाथ')) return 'assets/bhakti/siddhanth.png';
+        if (clean.contains('renuka') || clean.contains('रेणुका')) return 'assets/bhakti/renuka.png';
+        if (clean.contains('radha') || clean.contains('राधा')) return 'assets/bhakti/radha.png';
         if (clean.contains('ganesh') || clean.contains('ganapati') || clean.contains('vinayak') || clean.contains('गणेश') || clean.contains('गणपती')) {
-          return 'assets/decorations/ganesh.png';
+          return 'assets/bhakti/ganesh.png';
         }
         if (clean.contains('hanuman') || clean.contains('maruti') || clean.contains('bajrang') || clean.contains('हनुमान') || clean.contains('मारुती')) {
-          return 'assets/decorations/hanuman.png';
+          return 'assets/bhakti/hanuman.png';
         }
         if (clean.contains('shiv') || clean.contains('mahadev') || clean.contains('bhole') || clean.contains('shankar') || clean.contains('शिव') || clean.contains('महादेव')) {
-          return 'assets/decorations/mahadev.png';
+          return 'assets/bhakti/shiva.png';
         }
         if (clean.contains('durga') || clean.contains('ambe') || clean.contains('bhavani') || clean.contains('दुर्गा') || clean.contains('अंबे')) {
-          return 'assets/decorations/durga.png';
+          return 'assets/bhakti/durga.png';
         }
         if (clean.contains('krishna') || clean.contains('gopal') || clean.contains('कृष्ण')) {
-          return 'assets/decorations/krishna.png';
+          return 'assets/bhakti/krishna.png';
         }
         if (clean.contains('rama') || clean.contains('ram') || clean.contains('राम')) {
-          return 'assets/decorations/rama.png';
+          return 'assets/bhakti/rama.png';
         }
         if (clean.contains('vitthal') || clean.contains('vithoba') || clean.contains('pandurang') || clean.contains('विठ्ठल')) {
-          return 'assets/decorations/vitthal.png';
+          return 'assets/bhakti/vitthal.png';
         }
         if (clean.contains('datta') || clean.contains('dattatreya') || clean.contains('दत्त')) {
-          return 'assets/decorations/datta.png';
+          return 'assets/bhakti/dutt.png';
         }
-        if (clean.contains('sai') || clean.contains('साई')) return 'assets/decorations/saibaba.png';
-        if (clean.contains('gajanan') || clean.contains('गजानन')) return 'assets/decorations/gajanan_maharaj.png';
+        if (clean.contains('sai') || clean.contains('साई')) return 'assets/bhakti/saibaba.png';
+        if (clean.contains('gajanan') || clean.contains('गजानन')) return 'assets/bhakti/gajanan_maharaj.png';
         if (clean.contains('vishnu') || clean.contains('narayan') || clean.contains('satyanarayan') || clean.contains('nrusinha') || clean.contains('विष्णू')) {
-          return 'assets/decorations/vishnu.png';
+          return 'assets/bhakti/vishnu.png';
         }
         if (clean.contains('khandoba') || clean.contains('malhari') || clean.contains('खंडोबा')) {
-          return 'assets/decorations/khandoba.png';
+          return 'assets/bhakti/khandoba.png';
         }
-        if (clean.contains('shani') || clean.contains('शनि')) return 'assets/decorations/shani.png';
+        if (clean.contains('shani') || clean.contains('शनि')) return 'assets/bhakti/shanidev.png';
         if (clean.contains('lakshmi') || clean.contains('laxmi') || clean.contains('लक्ष्मी')) {
-          return 'assets/decorations/lakshmi.png';
+          return 'assets/bhakti/laxmi.png';
         }
         if (clean.contains('venkatesh') || clean.contains('balaji') || clean.contains('व्यंकटेश')) {
-          return 'assets/decorations/venkatesh.png';
+          return 'assets/bhakti/Venkateswara.png';
         }
-        if (clean.contains('tulsi') || clean.contains('तुळस')) return 'assets/decorations/tulsi.png';
+        if (clean.contains('tulsi') || clean.contains('तुळस')) return 'assets/bhakti/tulasi.png';
         if (clean.contains('santoshi') || clean.contains('संतोषी')) return 'assets/decorations/santoshi_mata.png';
-        if (clean.contains('sant') || clean.contains('संत')) return 'assets/decorations/sant.png';
+        if (clean.contains('sant') || clean.contains('संत')) return 'assets/bhakti/dnyaneshwar.png';
 
         return 'assets/decorations/om.png';
     }

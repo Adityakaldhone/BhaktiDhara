@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/locale_provider.dart';
+import '../providers/review_provider.dart';
 import 'altar_screen.dart';
 
 /// Configuration metadata for deity header presentation.
@@ -60,7 +61,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 संसारसारं भुजगेन्द्रहारम् ।
 सदावसन्तं हृदयारविन्दे
 भवं भवानीसहितं नमामि ॥''',
-          imagePath: 'assets/decorations/mahadev.png',
+          imagePath: 'assets/bhakti/shiva.png',
         );
       case 'Lord Hanuman':
         return const _DeityHeaderInfo(
@@ -70,7 +71,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 जितेन्द्रियं बुद्धिमतां वरिष्ठम् ।
 वातात्मजं वानरयूथमुख्यं
 श्रीरामदूतं शरणं प्रपद्ये ॥''',
-          imagePath: 'assets/decorations/hanuman.png',
+          imagePath: 'assets/bhakti/hanuman.png',
         );
       case 'Goddess Durga':
         return const _DeityHeaderInfo(
@@ -80,7 +81,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 शिवे सर्वार्थसाधिके ।
 शरण्ये त्र्यम्बके गौरि
 नारायणि नमोऽस्तु ते ॥''',
-          imagePath: 'assets/decorations/durga.png',
+          imagePath: 'assets/bhakti/durga.png',
         );
       case 'Goddess Lakshmi':
         return const _DeityHeaderInfo(
@@ -90,7 +91,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 श्रीपीठे सुरपूजिते ।
 शङ्खचक्रगदाहस्ते
 महालक्ष्मि नमोऽस्तु ते ॥''',
-          imagePath: 'assets/decorations/lakshmi.png',
+          imagePath: 'assets/bhakti/laxmi.png',
         );
       case 'Goddess Santoshi Mata':
         return const _DeityHeaderInfo(
@@ -104,7 +105,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           title: 'श्री विठ्ठल',
           subtitle: 'आरती संग्रह',
           shloka: 'युगे अठ्ठावीस विटेवरी उभा । वामांगी रखुमाई दिसे दिव्य शोभा ॥',
-          imagePath: 'assets/decorations/vitthal.png',
+          imagePath: 'assets/bhakti/vitthal.png',
         );
       case 'Lord Krishna':
         return const _DeityHeaderInfo(
@@ -114,98 +115,98 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 कंसचाणूरमर्दनम् ।
 देवकीपरमानन्दं
 कृष्णं वन्दे जगद्गुरुम् ॥''',
-          imagePath: 'assets/decorations/krishna.png',
+          imagePath: 'assets/bhakti/krishna.png',
         );
       case 'Lord Rama':
         return const _DeityHeaderInfo(
           title: 'श्री राम',
           subtitle: 'आरती संग्रह',
           shloka: 'श्रीरामचन्द्र कृपालु भजु मन हरण भवभय दारुणम् ।',
-          imagePath: 'assets/decorations/rama.png',
+          imagePath: 'assets/bhakti/rama.png',
         );
       case 'Lord Datta':
         return const _DeityHeaderInfo(
           title: 'श्री दत्त',
           subtitle: 'आरती संग्रह',
           shloka: 'दिगंबर दिगंबर श्रीपाद वल्लभ दिगंबर ॥',
-          imagePath: 'assets/decorations/datta.png',
+          imagePath: 'assets/bhakti/dutt.png',
         );
       case 'Sai Baba':
         return const _DeityHeaderInfo(
           title: 'साई बाबा',
           subtitle: 'आरती संग्रह',
           shloka: 'श्रद्धा सबुरी धरा मनमाहीं । साईनाथ चरणीं सुख पाहीं ॥',
-          imagePath: 'assets/decorations/saibaba.png',
+          imagePath: 'assets/bhakti/saibaba.png',
         );
       case 'Lord Satyanarayan':
         return const _DeityHeaderInfo(
           title: 'सत्यनारायण',
           subtitle: 'आरती संग्रह',
           shloka: 'जय जय दीनदयाळ सत्यनारायण देवा ।',
-          imagePath: 'assets/decorations/vishnu.png',
+          imagePath: 'assets/bhakti/vishnu.png',
         );
       case 'Gajanan Maharaj':
         return const _DeityHeaderInfo(
           title: 'गजानन महाराज',
           subtitle: 'आरती संग्रह',
           shloka: 'गण गण गणात बोते गजानन महाराज ॥',
-          imagePath: 'assets/decorations/gajanan_maharaj.png',
+          imagePath: 'assets/bhakti/gajanan_maharaj.png',
         );
       case 'Lord Shani':
         return const _DeityHeaderInfo(
           title: 'शनि देव',
           subtitle: 'आरती संग्रह',
           shloka: 'नीलांजन समाभासं रविपुत्रं यमाग्रजम् ।',
-          imagePath: 'assets/decorations/shani.png',
+          imagePath: 'assets/bhakti/shanidev.png',
         );
       case 'Lord Vishnu':
         return const _DeityHeaderInfo(
           title: 'श्री विष्णु',
           subtitle: 'आरती संग्रह',
           shloka: 'शान्ताकारं भुजगशयनं पद्मनाभं सुरेशम् ।',
-          imagePath: 'assets/decorations/vishnu.png',
+          imagePath: 'assets/bhakti/vishnu.png',
         );
       case 'Lord Khandoba':
         return const _DeityHeaderInfo(
           title: 'श्री खंडोबा',
           subtitle: 'आरती संग्रह',
           shloka: 'येळकोट येळकोट जय मल्हारी । खंडेराया तव भंडारी ॥',
-          imagePath: 'assets/decorations/khandoba.png',
+          imagePath: 'assets/bhakti/khandoba.png',
         );
       case 'Lord Venkatesh':
         return const _DeityHeaderInfo(
           title: 'श्री व्यंकटेश',
           subtitle: 'आरती संग्रह',
           shloka: 'शेषाचल अवतार तारक तू देवा । व्यंकटेशा श्रीनिवासा ॥',
-          imagePath: 'assets/decorations/venkatesh.png',
+          imagePath: 'assets/bhakti/Venkateswara.png',
         );
       case 'Goddess Tulsi':
         return const _DeityHeaderInfo(
           title: 'तुळस',
           subtitle: 'आरती संग्रह',
           shloka: 'जय देवी जय देवी जय तुळसी । निजपत्राहुनि लघुतर त्रिभुवन हे तुळसी ॥',
-          imagePath: 'assets/decorations/tulsi.png',
+          imagePath: 'assets/bhakti/tulasi.png',
         );
       case 'Goddess Renuka Mata':
         return const _DeityHeaderInfo(
           title: 'श्री रेणुका माता',
           subtitle: 'आरती संग्रह',
           shloka: 'जय देवी जय देवी जय जय रेणुके । तुझे तुळणे हरिहर ब्रह्मादिक ना तुके ॥',
-          imagePath: 'assets/decorations/renuka_mata.png',
+          imagePath: 'assets/bhakti/renuka.png',
         );
       case 'Lord Siddhanath':
         return const _DeityHeaderInfo(
           title: 'श्री सिद्धनाथ',
           subtitle: 'आरती संग्रह',
           shloka: 'जय देव जय देव जय भैरवनाथा । आरती ओवाळूं तुज कृपावंता ॥',
-          imagePath: 'assets/decorations/siddhanath.png',
+          imagePath: 'assets/bhakti/siddhanth.png',
         );
       case 'Lord Bhairavnath':
         return const _DeityHeaderInfo(
           title: 'श्री भैरवनाथ',
           subtitle: 'आरती संग्रह',
           shloka: 'जय देव जय देव जय भैरवनाथा । सुंदर पदयुग तूझें वंदिन निजमाथां ॥',
-          imagePath: 'assets/decorations/bhairavnath.png',
+          imagePath: 'assets/bhakti/bhairavnath.png',
         );
       case 'Chandra Dev':
         return const _DeityHeaderInfo(
@@ -215,7 +216,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 क्षीरोदार्णवसम्भवम् ।
 नमामि शशिनं सोमं
 शम्भोर्मुकुटभूषणम् ॥''',
-          imagePath: 'assets/decorations/chandra.png',
+          imagePath: 'assets/bhakti/chandra.png',
         );
       case 'Surya Dev':
         return const _DeityHeaderInfo(
@@ -225,14 +226,14 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 काश्यपेयं महाद्युतिम् ।
 तमोऽरिं सर्वपापघ्नं
 प्रणतोऽस्मि दिवाकरम् ॥''',
-          imagePath: 'assets/decorations/surya.png',
+          imagePath: 'assets/bhakti/surya.png',
         );
       case 'Goddess Narmada':
         return const _DeityHeaderInfo(
           title: 'श्री नर्मदा माता',
           subtitle: 'आरती संग्रह',
           shloka: 'त्वदीय पादपङ्कजं नमामि देवि नर्मदे ॥ नर्मदे हर ॥',
-          imagePath: 'assets/decorations/narmada.png',
+          imagePath: 'assets/bhakti/narmada.png',
         );
       case 'Goddess Gayatri':
         return const _DeityHeaderInfo(
@@ -246,42 +247,42 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           title: 'संत बाळूमामा',
           subtitle: 'आरती संग्रह',
           shloka: 'बाळूमामाच्या नावानं चांगभलं ॥',
-          imagePath: 'assets/decorations/balumama.png',
+          imagePath: 'assets/bhakti/balumama.png',
         );
       case 'Gondavalekar Maharaj':
         return const _DeityHeaderInfo(
           title: 'श्री ब्रह्मचैतन्य गोंदवलेकर महाराज',
           subtitle: 'आरती संग्रह',
           shloka: 'श्रीराम जय राम जय जय राम ॥',
-          imagePath: 'assets/decorations/gondavalekar_maharaj.png',
+          imagePath: 'assets/bhakti/gondavalekar_maharaj.png',
         );
       case 'Navnath':
         return const _DeityHeaderInfo(
           title: 'श्री नवनाथ',
           subtitle: 'आरती संग्रह',
           shloka: 'अलख निरंजन ॥ जयदेव जयदेव जय श्रीनवनाथा ॥',
-          imagePath: 'assets/decorations/navnath.png',
+          imagePath: 'assets/bhakti/navnath.png',
         );
       case 'Swami Samarth':
         return const _DeityHeaderInfo(
           title: 'श्री स्वामी समर्थ महाराज',
           subtitle: 'आरती संग्रह',
           shloka: 'भिऊ नकोस, मी तुझ्या पाठीशी आहे ॥ श्री स्वामी समर्थ ॥',
-          imagePath: 'assets/decorations/swami_samarth.png',
+          imagePath: 'assets/bhakti/swami_samartha.png',
         );
       case 'Sant':
         return const _DeityHeaderInfo(
           title: 'संत परंपरा',
           subtitle: 'आरती संग्रह',
           shloka: 'ज्ञानदेव तुकाराम एकनाथ रामदास ॥',
-          imagePath: 'assets/decorations/sant.png',
+          imagePath: 'assets/bhakti/dnyaneshwar.png',
         );
       case 'Lord Ganesha':
         return const _DeityHeaderInfo(
           title: 'श्री गणेश',
           subtitle: 'आरती संग्रह',
           shloka: 'वक्रतुण्ड महाकाय सूर्यकोटि समप्रभ । निर्विघ्नं कुरु मे देव सर्वकार्येषु सर्वदा ॥',
-          imagePath: 'assets/decorations/ganesh.png',
+          imagePath: 'assets/bhakti/ganesh.png',
         );
       default:
         return _DeityHeaderInfo(
@@ -294,6 +295,8 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
   }
 
   void _openAltar(AartiItem item) {
+    // Track aarti view for review eligibility
+    ref.read(reviewServiceProvider).trackAartiCompleted();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => AartiAltarScreen(aarti: item)),

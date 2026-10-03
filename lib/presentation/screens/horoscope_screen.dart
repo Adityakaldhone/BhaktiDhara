@@ -19,11 +19,7 @@ class HoroscopeScreen extends ConsumerStatefulWidget {
   final String? initialRashiId;
   final String? focusSection;
 
-  const HoroscopeScreen({
-    super.key,
-    this.initialRashiId,
-    this.focusSection,
-  });
+  const HoroscopeScreen({super.key, this.initialRashiId, this.focusSection});
 
   @override
   ConsumerState<HoroscopeScreen> createState() => _HoroscopeScreenState();
@@ -32,7 +28,8 @@ class HoroscopeScreen extends ConsumerStatefulWidget {
 class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   final ScrollController _rashiScrollController = ScrollController();
   final ScrollController _listScrollController = ScrollController();
-  final TextEditingController _questionInputController = TextEditingController();
+  final TextEditingController _questionInputController =
+      TextEditingController();
   bool _isConsultingAi = false;
   VedicAiConsultation? _consultationResult;
   String? _consultedQuestion;
@@ -56,6 +53,11 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         await Future<void>.delayed(const Duration(milliseconds: 350));
         _scrollToSection(widget.focusSection!);
       }
+
+      // // ⚠️ TEMPORARY TEST — Directly triggers Google's native rating sheet!
+      // if (mounted) {
+      //   ref.read(reviewServiceProvider).requestInAppReview(fallbackToStore: true);
+      // }
     });
   }
 
@@ -242,7 +244,12 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                           _buildQuickBadges(reading, langCode),
                           const SizedBox(height: 12),
                           // Phase 4: नावावरून वैयक्तिक भाग्य मीटर (Personalization Hook: Name initial vibration)
-                          _buildPersonalizedMeterSection(selectedRashi, reading, langCode, isPremium),
+                          _buildPersonalizedMeterSection(
+                            selectedRashi,
+                            reading,
+                            langCode,
+                            isPremium,
+                          ),
                           const SizedBox(height: 12),
                           // Phase 1: सावधगिरीचा इशारा (Caution & Avoidance Hook - "आज काय टाळावे?")
                           _buildCautionCard(reading, langCode, isPremium),
@@ -251,10 +258,18 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                           _buildTimeSlotsSection(reading, langCode, isPremium),
                           const SizedBox(height: 12),
                           // Phase 3: आजची मैत्री व सावध रास + इष्टदेवता बीजमंत्र (Daily Compatibility & Deity)
-                          _buildCompatibilityAndDeitySection(reading, langCode, isPremium),
+                          _buildCompatibilityAndDeitySection(
+                            reading,
+                            langCode,
+                            isPremium,
+                          ),
                           const SizedBox(height: 12),
                           // Phase 5: वेदिक AI ज्योतिष - १ वैयक्तिक प्रश्न (Ask 1 Vedic AI Question)
-                          _buildVedicAiConsultCard(selectedRashi, langCode, isPremium),
+                          _buildVedicAiConsultCard(
+                            selectedRashi,
+                            langCode,
+                            isPremium,
+                          ),
                           const SizedBox(height: 12),
                           // Aspect Cards (Career & Finance, Health & Energy, Family & Love):
                           // Titles are ALWAYS visible! Only the description below each title is blurred for free users.
@@ -268,7 +283,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                           ],
                           const SizedBox(height: 14),
                           // Phase 6: सकाळी ६ ची उत्कंठावर्धक पुश नोटिफिकेशन (Daily 6 AM Notification Card)
-                          _buildMorningNotificationCard(selectedRashi, langCode),
+                          _buildMorningNotificationCard(
+                            selectedRashi,
+                            langCode,
+                          ),
                           const SizedBox(height: 14),
                           _buildAiFooter(reading, langCode),
                         ],
@@ -343,8 +361,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               return GestureDetector(
                 onTap: () => showPremiumPaywallSheet(context, ref, langCode),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -359,10 +379,11 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (isPremium
-                                ? const Color(0xFFD4AF37)
-                                : const Color(0xFF8B1D18))
-                            .withValues(alpha: 0.25),
+                        color:
+                            (isPremium
+                                    ? const Color(0xFFD4AF37)
+                                    : const Color(0xFF8B1D18))
+                                .withValues(alpha: 0.25),
                         blurRadius: 4,
                         offset: const Offset(0, 1),
                       ),
@@ -1012,29 +1033,33 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   ) {
     final alertLabel = langCode == 'mr'
         ? 'सावधगिरीचा इशारा (आज काय टाळावे?)'
-        : (langCode == 'hi' ? 'सावधानी संकेत (आज क्या न करें?)' : 'Caution & Avoidance Alert');
+        : (langCode == 'hi'
+              ? 'सावधानी संकेत (आज क्या न करें?)'
+              : 'Caution & Avoidance Alert');
 
     final title = reading.cautionTitle.isNotEmpty
         ? reading.cautionTitle
         : (langCode == 'mr'
-            ? 'आज दुपारी घाईगडबडीत आर्थिक निर्णय व वादविवाद टाळावेत.'
-            : (langCode == 'hi'
-                ? 'आज दोपहर जल्दबाजी में धन निवेश और व्यर्थ विवाद से बचें।'
-                : 'Avoid hasty financial commitments or heated arguments today.'));
+              ? 'आज दुपारी घाईगडबडीत आर्थिक निर्णय व वादविवाद टाळावेत.'
+              : (langCode == 'hi'
+                    ? 'आज दोपहर जल्दबाजी में धन निवेश और व्यर्थ विवाद से बचें।'
+                    : 'Avoid hasty financial commitments or heated arguments today.'));
 
     final detail = reading.cautionDetail.isNotEmpty
         ? reading.cautionDetail
         : (langCode == 'mr'
-            ? 'ग्रहांच्या स्थितीनुसार आज कामाच्या ठिकाणी गैरसमज किंवा पैशांची गळती संभवते. महत्त्वाच्या कागदपत्रांची दोनदा तपासणी करा आणि रागावर नियंत्रण ठेवा.'
-            : (langCode == 'hi'
-                ? 'ग्रहों के प्रभाव से वाणी में उग्रता आ सकती है। वरिष्ठों व साझेदारों के साथ धैर्य रखें और नए अनुबंधों पर सोच-समझकर हस्ताक्षर करें।'
-                : 'Planetary transits indicate potential impulsiveness. Keep your temper balanced and double-check important financial decisions before committing.'));
+              ? 'ग्रहांच्या स्थितीनुसार आज कामाच्या ठिकाणी गैरसमज किंवा पैशांची गळती संभवते. महत्त्वाच्या कागदपत्रांची दोनदा तपासणी करा आणि रागावर नियंत्रण ठेवा.'
+              : (langCode == 'hi'
+                    ? 'ग्रहों के प्रभाव से वाणी में उग्रता आ सकती है। वरिष्ठों व साझेदारों के साथ धैर्य रखें और नए अनुबंधों पर सोच-समझकर हस्ताक्षर करें।'
+                    : 'Planetary transits indicate potential impulsiveness. Keep your temper balanced and double-check important financial decisions before committing.'));
 
     final window = reading.cautionWindow.isNotEmpty
         ? reading.cautionWindow
         : (langCode == 'mr'
-            ? 'दुपारी १२:०० - ०३:३०'
-            : (langCode == 'hi' ? 'दोपहर १२:०० - ०३:३०' : '12:00 PM - 03:30 PM'));
+              ? 'दुपारी १२:०० - ०३:३०'
+              : (langCode == 'hi'
+                    ? 'दोपहर १२:०० - ०३:३०'
+                    : '12:00 PM - 03:30 PM'));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1091,7 +1116,11 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFFC62828)),
+                    const Icon(
+                      Icons.access_time_rounded,
+                      size: 12,
+                      color: Color(0xFFC62828),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       window,
@@ -1162,11 +1191,15 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   ) {
     final sectionTitle = langCode == 'mr'
         ? 'वेळेनुसार दैनिक काळ व भविष्य'
-        : (langCode == 'hi' ? 'समयानुसार दैनिक काल व मार्गदर्शन' : 'Hourly Time-Slot Forecast');
+        : (langCode == 'hi'
+              ? 'समयानुसार दैनिक काल व मार्गदर्शन'
+              : 'Hourly Time-Slot Forecast');
 
     final sectionSubtitle = langCode == 'mr'
         ? 'सकाळ (मोफत), दुपार व संध्याकाळची ऊर्जा'
-        : (langCode == 'hi' ? 'सुबह (निःशुल्क), दोपहर व शाम की ऊर्जा' : 'Morning (Free), Afternoon & Evening guidance');
+        : (langCode == 'hi'
+              ? 'सुबह (निःशुल्क), दोपहर व शाम की ऊर्जा'
+              : 'Morning (Free), Afternoon & Evening guidance');
 
     final currentHour = DateTime.now().hour;
     final isMorningActive = currentHour >= 5 && currentHour < 12;
@@ -1176,26 +1209,26 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     final morningDesc = reading.timeSlots.morning.isNotEmpty
         ? reading.timeSlots.morning
         : (langCode == 'mr'
-            ? 'सकाळी ६ ते १२: दिवसाची सुरुवात शांत चित्ताने व इष्टदेवतेच्या आराधनेने करा. नवीन संकल्प व महत्त्वपूर्ण नियोजनासाठी सकाळची वेळ अत्यंत फलदायी आहे.'
-            : (langCode == 'hi'
-                ? 'सुबह ६ से १२: दिन का प्रारंभ ईष्टदेव के स्मरण एवं सकारात्मक ऊर्जा के साथ करें। नए कार्यों के चिंतन के लिए यह समय शुभ है।'
-                : '06:00 AM - 12:00 PM: Start your day with positive spiritual affirmations. Early hours are auspicious for planning, prayers, and clear focus.'));
+              ? 'सकाळी ६ ते १२: दिवसाची सुरुवात शांत चित्ताने व इष्टदेवतेच्या आराधनेने करा. नवीन संकल्प व महत्त्वपूर्ण नियोजनासाठी सकाळची वेळ अत्यंत फलदायी आहे.'
+              : (langCode == 'hi'
+                    ? 'सुबह ६ से १२: दिन का प्रारंभ ईष्टदेव के स्मरण एवं सकारात्मक ऊर्जा के साथ करें। नए कार्यों के चिंतन के लिए यह समय शुभ है।'
+                    : '06:00 AM - 12:00 PM: Start your day with positive spiritual affirmations. Early hours are auspicious for planning, prayers, and clear focus.'));
 
     final afternoonDesc = reading.timeSlots.afternoon.isNotEmpty
         ? reading.timeSlots.afternoon
         : (langCode == 'mr'
-            ? 'दुपारी १२ ते ५: कामाच्या ठिकाणी सहकाऱ्यांशी समन्वय ठेवा. आर्थिक देवाणघेवाण व बैठकांमध्ये संयम बाळगल्यास उत्तम यश मिळेल.'
-            : (langCode == 'hi'
-                ? 'दोपहर १२ से ५: कार्यक्षेत्र में विवेकपूर्ण निर्णय लें। व्यापारिक सौदों और धन से जुड़े मामलों में सतर्कता बरतें।'
-                : '12:00 PM - 05:00 PM: Navigate professional responsibilities with patience. Double-check contracts and exercise prudence in meetings.'));
+              ? 'दुपारी १२ ते ५: कामाच्या ठिकाणी सहकाऱ्यांशी समन्वय ठेवा. आर्थिक देवाणघेवाण व बैठकांमध्ये संयम बाळगल्यास उत्तम यश मिळेल.'
+              : (langCode == 'hi'
+                    ? 'दोपहर १२ से ५: कार्यक्षेत्र में विवेकपूर्ण निर्णय लें। व्यापारिक सौदों और धन से जुड़े मामलों में सतर्कता बरतें।'
+                    : '12:00 PM - 05:00 PM: Navigate professional responsibilities with patience. Double-check contracts and exercise prudence in meetings.'));
 
     final eveningDesc = reading.timeSlots.evening.isNotEmpty
         ? reading.timeSlots.evening
         : (langCode == 'mr'
-            ? 'संध्याकाळी ५ ते १०: कौटुंबिक सौख्य वाढेल. कामाचा अतिरिक्त ताण विसरून कुटुंबीयांसमवेत वेळ घालवा व सात्त्विक आहारावर भर द्या.'
-            : (langCode == 'hi'
-                ? 'शाम ५ से १०: परिजनों के साथ आनंदमय समय व्यतीत होगा। तनाव से दूर रहकर संध्या आरती एवं विश्राम पर ध्यान दें।'
-                : '05:00 PM - 10:00 PM: Unwind with family and loved ones. Dedicate peaceful moments to gratitude, light dining, and rejuvenation.'));
+              ? 'संध्याकाळी ५ ते १०: कौटुंबिक सौख्य वाढेल. कामाचा अतिरिक्त ताण विसरून कुटुंबीयांसमवेत वेळ घालवा व सात्त्विक आहारावर भर द्या.'
+              : (langCode == 'hi'
+                    ? 'शाम ५ से १०: परिजनों के साथ आनंदमय समय व्यतीत होगा। तनाव से दूर रहकर संध्या आरती एवं विश्राम पर ध्यान दें।'
+                    : '05:00 PM - 10:00 PM: Unwind with family and loved ones. Dedicate peaceful moments to gratitude, light dining, and rejuvenation.'));
 
     final slots = [
       {
@@ -1205,7 +1238,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
             : (langCode == 'hi' ? 'सुबह (प्रातःकाल ऊर्जा)' : 'Morning Focus'),
         'time': langCode == 'mr'
             ? '०६:०० AM - १२:०० PM'
-            : (langCode == 'hi' ? '०६:०० AM - १२:०० PM' : '06:00 AM - 12:00 PM'),
+            : (langCode == 'hi'
+                  ? '०६:०० AM - १२:०० PM'
+                  : '06:00 AM - 12:00 PM'),
         'desc': morningDesc,
         'isActive': isMorningActive,
         'isFree': true,
@@ -1214,10 +1249,14 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         'icon': '☀️',
         'title': langCode == 'mr'
             ? 'दुपार (निर्णय व व्यवहार)'
-            : (langCode == 'hi' ? 'दोपहर (निर्णय व व्यापार)' : 'Afternoon Strategy'),
+            : (langCode == 'hi'
+                  ? 'दोपहर (निर्णय व व्यापार)'
+                  : 'Afternoon Strategy'),
         'time': langCode == 'mr'
             ? '१२:०० PM - ०५:०० PM'
-            : (langCode == 'hi' ? '१२:०० PM - ०५:०० PM' : '12:00 PM - 05:00 PM'),
+            : (langCode == 'hi'
+                  ? '१२:०० PM - ०५:०० PM'
+                  : '12:00 PM - 05:00 PM'),
         'desc': afternoonDesc,
         'isActive': isAfternoonActive,
         'isFree': false,
@@ -1226,10 +1265,14 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         'icon': '🌙',
         'title': langCode == 'mr'
             ? 'संध्याकाळ (कौटुंबिक व विश्रांती)'
-            : (langCode == 'hi' ? 'शाम (पारिवारिक व विश्राम)' : 'Evening Rejuvenation'),
+            : (langCode == 'hi'
+                  ? 'शाम (पारिवारिक व विश्राम)'
+                  : 'Evening Rejuvenation'),
         'time': langCode == 'mr'
             ? '०५:०० PM - १०:०० PM'
-            : (langCode == 'hi' ? '०५:०० PM - १०:०० PM' : '05:00 PM - 10:00 PM'),
+            : (langCode == 'hi'
+                  ? '०५:०० PM - १०:०० PM'
+                  : '05:00 PM - 10:00 PM'),
         'desc': eveningDesc,
         'isActive': isEveningActive,
         'isFree': false,
@@ -1351,7 +1394,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     if (isActive) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         margin: const EdgeInsets.only(right: 6),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFF3E0),
@@ -1373,42 +1418,48 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     ],
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2.5),
+                        horizontal: 7,
+                        vertical: 2.5,
+                      ),
                       decoration: BoxDecoration(
                         color: isFree
                             ? const Color(0xFFE8F5E9)
                             : (isPremium
-                                ? const Color(0xFFFFF8E1)
-                                : const Color(0xFFFBE9E7)),
+                                  ? const Color(0xFFFFF8E1)
+                                  : const Color(0xFFFBE9E7)),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
                           color: isFree
                               ? const Color(0xFF81C784)
                               : (isPremium
-                                  ? const Color(0xFFFFD54F)
-                                  : const Color(0xFFFFAB91)),
+                                    ? const Color(0xFFFFD54F)
+                                    : const Color(0xFFFFAB91)),
                         ),
                       ),
                       child: Text(
                         isFree
                             ? (langCode == 'mr'
-                                ? 'मोफत'
-                                : (langCode == 'hi' ? 'मुफ्त' : 'Free'))
+                                  ? 'मोफत'
+                                  : (langCode == 'hi' ? 'मुफ्त' : 'Free'))
                             : (canView
-                                ? (langCode == 'mr'
-                                    ? 'प्रिमियम'
-                                    : (langCode == 'hi' ? 'प्रीमियम' : 'VIP'))
-                                : (langCode == 'mr'
-                                    ? '🔒 लॉक'
-                                    : (langCode == 'hi' ? '🔒 लॉक' : '🔒 Locked'))),
+                                  ? (langCode == 'mr'
+                                        ? 'प्रिमियम'
+                                        : (langCode == 'hi'
+                                              ? 'प्रीमियम'
+                                              : 'VIP'))
+                                  : (langCode == 'mr'
+                                        ? '🔒 लॉक'
+                                        : (langCode == 'hi'
+                                              ? '🔒 लॉक'
+                                              : '🔒 Locked'))),
                         style: GoogleFonts.mukta(
                           fontSize: 10.5,
                           fontWeight: FontWeight.bold,
                           color: isFree
                               ? const Color(0xFF2E7D32)
                               : (canView
-                                  ? const Color(0xFFB78103)
-                                  : const Color(0xFFC62828)),
+                                    ? const Color(0xFFB78103)
+                                    : const Color(0xFFC62828)),
                           height: 1.1,
                         ),
                       ),
@@ -1458,51 +1509,59 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   ) {
     final compatTitle = langCode == 'mr'
         ? 'आजचे अनुकूल भागीदार व मैत्री रास'
-        : (langCode == 'hi' ? 'आज के अनुकूल मित्र व सतर्क राशि' : 'Daily Sign Synergy & Caution');
+        : (langCode == 'hi'
+              ? 'आज के अनुकूल मित्र व सतर्क राशि'
+              : 'Daily Sign Synergy & Caution');
 
     final compatRashi = reading.compatibleRashi.isNotEmpty
         ? reading.compatibleRashi
         : (langCode == 'mr'
-            ? 'सिंह व धनु'
-            : (langCode == 'hi' ? 'सिंह व धनु' : 'Leo & Sagittarius'));
+              ? 'सिंह व धनु'
+              : (langCode == 'hi' ? 'सिंह व धनु' : 'Leo & Sagittarius'));
 
     final cautionRashi = reading.cautionRashi.isNotEmpty
         ? reading.cautionRashi
         : (langCode == 'mr'
-            ? 'वृश्चिक'
-            : (langCode == 'hi' ? 'वृश्चिक' : 'Scorpio'));
+              ? 'वृश्चिक'
+              : (langCode == 'hi' ? 'वृश्चिक' : 'Scorpio'));
 
     final compatTip = reading.compatibilityTip.isNotEmpty
         ? reading.compatibilityTip
         : (langCode == 'mr'
-            ? 'सिंह व धनु राशीच्या सहकाऱ्यांशी कामात उत्तम समन्वय व धनलाभ होईल. वृश्चिक राशीच्या व्यक्तींशी बोलताना शांतता ठेवा.'
-            : (langCode == 'hi'
-                ? 'सिंह व धनु राशि के व्यक्तियों के साथ कार्ययोजना में लाभ होगा। वृश्चिक राशि से व्यर्थ वाद-विवाद टालें।'
-                : 'Synergy with Leo and Sagittarius brings notable progress. Maintain patient dialogue with Scorpio to prevent friction.'));
+              ? 'सिंह व धनु राशीच्या सहकाऱ्यांशी कामात उत्तम समन्वय व धनलाभ होईल. वृश्चिक राशीच्या व्यक्तींशी बोलताना शांतता ठेवा.'
+              : (langCode == 'hi'
+                    ? 'सिंह व धनु राशि के व्यक्तियों के साथ कार्ययोजना में लाभ होगा। वृश्चिक राशि से व्यर्थ वाद-विवाद टालें।'
+                    : 'Synergy with Leo and Sagittarius brings notable progress. Maintain patient dialogue with Scorpio to prevent friction.'));
 
     final deityTitle = langCode == 'mr'
         ? 'आजची इष्टदेवता व ग्रह शांती बीजमंत्र'
-        : (langCode == 'hi' ? 'आज के इष्टदेव व ग्रह शांति बीजमंत्र' : 'Ruling Deity & Planetary Beej Mantra');
+        : (langCode == 'hi'
+              ? 'आज के इष्टदेव व ग्रह शांति बीजमंत्र'
+              : 'Ruling Deity & Planetary Beej Mantra');
 
     final rulingDeity = reading.rulingDeity.isNotEmpty
         ? reading.rulingDeity
         : (langCode == 'mr'
-            ? 'श्री विघ्नहर्ता गणेश व सूर्यदेव'
-            : (langCode == 'hi' ? 'भगवान श्री गणेश एवं सूर्य नारायण' : 'Lord Ganesha & Lord Surya'));
+              ? 'श्री विघ्नहर्ता गणेश व सूर्यदेव'
+              : (langCode == 'hi'
+                    ? 'भगवान श्री गणेश एवं सूर्य नारायण'
+                    : 'Lord Ganesha & Lord Surya'));
 
     final deityMantra = reading.deityMantra.isNotEmpty
         ? reading.deityMantra
         : (langCode == 'mr'
-            ? 'ॐ गं गणपतये नमः (२१ वेळा जप)'
-            : (langCode == 'hi' ? 'ॐ गं गणपतये नमः (२१ बार जप)' : 'Om Gam Ganapataye Namaha (Chant 21 times)'));
+              ? 'ॐ गं गणपतये नमः (२१ वेळा जप)'
+              : (langCode == 'hi'
+                    ? 'ॐ गं गणपतये नमः (२१ बार जप)'
+                    : 'Om Gam Ganapataye Namaha (Chant 21 times)'));
 
     final mantraBenefit = reading.mantraBenefit.isNotEmpty
         ? reading.mantraBenefit
         : (langCode == 'mr'
-            ? 'या पवित्र मंत्राच्या जपाने आज कामातील विघ्ने दूर होऊन आत्मविश्वासात वाढ होईल आणि ग्रहदोष शांत होतील.'
-            : (langCode == 'hi'
-                ? 'इस पवित्र मंत्र के जप से मानसिक स्पष्टता प्राप्त होगी और कार्यों के विघ्न दूर होंगे।'
-                : 'Chanting this sacred mantra dispels obstacles, calms planetary friction, and brings clarity.'));
+              ? 'या पवित्र मंत्राच्या जपाने आज कामातील विघ्ने दूर होऊन आत्मविश्वासात वाढ होईल आणि ग्रहदोष शांत होतील.'
+              : (langCode == 'hi'
+                    ? 'इस पवित्र मंत्र के जप से मानसिक स्पष्टता प्राप्त होगी और कार्यों के विघ्न दूर होंगे।'
+                    : 'Chanting this sacred mantra dispels obstacles, calms planetary friction, and brings clarity.'));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1549,7 +1608,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                   // Friendly Sign Pill
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE8F5E9),
                         borderRadius: BorderRadius.circular(10),
@@ -1566,7 +1628,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                                 child: Text(
                                   langCode == 'mr'
                                       ? 'अनुकूल मैत्री रास'
-                                      : (langCode == 'hi' ? 'मित्र राशि' : 'Lucky Sign'),
+                                      : (langCode == 'hi'
+                                            ? 'मित्र राशि'
+                                            : 'Lucky Sign'),
                                   style: GoogleFonts.mukta(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
@@ -1599,7 +1663,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                   // Caution Sign Pill
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF3E0),
                         borderRadius: BorderRadius.circular(10),
@@ -1616,7 +1683,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                                 child: Text(
                                   langCode == 'mr'
                                       ? 'सावध राहावयाची रास'
-                                      : (langCode == 'hi' ? 'सतर्क राशि' : 'Caution Sign'),
+                                      : (langCode == 'hi'
+                                            ? 'सतर्क राशि'
+                                            : 'Caution Sign'),
                                   style: GoogleFonts.mukta(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
@@ -1718,7 +1787,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFBE9E7),
                       borderRadius: BorderRadius.circular(8),
@@ -1737,7 +1809,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF8E1),
                         borderRadius: BorderRadius.circular(8),
@@ -1805,11 +1880,15 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
 
     final sectionTitle = langCode == 'mr'
         ? 'तुमचे वैयक्तिक भाग्य मीटर (नावावरून)'
-        : (langCode == 'hi' ? 'आपका व्यक्तिगत भाग्य मीटर (नाम से)' : 'Personalized Lucky Meter (By Initial)');
+        : (langCode == 'hi'
+              ? 'आपका व्यक्तिगत भाग्य मीटर (नाम से)'
+              : 'Personalized Lucky Meter (By Initial)');
 
     final selectPrompt = langCode == 'mr'
         ? 'तुमच्या नावाचे पहिले अक्षर निवडा:'
-        : (langCode == 'hi' ? 'अपने नाम का पहला अक्षर चुनें:' : 'Select your name\'s first initial:');
+        : (langCode == 'hi'
+              ? 'अपने नाम का पहला अक्षर चुनें:'
+              : 'Select your name\'s first initial:');
 
     final initialsList = langCode == 'en'
         ? PersonalVedicService.popularInitialsEn
@@ -1921,10 +2000,12 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: const Color(0xFF8B1D18).withValues(alpha: 0.25),
+                                color: const Color(
+                                  0xFF8B1D18,
+                                ).withValues(alpha: 0.25),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
-                              )
+                              ),
                             ]
                           : null,
                     ),
@@ -1932,8 +2013,12 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       init,
                       style: GoogleFonts.mukta(
                         fontSize: 15,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                        color: isSelected ? Colors.white : const Color(0xFF5A2010),
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF5A2010),
                       ),
                     ),
                   ),
@@ -1960,7 +2045,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF3E0),
                             borderRadius: BorderRadius.circular(6),
@@ -2127,8 +2215,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       langCode == 'en'
                           ? 'Unlock All 12 Rashi Forecasts'
                           : (langCode == 'hi'
-                              ? 'सभी 12 राशियों का विस्तृत भविष्य'
-                              : 'सर्व १२ राशींचे सविस्तर भविष्य अनलॉक करा'),
+                                ? 'सभी 12 राशियों का विस्तृत भविष्य'
+                                : 'सर्व १२ राशींचे सविस्तर भविष्य अनलॉक करा'),
                       style: GoogleFonts.mukta(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -2140,8 +2228,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       langCode == 'en'
                           ? '7 Days Free Trial • Then ₹51/month'
                           : (langCode == 'hi'
-                              ? '7 दिन मुफ्त ट्रायल • फिर ₹51/माह'
-                              : '७ दिवस मोफत ट्रायल • मग ₹५१/महिना'),
+                                ? '7 दिन मुफ्त ट्रायल • फिर ₹51/माह'
+                                : '७ दिवस मोफत ट्रायल • मग ₹५१/महिना'),
                       style: GoogleFonts.mukta(
                         fontSize: 13,
                         color: MandirTheme.textMuted,
@@ -2184,8 +2272,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     langCode == 'en'
                         ? 'Start 7-Day Free Trial'
                         : (langCode == 'hi'
-                            ? '7 दिन मुफ्त ट्रायल शुरू करें'
-                            : '७ दिवस मोफत ट्रायल सुरू करा'),
+                              ? '7 दिन मुफ्त ट्रायल शुरू करें'
+                              : '७ दिवस मोफत ट्रायल सुरू करा'),
                     style: GoogleFonts.mukta(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -2309,14 +2397,14 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     final title = langCode == 'mr'
         ? 'वेदिक AI ज्योतिष मार्गदर्शन'
         : (langCode == 'hi'
-            ? 'वैदिक AI ज्योतिष मार्गदर्शन'
-            : 'Vedic AI Astrology Consultation');
+              ? 'वैदिक AI ज्योतिष मार्गदर्शन'
+              : 'Vedic AI Astrology Consultation');
 
     final subtitle = langCode == 'mr'
         ? 'तुमच्या राशी व ग्रहस्थितीनुसार १ वैयक्तिक प्रश्न विचारा'
         : (langCode == 'hi'
-            ? 'अपनी राशि व ग्रह स्थिति अनुसार १ व्यक्तिगत प्रश्न पूछें'
-            : 'Ask 1 personal question based on your planetary transits');
+              ? 'अपनी राशि व ग्रह स्थिति अनुसार १ व्यक्तिगत प्रश्न पूछें'
+              : 'Ask 1 personal question based on your planetary transits');
 
     final badgeText = langCode == 'mr'
         ? '✨ थेट वेदिक AI'
@@ -2325,8 +2413,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     final suggestionsTitle = langCode == 'mr'
         ? 'खालीलपैकी एक प्रश्न निवडा किंवा स्वतःचा विचारा:'
         : (langCode == 'hi'
-            ? 'नीचे दिए प्रश्नों में से चुनें या अपना पूछें:'
-            : 'Select a question or ask your own:');
+              ? 'नीचे दिए प्रश्नों में से चुनें या अपना पूछें:'
+              : 'Select a question or ask your own:');
 
     final sampleQuestions = langCode == 'mr'
         ? [
@@ -2336,24 +2424,24 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
             '🩺 आरोग्य व मनःशांतीसाठी काय करावे?',
           ]
         : (langCode == 'hi'
-            ? [
-                '💼 नौकरी/व्यवसाय में सफलता कब मिलेगी?',
-                '💍 विवाह के शुभ योग कब बनेंगे?',
-                '💰 कर्जमुक्ति व धन लाभ कब होगा?',
-                '🩺 स्वास्थ्य व मानसिक शांति के लिए क्या करें?',
-              ]
-            : [
-                '💼 When will I succeed in career/business?',
-                '💍 When will auspicious marriage prospects align?',
-                '💰 When will I achieve debt relief & financial gain?',
-                '🩺 What should I do for health and peace of mind?',
-              ]);
+              ? [
+                  '💼 नौकरी/व्यवसाय में सफलता कब मिलेगी?',
+                  '💍 विवाह के शुभ योग कब बनेंगे?',
+                  '💰 कर्जमुक्ति व धन लाभ कब होगा?',
+                  '🩺 स्वास्थ्य व मानसिक शांति के लिए क्या करें?',
+                ]
+              : [
+                  '💼 When will I succeed in career/business?',
+                  '💍 When will auspicious marriage prospects align?',
+                  '💰 When will I achieve debt relief & financial gain?',
+                  '🩺 What should I do for health and peace of mind?',
+                ]);
 
     final hintText = langCode == 'mr'
         ? 'उदा. या महिन्यात नवीन काम सुरू करणे शुभ राहील का?'
         : (langCode == 'hi'
-            ? 'उदा. क्या इस महीने नया कार्य शुरू करना शुभ रहेगा?'
-            : 'e.g. Is it auspicious to start a new job this month?');
+              ? 'उदा. क्या इस महीने नया कार्य शुरू करना शुभ रहेगा?'
+              : 'e.g. Is it auspicious to start a new job this month?');
 
     final askBtnText = langCode == 'mr'
         ? 'विचारा'
@@ -2364,10 +2452,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFBF0),
-            Color(0xFFFFF3DB),
-          ],
+          colors: [Color(0xFFFFFBF0), Color(0xFFFFF3DB)],
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
@@ -2396,10 +2481,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [
-                      Color(0xFFFF9933),
-                      Color(0xFF8B1E0F),
-                    ],
+                    colors: [Color(0xFFFF9933), Color(0xFF8B1E0F)],
                   ),
                 ),
                 child: const Icon(
@@ -2490,8 +2572,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     langCode == 'mr'
                         ? 'ग्रहांची स्थिती व वेदिक कुंडलीचे विश्लेषण सुरू आहे...'
                         : (langCode == 'hi'
-                            ? 'ग्रह स्थिति व वैदिक कुंडली का विश्लेषण जारी है...'
-                            : 'Analyzing planetary transits & Vedic chart...'),
+                              ? 'ग्रह स्थिति व वैदिक कुंडली का विश्लेषण जारी है...'
+                              : 'Analyzing planetary transits & Vedic chart...'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.mukta(
                       fontSize: 14,
@@ -2504,8 +2586,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     langCode == 'mr'
                         ? 'कृपया क्षणभर प्रतीक्षा करा...'
                         : (langCode == 'hi'
-                            ? 'कृपया कुछ क्षण प्रतीक्षा करें...'
-                            : 'Please wait a moment...'),
+                              ? 'कृपया कुछ क्षण प्रतीक्षा करें...'
+                              : 'Please wait a moment...'),
                     style: GoogleFonts.mukta(
                       fontSize: 12,
                       color: const Color(0xFF886040),
@@ -2562,7 +2644,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFD4AF37).withValues(alpha: 0.08),
+                            color: const Color(
+                              0xFFD4AF37,
+                            ).withValues(alpha: 0.08),
                             blurRadius: 4,
                             offset: const Offset(0, 1),
                           ),
@@ -2736,8 +2820,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     langCode == 'mr'
                         ? 'ग्रहगोचर संकेत व सारांश'
                         : (langCode == 'hi'
-                            ? 'ग्रह गोचर संकेत व सारांश'
-                            : 'Planetary Transit Signal'),
+                              ? 'ग्रह गोचर संकेत व सारांश'
+                              : 'Planetary Transit Signal'),
                     style: GoogleFonts.mukta(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
@@ -2802,8 +2886,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               langCode == 'mr'
                   ? 'दुसरा प्रश्न विचारा'
                   : (langCode == 'hi'
-                      ? 'दूसरा प्रश्न पूछें'
-                      : 'Ask another question'),
+                        ? 'दूसरा प्रश्न पूछें'
+                        : 'Ask another question'),
               style: GoogleFonts.mukta(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -2848,8 +2932,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     langCode == 'mr'
                         ? 'सविस्तर वेदिक सल्ला:'
                         : (langCode == 'hi'
-                            ? 'विस्तृत वैदिक सलाह:'
-                            : 'Detailed Vedic Guidance:'),
+                              ? 'विस्तृत वैदिक सलाह:'
+                              : 'Detailed Vedic Guidance:'),
                     style: GoogleFonts.mukta(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -2880,9 +2964,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFFFF7EA),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFE8C888),
-            ),
+            border: Border.all(color: const Color(0xFFE8C888)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2899,8 +2981,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     langCode == 'mr'
                         ? 'प्रभावी वेदिक उपाय:'
                         : (langCode == 'hi'
-                            ? 'सिद्ध वैदिक उपाय:'
-                            : 'Sacred Vedic Remedy:'),
+                              ? 'सिद्ध वैदिक उपाय:'
+                              : 'Sacred Vedic Remedy:'),
                     style: GoogleFonts.mukta(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -2931,9 +3013,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFF3F9FF),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFBCD8F5),
-            ),
+            border: Border.all(color: const Color(0xFFBCD8F5)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2952,8 +3032,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       langCode == 'mr'
                           ? 'शुभ काळ व दिशा:'
                           : (langCode == 'hi'
-                              ? 'शुभ समय व दिशा:'
-                              : 'Auspicious Timing & Direction:'),
+                                ? 'शुभ समय व दिशा:'
+                                : 'Auspicious Timing & Direction:'),
                       style: GoogleFonts.mukta(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
@@ -2986,24 +3066,30 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     final title = langCode == 'mr'
         ? '⏰ सकाळी ६:०० ची राशीभविष्य सूचना'
         : (langCode == 'hi'
-            ? '⏰ सुबह ६:०० बजे राशिफल सूचना'
-            : '⏰ Daily 6:00 AM Horoscope Alert');
+              ? '⏰ सुबह ६:०० बजे राशिफल सूचना'
+              : '⏰ Daily 6:00 AM Horoscope Alert');
 
     final subtitle = langCode == 'mr'
         ? 'दररोज सकाळी ६:०० वाजता ${selectedRashi.localizedName(langCode)} राशीचा सावधगिरीचा इशारा व शुभ काळ थेट मोबाइलवर मिळवा.'
         : (langCode == 'hi'
-            ? 'प्रतिदिन सुबह ६:०० बजे ${selectedRashi.localizedName(langCode)} राशि की सावधानी व शुभ समय सीधे मोबाइल पर पाएं।'
-            : 'Receive daily 6:00 AM alerts on planetary caution & auspicious timing for ${selectedRashi.localizedName(langCode)}.');
+              ? 'प्रतिदिन सुबह ६:०० बजे ${selectedRashi.localizedName(langCode)} राशि की सावधानी व शुभ समय सीधे मोबाइल पर पाएं।'
+              : 'Receive daily 6:00 AM alerts on planetary caution & auspicious timing for ${selectedRashi.localizedName(langCode)}.');
 
     final previewBtnText = langCode == 'mr'
         ? '🔔 सूचना कशी दिसेल ते पहा'
-        : (langCode == 'hi' ? '🔔 नोटिफिकेशन का पूर्वावलोकन देखें' : '🔔 Test Push Preview');
+        : (langCode == 'hi'
+              ? '🔔 नोटिफिकेशन का पूर्वावलोकन देखें'
+              : '🔔 Test Push Preview');
 
     final activeStatusText = langCode == 'mr'
         ? (isMorningOn ? 'सकाळी ६:०० चा अलर्ट सुरू आहे' : 'अलर्ट बंद आहे')
         : (langCode == 'hi'
-            ? (isMorningOn ? 'सुबह ६:०० बजे का अलर्ट सक्रिय है' : 'अलर्ट बंद है')
-            : (isMorningOn ? '6:00 AM Morning Alert is Active' : 'Alert is Off'));
+              ? (isMorningOn
+                    ? 'सुबह ६:०० बजे का अलर्ट सक्रिय है'
+                    : 'अलर्ट बंद है')
+              : (isMorningOn
+                    ? '6:00 AM Morning Alert is Active'
+                    : 'Alert is Off'));
 
     return Container(
       decoration: BoxDecoration(
@@ -3058,7 +3144,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       style: GoogleFonts.mukta(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: isMorningOn ? Colors.green.shade700 : Colors.grey.shade600,
+                        color: isMorningOn
+                            ? Colors.green.shade700
+                            : Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -3066,7 +3154,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               ),
               Switch.adaptive(
                 value: isMorningOn,
-                activeTrackColor: MandirTheme.primarySaffron.withValues(alpha: 0.5),
+                activeTrackColor: MandirTheme.primarySaffron.withValues(
+                  alpha: 0.5,
+                ),
                 activeThumbColor: MandirTheme.primarySaffron,
                 onChanged: (val) {
                   ref.read(morningReminderEnabledProvider.notifier).toggle(val);
@@ -3105,8 +3195,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     langCode == 'mr'
                         ? 'सकाळी ६:०० वाजता अशा प्रकारे अलर्ट येईल! वर स्टेटस बार तपासा.'
                         : (langCode == 'hi'
-                            ? 'सुबह ६:०० बजे इसी प्रकार सूचना आएगी! ऊपर स्टेटस बार देखें।'
-                            : 'This is how your 6:00 AM notification looks! Check top status bar.'),
+                              ? 'सुबह ६:०० बजे इसी प्रकार सूचना आएगी! ऊपर स्टेटस बार देखें।'
+                              : 'This is how your 6:00 AM notification looks! Check top status bar.'),
                     style: GoogleFonts.mukta(fontSize: 13, color: Colors.white),
                   ),
                   duration: const Duration(seconds: 3),

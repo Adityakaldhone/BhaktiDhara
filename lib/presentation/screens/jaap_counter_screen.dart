@@ -20,6 +20,7 @@ import '../widgets/jaap/jaap_sheets.dart';
 import '../widgets/jaap/mala_ring.dart';
 import '../widgets/jaap/petal_shower.dart';
 import '../widgets/premium_blurred_gate.dart';
+import '../providers/review_provider.dart';
 import 'jaap_stats_screen.dart';
 import 'jaap_welcome_screen.dart';
 
@@ -186,6 +187,10 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
     _celebrating = true;
     final wasPlaying = _chant == _ChantState.playing;
     if (wasPlaying) _togglePause();
+
+    // Track mala completion for review eligibility
+    ref.read(reviewServiceProvider).trackJaapMalaCompleted();
+
     final choice = await showSankalpPurnaDialog(
       context,
       strings: s,
@@ -193,6 +198,18 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
       milestone: milestone,
     );
     _celebrating = false;
+    if (!mounted) return;
+
+    // After celebration, check if the devotee is eligible for a review prompt.
+    // Directly launches Google Play's official native review sheet!
+    final reviewService = ref.read(reviewServiceProvider);
+    if (reviewService.isEligibleForPrompt()) {
+      await reviewService.recordPromptShown();
+      if (mounted) {
+        await reviewService.requestInAppReview();
+      }
+    }
+
     if (!mounted) return;
     if (choice == SankalpChoice.done) {
       _stopChant();

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
@@ -1773,8 +1774,38 @@ class _CitySelectionSheetState extends ConsumerState<_CitySelectionSheet> {
   Future<void> _useCurrentLocation() async {
     setState(() => _isLocating = true);
     try {
+      final locStatus = await Geolocator.checkPermission();
+      if (locStatus == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() => _isLocating = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.langCode == 'mr'
+                    ? 'स्थान परवानगी बंद आहे. कृपया सेटिंग्जमध्ये जाऊन परवानगी द्या.'
+                    : (widget.langCode == 'hi'
+                        ? 'स्थान अनुमति बंद है। कृपया सेटिंग्स में जाकर अनुमति दें।'
+                        : 'Location permission is disabled. Please enable it in Settings.'),
+              ),
+              action: SnackBarAction(
+                label: widget.langCode == 'mr'
+                    ? 'सेटिंग्ज'
+                    : (widget.langCode == 'hi' ? 'सेटिंग्स' : 'Settings'),
+                onPressed: () => Geolocator.openAppSettings(),
+              ),
+              backgroundColor: MandirTheme.secondaryMaroon,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
       final locationService = ref.read(locationServiceProvider);
-      final detected = await locationService.detectCurrentCity();
+      final detected = await locationService.detectCurrentCity(
+        requestPermission: true,
+        forceGps: true,
+      );
       ref.read(selectedPanchangCityProvider.notifier).state = detected;
       if (mounted) {
         Navigator.pop(context);
