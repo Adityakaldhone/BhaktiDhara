@@ -7,7 +7,7 @@ import '../../domain/entities/horoscope.dart';
 // import '../../services/gemini_horoscope_service.dart';
 import '../providers/horoscope_provider.dart';
 import '../providers/locale_provider.dart';
-import '../providers/premium_provider.dart';
+import '../providers/remote_config_provider.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/premium_content_blur.dart';
 import '../../services/personal_numerology_service.dart';
@@ -232,7 +232,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       ),
                     ),
                     data: (reading) {
-                      final isPremium = ref.watch(isPremiumProvider);
+                      final isPremium = ref.watch(premiumAccessProvider);
                       return ListView(
                         controller: _listScrollController,
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -356,7 +356,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           // Premium Badge / Button
           Builder(
             builder: (ctx) {
-              final isPremium = ref.watch(isPremiumProvider);
+              final isPremium = ref.watch(premiumAccessProvider);
               final langCode = ref.watch(localeProvider).languageCode;
               return GestureDetector(
                 onTap: () => showPremiumPaywallSheet(context, ref, langCode),

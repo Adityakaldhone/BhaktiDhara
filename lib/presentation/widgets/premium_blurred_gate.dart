@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/theme.dart';
+import '../../domain/entities/app_remote_config.dart';
 import '../../domain/entities/subscription_plan.dart';
 import '../../services/backend_service.dart';
 import '../providers/premium_provider.dart';
+import '../providers/remote_config_provider.dart';
 import '../providers/subscription_provider.dart';
 
 /// Wraps sensitive / deep astrological content with a frosted blur and an aesthetic
@@ -36,7 +38,7 @@ class PremiumBlurredGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
 
     // If user has unlocked Premium, show everything sharp and crystal clear!
     if (isPremium) {
@@ -299,6 +301,7 @@ void showPremiumPaywallSheet(
   WidgetRef ref,
   String langCode,
 ) {
+  if (!ref.read(featureEnabledProvider(AppRemoteConfig.premiumPaywall))) return;
   final isPremium = ref.read(isPremiumProvider);
   if (!isPremium) {
     BackendService.trackEvent('paywall_view', item: 'subscription_sheet');

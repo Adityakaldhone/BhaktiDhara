@@ -7,7 +7,7 @@ import '../../domain/entities/jaap_progress.dart';
 import '../../domain/entities/jaap_tap_result.dart';
 import '../../domain/logic/jaap_streak.dart';
 import '../../services/backend_service.dart';
-import 'premium_provider.dart';
+import 'remote_config_provider.dart';
 
 export '../../domain/entities/jaap_tap_result.dart';
 
@@ -345,6 +345,6 @@ final jaapRepositoryProvider = Provider<JaapRepository>((ref) => JaapRepository(
 final jaapProvider = StateNotifierProvider<JaapNotifier, JaapState>((ref) {
   return JaapNotifier(
     ref.watch(jaapRepositoryProvider),
-    isPremium: () => ref.read(isPremiumProvider),
+    isPremium: () => ref.read(premiumAccessProvider),
   );
 });

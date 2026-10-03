@@ -42,7 +42,6 @@ class _DarshanShrineState extends State<DarshanShrine> with SingleTickerProvider
     // The arch opening in mandap_frame.png spans ~21%–79% horizontally and its pedestal top sits ~18% from the bottom.
     final deityWidth = w * 0.57;
     final deityHeight = deityWidth * 1.5;
-    final dpr = MediaQuery.devicePixelRatioOf(context);
 
     return SizedBox(
       width: w,
@@ -55,17 +54,19 @@ class _DarshanShrineState extends State<DarshanShrine> with SingleTickerProvider
             right: w * 0.16,
             top: h * 0.2,
             height: h * 0.56,
-            child: AnimatedBuilder(
-              animation: _glow,
-              builder: (context, _) => DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFFFFD678).withValues(alpha: 0.8 + 0.15 * _glow.value),
-                      const Color(0xFFFFAA3C).withValues(alpha: 0.4 + 0.15 * _glow.value),
-                      const Color(0x00FF8C28),
-                    ],
-                    stops: const [0.0, 0.38, 0.72],
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _glow,
+                builder: (context, _) => DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFFFFD678).withValues(alpha: 0.8 + 0.15 * _glow.value),
+                        const Color(0xFFFFAA3C).withValues(alpha: 0.4 + 0.15 * _glow.value),
+                        const Color(0x00FF8C28),
+                      ],
+                      stops: const [0.0, 0.38, 0.72],
+                    ),
                   ),
                 ),
               ),
@@ -100,7 +101,6 @@ class _DarshanShrineState extends State<DarshanShrine> with SingleTickerProvider
                 key: ValueKey(widget.deity.key),
                 fit: BoxFit.contain,
                 alignment: Alignment.bottomCenter,
-                cacheWidth: (deityWidth * dpr).round(),
                 gaplessPlayback: true,
               ),
             ),
@@ -110,7 +110,6 @@ class _DarshanShrineState extends State<DarshanShrine> with SingleTickerProvider
               child: Image.asset(
                 DarshanShrine.frameAsset,
                 fit: BoxFit.fill,
-                cacheWidth: (w * dpr).round(),
               ),
             ),
           ),

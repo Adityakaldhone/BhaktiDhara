@@ -11,6 +11,7 @@ import '../data/datasources/bhajan_catalog.dart';
 import '../data/datasources/catalog.dart';
 import '../data/datasources/marathi_aarti_catalog.dart';
 import '../domain/entities/aarti_item.dart';
+import '../domain/entities/app_remote_config.dart';
 import '../domain/entities/horoscope.dart';
 import '../firebase_options.dart';
 import '../presentation/screens/altar_screen.dart';
@@ -267,18 +268,20 @@ class PushNotificationService {
   }
 
   static Widget? _screenFor(Map<String, dynamic> data) {
+    final config = BackendService.remoteConfig;
     switch (data['route']?.toString()) {
       case 'panchang':
-        return const PanchangScreen();
+        return config.isEnabled(AppRemoteConfig.panchang) ? const PanchangScreen() : null;
       case 'jaap':
-        return const JaapCounterScreen();
+        return config.isEnabled(AppRemoteConfig.jaap) ? const JaapCounterScreen() : null;
       case 'horoscope':
+        if (!config.isEnabled(AppRemoteConfig.horoscope)) return null;
         return HoroscopeScreen(
           initialRashiId: data['rashi']?.toString() ?? data['rashiId']?.toString(),
           focusSection: data['focus']?.toString(),
         );
       case 'bhajan':
-        return const BhajanScreen();
+        return config.isEnabled(AppRemoteConfig.bhajan) ? const BhajanScreen() : null;
       case 'aarti':
         final aarti = _findAarti(data['aartiId']?.toString());
         return aarti == null ? null : AartiAltarScreen(aarti: aarti);

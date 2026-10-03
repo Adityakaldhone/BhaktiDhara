@@ -6,29 +6,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/greeting_card_prefs_repository.dart';
 import '../../data/repositories/greeting_photo_store.dart';
+import '../../domain/entities/app_remote_config.dart';
 import '../../domain/entities/greeting_card.dart';
 import '../../domain/logic/greeting_card_logic.dart';
-import '../../services/backend_service.dart';
 import '../../services/card_renderer.dart';
 import '../greeting/greeting_card_builder.dart';
 import '../widgets/greeting/card_canvas.dart';
 import 'locale_provider.dart';
-import 'premium_provider.dart';
+import 'remote_config_provider.dart';
 
 final greetingClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
 /// Remote kill switch (`feature_flags.status_cards`). On by default, so the
 /// feature keeps working offline or if the server is down.
 final statusCardsEnabledProvider = FutureProvider<bool>((ref) async {
-  final flags = await BackendService.fetchFeatureFlags();
-  return flags['status_cards'] ?? true;
+  return ref.watch(featureEnabledProvider(AppRemoteConfig.statusCards));
 });
 
 /// Remote switch for the sender photo (`feature_flags.status_card_photo`).
 final statusCardPhotoEnabledProvider = FutureProvider<bool>((ref) async {
   if (!GreetingPhotoStore.supported) return false;
-  final flags = await BackendService.fetchFeatureFlags();
-  return flags['status_card_photo'] ?? true;
+  return ref.watch(featureEnabledProvider(AppRemoteConfig.statusCardPhoto));
 });
 
 final greetingPhotoStoreProvider = Provider<GreetingPhotoStore>((ref) => GreetingPhotoStore());
@@ -101,7 +99,7 @@ final greetingCardProvider = Provider.autoDispose<GreetingCardData>((ref) {
   final prefs = ref.watch(greetingCardPrefsProvider);
   final now = ref.read(greetingClockProvider)();
   final photoEnabled = ref.watch(statusCardPhotoEnabledProvider).valueOrNull ?? false;
-  final isPremium = ref.watch(isPremiumProvider);
+  final isPremium = ref.watch(premiumAccessProvider);
   return GreetingCardBuilder.build(
     now: now,
     lang: ref.watch(localeProvider).languageCode,

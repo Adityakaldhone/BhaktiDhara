@@ -2,10 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:math';
+import 'package:android_id/android_id.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../domain/entities/app_remote_config.dart';
 import '../domain/entities/horoscope.dart';
 import '../domain/entities/panchang.dart';
 
@@ -19,31 +24,124 @@ class BackendService {
     defaultValue: 'http://46.225.142.210',
   );
 
-  /// Keep in sync with `version:` in pubspec.yaml.
-  static const appVersion = '1.0.4';
+  static Future<String>? _appVersionFuture;
+
+  /// Installed version name (e.g. "1.0.6"), read from the platform.
+  static Future<String> getAppVersion() => _appVersionFuture ??= () async {
+        try {
+          return (await PackageInfo.fromPlatform()).version;
+        } catch (_) {
+          return '0.0.0';
+        }
+      }();
 
   static const _anonIdKey = 'anon_device_id';
   static const _premiumKey = 'is_bhaktidhara_premium_member';
   static const _adminGrantedVipKey = 'vip_granted_by_admin';
 
-  /// Generates or retrieves a persistent, randomized 128-bit UUID for the device.
+  static const _keychain = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
+  );
+
+  static Future<String>? _deviceIdFuture;
+
+  /// Persistent anonymous 128-bit device ID (32 hex chars).
   /// Collects ZERO personal information (no phone, no email, no name, no Google account).
-  static Future<String> getAnonymousDeviceId() async {
+  ///
+  /// Android: SHA-256 of the system Android ID, so it survives reinstalls and
+  /// "Clear data". iOS: random ID mirrored to the Keychain, which outlives an
+  /// uninstall. Older Android installs that still hold a random ID are moved
+  /// to the Android ID once the backend confirms their records were re-keyed.
+  static Future<String> getAnonymousDeviceId() =>
+      _deviceIdFuture ??= _resolveDeviceId();
+
+  static Future<String> _resolveDeviceId() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      var deviceId = prefs.getString(_anonIdKey);
-      if (deviceId == null || deviceId.isEmpty) {
-        final random = Random.secure();
-        final bytes = List<int>.generate(16, (i) => random.nextInt(256));
-        bytes[6] = (bytes[6] & 0x0f) | 0x40; // UUID v4
-        bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
-        deviceId = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-        await prefs.setString(_anonIdKey, deviceId);
+      SharedPreferences? prefs;
+      try {
+        prefs = await SharedPreferences.getInstance();
+      } catch (_) {}
+      final saved = prefs?.getString(_anonIdKey);
+      final hasSaved = saved != null && saved.isNotEmpty;
+
+      Future<void> persist(String id) async {
+        try {
+          await prefs?.setString(_anonIdKey, id);
+        } catch (_) {}
       }
+
+      if (!kIsWeb && Platform.isAndroid) {
+        final androidDeviceId = await _hashedAndroidId();
+        if (androidDeviceId != null) {
+          if (hasSaved && saved != androidDeviceId) {
+            if (!await _migrateDeviceIdOnServer(saved, androidDeviceId)) {
+              return saved;
+            }
+          }
+          if (saved != androidDeviceId) await persist(androidDeviceId);
+          return androidDeviceId;
+        }
+      }
+
+      if (!kIsWeb && Platform.isIOS) {
+        var deviceId = hasSaved ? saved : null;
+        try {
+          final keychainId = await _keychain.read(key: _anonIdKey);
+          deviceId ??= (keychainId != null && keychainId.isNotEmpty) ? keychainId : null;
+          deviceId ??= _randomDeviceId();
+          if (keychainId != deviceId) {
+            await _keychain.write(key: _anonIdKey, value: deviceId);
+          }
+        } catch (_) {
+          deviceId ??= _randomDeviceId();
+        }
+        if (!hasSaved) await persist(deviceId);
+        return deviceId;
+      }
+
+      if (hasSaved) return saved;
+      final deviceId = _randomDeviceId();
+      await persist(deviceId);
       return deviceId;
     } catch (_) {
-      return 'anon-device-fallback';
+      return _randomDeviceId();
     }
+  }
+
+  static Future<String?> _hashedAndroidId() async {
+    try {
+      final androidId = await const AndroidId().getId();
+      if (androidId == null || androidId.isEmpty) return null;
+      // Hashed so the raw system identifier never leaves the device.
+      final digest = sha256.convert(utf8.encode('bhaktidhara:$androidId'));
+      return digest.toString().substring(0, 32);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> _migrateDeviceIdOnServer(String oldId, String newId) async {
+    if (backendUrl.trim().isEmpty) return false;
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$backendUrl/api/v1/device/migrate'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'oldDeviceId': oldId, 'newDeviceId': newId}),
+          )
+          .timeout(const Duration(seconds: 8));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static String _randomDeviceId() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (i) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // UUID v4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   static const _devoteeNameKey = 'devotee_user_name';
@@ -116,7 +214,7 @@ class BackendService {
             body: jsonEncode({
               'deviceId': deviceId,
               'platform': _platformName,
-              'appVersion': appVersion,
+              'appVersion': await getAppVersion(),
               'locale': locale,
               'isVip': effectiveVip,
               if (effectiveName.isNotEmpty) 'userName': effectiveName,
@@ -218,41 +316,64 @@ class BackendService {
     }
   }
 
-  static const _featureFlagsKey = 'remote_feature_flags_v1';
+  static const _remoteConfigKey = 'remote_app_config_v2';
 
-  /// Remote kill switches from `/api/v1/config`. Returns the last known flags
-  /// when offline; a missing flag means "enabled".
-  static Future<Map<String, bool>> fetchFeatureFlags() async {
-    Map<String, bool> cached = const {};
+  /// Last config loaded from cache or server. Read by code without a
+  /// Riverpod ref (push-tap routing, backend calls during maintenance).
+  static AppRemoteConfig remoteConfig = const AppRemoteConfig();
+
+  /// Config saved from the last successful fetch, or defaults (everything on).
+  static Future<AppRemoteConfig> loadCachedRemoteConfig() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_featureFlagsKey);
-      if (raw != null) cached = _parseFlags(jsonDecode(raw));
-      if (backendUrl.trim().isEmpty || _isFlutterTest) return cached;
+      final raw = prefs.getString(_remoteConfigKey);
+      if (raw != null) {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          remoteConfig = AppRemoteConfig.fromJson(decoded);
+        }
+      }
+    } catch (_) {}
+    return remoteConfig;
+  }
 
+  /// Fetches `/api/v1/config`; on failure returns the cached config.
+  static Future<AppRemoteConfig> fetchRemoteConfig() async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return remoteConfig;
+    try {
       final response = await http
           .get(Uri.parse('${backendUrl.trim()}/api/v1/config'))
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
         if (decoded is Map<String, dynamic>) {
-          final flags = _parseFlags(decoded['feature_flags']);
-          await prefs.setString(_featureFlagsKey, jsonEncode(flags));
-          return flags;
+          remoteConfig = AppRemoteConfig.fromJson(decoded);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_remoteConfigKey, jsonEncode(remoteConfig.toJson()));
         }
       }
     } catch (_) {
-      // Keep the cached flags; features stay on by default.
+      // Keep the cached config; features stay on by default.
     }
-    return cached;
+    return remoteConfig;
   }
 
-  static Map<String, bool> _parseFlags(Object? value) {
-    if (value is! Map) return const {};
-    return {
-      for (final entry in value.entries)
-        if (entry.value is bool) entry.key.toString(): entry.value as bool,
-    };
+  /// Live announcements for [locale]; empty when offline.
+  static Future<List<AppAnnouncement>> fetchAnnouncements(String locale) async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return const [];
+    try {
+      final uri = Uri.parse('${backendUrl.trim()}/api/v1/announcements')
+          .replace(queryParameters: {'locale': locale});
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        final list = decoded is Map ? decoded['announcements'] : null;
+        if (list is List) {
+          return list.map(AppAnnouncement.fromJson).whereType<AppAnnouncement>().toList();
+        }
+      }
+    } catch (_) {}
+    return const [];
   }
 
   /// Attempts to fetch cached horoscope reading from the Hetzner backend.
@@ -261,7 +382,7 @@ class BackendService {
     required String period,
     required String langCode,
   }) async {
-    if (backendUrl.trim().isEmpty) return null;
+    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode) return null;
 
     try {
       final uri = Uri.parse('${backendUrl.trim()}/api/v1/horoscope').replace(
@@ -300,7 +421,7 @@ class BackendService {
     required String cityName,
     required String langCode,
   }) async {
-    if (backendUrl.trim().isEmpty) return null;
+    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode) return null;
 
     try {
       final dateStr =
@@ -339,7 +460,7 @@ class BackendService {
     required String langCode,
     String? initial,
   }) async {
-    if (backendUrl.trim().isEmpty) return null;
+    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode) return null;
 
     try {
       final uri = Uri.parse('${backendUrl.trim()}/api/v1/vedic-ai/consult');

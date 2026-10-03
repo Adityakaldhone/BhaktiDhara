@@ -10,20 +10,27 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/theme/theme.dart';
 import '../../data/datasources/bhakti_deity_catalog.dart';
+import '../../domain/entities/app_remote_config.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../providers/aarti_providers.dart';
+import '../providers/bhakti_darshan_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/premium_provider.dart';
+import '../providers/remote_config_provider.dart';
 import '../providers/review_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
 import '../widgets/premium_blurred_gate.dart';
+import '../widgets/remote_notices.dart';
 import 'bhajan_screen.dart';
 import 'deity_aarti_list_screen.dart';
 import 'horoscope_screen.dart';
 import 'panchang_screen.dart';
 import '../../services/app_permission_service.dart';
+
+/// Order must match the [IndexedStack] children in the dashboard.
+enum _DashTab { home, bhajan, horoscope, panchang }
 
 /// Screen 1 — BhaktiDhara Dashboard (pixel-perfect match to UI mockup)
 class MandirDashboardScreen extends ConsumerStatefulWidget {
@@ -37,7 +44,7 @@ class MandirDashboardScreen extends ConsumerStatefulWidget {
 class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   BannerAd? _bannerAd;
   final bool _isBannerAdLoaded = false;
-  int _bottomNavIndex = 0;
+  _DashTab _tab = _DashTab.home;
 
   // Search and voice recognition controllers
   final TextEditingController _searchController = TextEditingController();
@@ -124,6 +131,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   }
 
   void _openAarti(AartiItem item) {
+    ref.read(recentDeitiesProvider.notifier).recordDeityOpened(item.deity);
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -139,20 +147,45 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     final l10n = AppLocalizations.of(context)!;
     final localeCode = ref.watch(localeProvider).languageCode;
 
+    bool on(String flag) => ref.watch(featureEnabledProvider(flag));
+    final tabs = [
+      _DashTab.home,
+      if (on(AppRemoteConfig.bhajan)) _DashTab.bhajan,
+      if (on(AppRemoteConfig.horoscope)) _DashTab.horoscope,
+      if (on(AppRemoteConfig.panchang)) _DashTab.panchang,
+    ];
+    final currentTab = tabs.contains(_tab) ? _tab : _DashTab.home;
+    final navIndex = tabs.indexOf(currentTab);
+
+    final tabStack = IndexedStack(
+      index: currentTab.index,
+      children: [
+        _buildHomeTab(catalogAsync, l10n, localeCode),
+        tabs.contains(_DashTab.bhajan) ? const BhajanScreen() : const SizedBox.shrink(),
+        tabs.contains(_DashTab.horoscope) ? const HoroscopeScreen() : const SizedBox.shrink(),
+        tabs.contains(_DashTab.panchang) ? const PanchangScreen() : const SizedBox.shrink(),
+      ],
+    );
+
     return Scaffold(
       backgroundColor: MandirTheme.backgroundCream,
-      body: IndexedStack(
-        index: _bottomNavIndex,
-        children: [
-          _buildHomeTab(catalogAsync, l10n, localeCode),
-          const BhajanScreen(),
-          const HoroscopeScreen(),
-          const PanchangScreen(),
-        ],
-      ),
+      body: ref.watch(appNoticesVisibleProvider)
+          ? Column(
+              children: [
+                const SafeArea(bottom: false, child: AppNoticeBanners()),
+                Expanded(
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: tabStack,
+                  ),
+                ),
+              ],
+            )
+          : tabStack,
 
       // ── Scroll-to-Top Floating Action Button ───────────────────────────
-      floatingActionButton: (_bottomNavIndex == 0 && _showScrollToTop)
+      floatingActionButton: (currentTab == _DashTab.home && _showScrollToTop)
           ? FloatingActionButton(
               onPressed: _scrollToTop,
               mini: true,
@@ -168,7 +201,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
           : null,
 
       // ── Bottom Navigation ──────────────────────────────────────────────
-      bottomNavigationBar: Container(
+      // BottomNavigationBar needs at least two items.
+      bottomNavigationBar: tabs.length < 2 ? null : Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
@@ -179,11 +213,12 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
           ],
         ),
         child: BottomNavigationBar(
-          currentIndex: _bottomNavIndex,
+          currentIndex: navIndex,
           onTap: (index) {
+            final tapped = tabs[index];
             // Re-tapping Home scrolls the collection back to the top
-            if (index == 0 &&
-                _bottomNavIndex == 0 &&
+            if (tapped == _DashTab.home &&
+                currentTab == _DashTab.home &&
                 _homeScrollController.hasClients) {
               _homeScrollController.animateTo(
                 0,
@@ -192,8 +227,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               );
             }
             setState(() {
-              _bottomNavIndex = index;
-              if (index != 0) {
+              _tab = tapped;
+              if (tapped != _DashTab.home) {
                 _showScrollToTop = false;
               } else if (_homeScrollController.hasClients) {
                 _showScrollToTop = _homeScrollController.offset > 320;
@@ -218,22 +253,25 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             height: 1.2,
           ),
           items: [
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.home_filled),
-              label: l10n.navHome,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.library_music_rounded),
-              label: l10n.navBhajan,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.auto_awesome),
-              label: l10n.navHoroscope,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.calendar_month_rounded),
-              label: l10n.navPanchang,
-            ),
+            for (final tab in tabs)
+              switch (tab) {
+                _DashTab.home => BottomNavigationBarItem(
+                    icon: const Icon(Icons.home_filled),
+                    label: l10n.navHome,
+                  ),
+                _DashTab.bhajan => BottomNavigationBarItem(
+                    icon: const Icon(Icons.library_music_rounded),
+                    label: l10n.navBhajan,
+                  ),
+                _DashTab.horoscope => BottomNavigationBarItem(
+                    icon: const Icon(Icons.auto_awesome),
+                    label: l10n.navHoroscope,
+                  ),
+                _DashTab.panchang => BottomNavigationBarItem(
+                    icon: const Icon(Icons.calendar_month_rounded),
+                    label: l10n.navPanchang,
+                  ),
+              },
           ],
         ),
       ),
@@ -269,8 +307,11 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   ),
                 ),
 
+                const SliverToBoxAdapter(child: AnnouncementCards()),
+
                 // ── Naam Jaap entry ──────────────────────────────────────
-                const SliverToBoxAdapter(child: JaapDashboardCard()),
+                if (ref.watch(featureEnabledProvider(AppRemoteConfig.jaap)))
+                  const SliverToBoxAdapter(child: JaapDashboardCard()),
                 const SliverToBoxAdapter(child: GreetingDashboardCard()),
 
                 // ── Section Title Row ────────────────────────────────────
@@ -355,6 +396,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
           if (!kIsWeb &&
               _isBannerAdLoaded &&
               _bannerAd != null &&
+              ref.watch(featureEnabledProvider(AppRemoteConfig.ads)) &&
               !ref.watch(isPremiumProvider))
             Container(
               color: MandirTheme.backgroundCream,

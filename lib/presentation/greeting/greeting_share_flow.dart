@@ -10,7 +10,7 @@ import '../../services/card_renderer.dart';
 import '../../services/card_share_service.dart';
 import '../providers/greeting_card_providers.dart';
 import '../providers/locale_provider.dart';
-import '../providers/premium_provider.dart';
+import '../providers/remote_config_provider.dart';
 import '../providers/review_provider.dart';
 import '../widgets/premium_blurred_gate.dart';
 import 'greeting_strings.dart';
@@ -58,7 +58,7 @@ Future<void> shareGreetingCard(
 
   try {
     // Check daily limit for non-premium free users
-    final isPremium = ref.read(isPremiumProvider);
+    final isPremium = ref.read(premiumAccessProvider);
     if (!isPremium) {
       final allowed = await _isDailyShareAllowed();
       if (!allowed) {

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,9 @@ import '../providers/bhakti_darshan_providers.dart';
 import '../providers/locale_provider.dart';
 import '../widgets/bhakti/category_button.dart';
 import '../widgets/bhakti/darshan_shrine.dart';
+import '../widgets/bhakti/ganesha_chalisa_sheet.dart';
+import '../widgets/bhakti/ganesha_mantra_sheet.dart';
+import '../widgets/bhakti/ganesha_stotra_sheet.dart';
 
 /// Mandir darshan hub: a carousel of full darshan pages, one per deity.
 ///
@@ -30,7 +34,7 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen>
 
   static final _spring = SpringDescription.withDampingRatio(
     mass: 1,
-    stiffness: 170,
+    stiffness: 140,
     ratio: 1,
   );
 
@@ -109,25 +113,46 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen>
   }
 
   void _precacheNeighbours(List<BhaktiDeity> deities, int index) {
-    if (deities.length < 2) return;
-    for (final offset in const [-2, -1, 1, 2]) {
+    for (final offset in const [0, -1, 1, -2, 2]) {
       final d = deities[(index + offset) % deities.length];
-      precacheImage(AssetImage(d.imageAsset), context);
+      for (final asset in _DarshanPage.assetsFor(d)) {
+        precacheImage(AssetImage(asset), context);
+      }
     }
   }
 
   void _onCategoryTap(BhaktiDeity deity, BhaktiCategory category) {
+    if (deity.key == 'Lord Ganesha') {
+      if (category == BhaktiCategory.stotra) {
+        showGaneshaStotraSheet(context: context);
+        return;
+      }
+      if (category == BhaktiCategory.mantra) {
+        showGaneshaMantraSheet(context: context);
+        return;
+      }
+      if (category == BhaktiCategory.chalisa) {
+        showGaneshaChalisaSheet(context: context);
+        return;
+      }
+    }
     HapticFeedback.lightImpact();
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(pinnedDeityKeyProvider, (_, _) {
-      _page.stop();
+    void resetCarouselToFirst() {
+      if (_page.isAnimating) _page.stop();
       _nearestPage = 0;
+      _targetPage = 0;
       _page.value = 0;
-      ref.read(selectedDeityIndexProvider.notifier).state = 0;
-    });
+      if (ref.read(selectedDeityIndexProvider) != 0) {
+        ref.read(selectedDeityIndexProvider.notifier).state = 0;
+      }
+    }
+
+    ref.listen(bhaktiCarouselResetTriggerProvider, (_, _) => resetCarouselToFirst());
+    ref.listen(pinnedDeityKeyProvider, (_, _) => resetCarouselToFirst());
 
     final localeCode = ref.watch(localeProvider).languageCode;
     final deities = ref.watch(bhaktiDeitiesProvider);
@@ -163,7 +188,11 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen>
                   final items = [
                     for (var i = page.floor() - 2; i <= page.ceil() + 2; i++)
                       if ((i - page).abs() < 2) (index: i, frame: layout.frameFor(i - page)),
-                  ]..sort((a, b) => b.frame.area.compareTo(a.frame.area));
+                  ]..sort((a, b) {
+                      final bySize = b.frame.area.compareTo(a.frame.area);
+                      if (bySize != 0) return bySize;
+                      return (b.index - page).abs().compareTo((a.index - page).abs());
+                    });
 
                   final settled = 1 - ((page - page.roundToDouble()).abs() * 2);
 
@@ -220,12 +249,14 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen>
 
     final page = Transform(
       transform: transform,
-      child: _DarshanPage(
-        deity: deity,
-        categories: ref.read(deityCategoriesProvider(deity.key)),
-        localeCode: localeCode,
-        controlsOpacity: (1 - cardness * 2).clamp(0.0, 1.0),
-        onCategoryTap: _onCategoryTap,
+      child: RepaintBoundary(
+        child: _DarshanPage(
+          deity: deity,
+          categories: ref.read(deityCategoriesProvider(deity.key)),
+          localeCode: localeCode,
+          controlsOpacity: (1 - cardness * 2).clamp(0.0, 1.0),
+          onCategoryTap: _onCategoryTap,
+        ),
       ),
     );
 
@@ -242,13 +273,9 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen>
                   borderRadius: BorderRadius.circular(frame.radius),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.75 * cardness),
-                      blurRadius: 30,
-                      offset: const Offset(0, 18),
-                    ),
-                    BoxShadow(
-                      color: const Color(0xFFFFAA3C).withValues(alpha: 0.35 * cardness),
-                      blurRadius: 18,
+                      color: Colors.black.withValues(alpha: 0.7 * cardness),
+                      blurRadius: 20,
+                      offset: const Offset(0, 12),
                     ),
                   ],
                 ),
@@ -342,12 +369,15 @@ class _CarouselLayout {
     final slot = offset < 0 ? leftSlot : rightSlot;
 
     if (distance <= 1) {
+      // Pages shrink faster than they travel, so the outgoing and incoming windows no longer
+      // overlap at mid-swipe, where their stacking order flips.
+      final t = 1 - math.pow(1 - distance, 1.4).toDouble();
       return _ItemFrame(
-        rect: Rect.lerp(fullRect, slot, distance)!,
-        focus: Offset.lerp(fullRect.center, focus, distance)!,
-        scale: lerpDouble(1, cardScale, distance)!,
-        radius: lerpDouble(0, cardRadius, distance)!,
-        cardness: distance,
+        rect: Rect.lerp(fullRect, slot, t)!,
+        focus: Offset.lerp(fullRect.center, focus, t)!,
+        scale: lerpDouble(1, cardScale, t)!,
+        radius: lerpDouble(0, cardRadius, t)!,
+        cardness: t,
       );
     }
 
@@ -428,7 +458,17 @@ class _DarshanPage extends StatelessWidget {
     'Goddess Lakshmi': (asset: 'assets/bhakti/lakshmi_darshan_full.png', hasOwnTitle: false),
     'Lord Hanuman': (asset: 'assets/bhakti/hanuman_darshan_full.jpg', hasOwnTitle: false),
     'Lord Siddhanath': (asset: 'assets/bhakti/siddhanath_darshan_full.jpg', hasOwnTitle: false),
+    'Lord Ganesha': (asset: 'assets/bhakti/ganesh_darshan_full.jpg', hasOwnTitle: false),
+    'Lord Rama': (asset: 'assets/bhakti/rama_darshan_full.jpg', hasOwnTitle: false),
+    'Lord Vishnu': (asset: 'assets/bhakti/vishnu_darshan_full.jpg', hasOwnTitle: false),
   };
+
+  /// Every image a page for [deity] draws, so neighbours can be decoded before they slide in.
+  static List<String> assetsFor(BhaktiDeity deity) {
+    final fullScene = _fullScenes[deity.key];
+    if (fullScene != null) return [fullScene.asset];
+    return [_templeBg, _garland, DarshanShrine.frameAsset, deity.imageAsset];
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/theme.dart';
-import '../providers/premium_provider.dart';
+import '../providers/remote_config_provider.dart';
 import 'premium_blurred_gate.dart';
 
 /// Specifically designed to blur ONLY the body/content portion of a card
@@ -29,7 +29,7 @@ class BlurredContentGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
     if (isPremium) return child;
 
     final unlockText = customLockText ??
@@ -136,7 +136,7 @@ class PremiumContentBlur extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
 
     // Premium users see everything crystal clear
     if (isPremium) return child;

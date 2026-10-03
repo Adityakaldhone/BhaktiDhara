@@ -23,6 +23,7 @@ from app.database import (
     clear_cache,
     increment_api_stat,
     record_device_ping,
+    migrate_device_id,
     record_events,
     get_admin_metrics,
     get_overview,
@@ -180,6 +181,11 @@ class DevicePingRequest(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
+
+
+class DeviceMigrateRequest(BaseModel):
+    oldDeviceId: str
+    newDeviceId: str
 
 
 class SubscriptionVerifyRequest(BaseModel):
@@ -367,6 +373,23 @@ async def anonymous_ping_endpoint(payload: DevicePingRequest):
         country=payload.country,
     )
     return {"status": "ok", **flags}
+
+
+@app.post("/api/v1/device/migrate")
+async def device_migrate_endpoint(payload: DeviceMigrateRequest):
+    """
+    Moves a device's history, VIP flags, push token and subscriptions from its
+    old random ID to its new Android-ID-based ID. Idempotent; the app calls it
+    once and only switches IDs after this returns 200.
+    """
+    old_id = payload.oldDeviceId.strip()[:64]
+    new_id = payload.newDeviceId.strip()[:64]
+    if not old_id or not new_id or old_id == new_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid device IDs")
+
+    moved = await migrate_device_id(old_id, new_id)
+    logger.info(f"Device ID migrated: {old_id[:12]}... -> {new_id[:12]}... (moved={moved})")
+    return {"status": "ok", "moved": moved}
 
 
 @app.post("/api/v1/vedic-ai/consult")

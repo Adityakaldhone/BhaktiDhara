@@ -420,6 +420,76 @@ async def record_device_ping(
         }
 
 
+async def migrate_device_id(old_id: str, new_id: str) -> bool:
+    """Re-keys every record of `old_id` to `new_id`, merging if `new_id` already exists.
+
+    Returns True when `old_id` had a device row to move.
+    """
+    if not old_id or not new_id or old_id == new_id:
+        return False
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM devices WHERE device_id = ?", (old_id,)) as cur:
+            old = await cur.fetchone()
+        async with db.execute("SELECT * FROM devices WHERE device_id = ?", (new_id,)) as cur:
+            new = await cur.fetchone()
+
+        moved = old is not None
+        if old is not None and new is None:
+            await db.execute("UPDATE devices SET device_id = ? WHERE device_id = ?", (new_id, old_id))
+        elif old is not None:
+            def pick(col: str) -> str:
+                return new[col] if (new[col] or "") != "" else (old[col] or "")
+
+            await db.execute(
+                """
+                UPDATE devices SET
+                    is_vip = ?, vip_granted = ?, blocked = ?,
+                    user_name = ?, city = ?, state = ?, country = ?, notes = ?,
+                    first_seen = ?, ping_count = ?
+                WHERE device_id = ?
+                """,
+                (
+                    max(old["is_vip"] or 0, new["is_vip"] or 0),
+                    max(old["vip_granted"] or 0, new["vip_granted"] or 0),
+                    max(old["blocked"] or 0, new["blocked"] or 0),
+                    pick("user_name"), pick("city"), pick("state"), pick("country"),
+                    f"{old['notes'] or ''} {new['notes'] or ''}".strip(),
+                    min(str(old["first_seen"]), str(new["first_seen"])),
+                    (old["ping_count"] or 0) + (new["ping_count"] or 0),
+                    new_id,
+                ),
+            )
+            await db.execute("DELETE FROM devices WHERE device_id = ?", (old_id,))
+
+        await db.execute(
+            """
+            INSERT INTO daily_active (date_str, device_id, sessions)
+            SELECT date_str, ?, sessions FROM daily_active WHERE device_id = ? AND true
+            ON CONFLICT(date_str, device_id) DO UPDATE SET
+                sessions = daily_active.sessions + excluded.sessions
+            """,
+            (new_id, old_id),
+        )
+        await db.execute("DELETE FROM daily_active WHERE device_id = ?", (old_id,))
+
+        await db.execute("UPDATE events SET device_id = ? WHERE device_id = ?", (new_id, old_id))
+
+        # The new ID's own push token is fresher, so keep it on conflict.
+        await db.execute("UPDATE OR IGNORE push_tokens SET device_id = ? WHERE device_id = ?", (new_id, old_id))
+        await db.execute("DELETE FROM push_tokens WHERE device_id = ?", (old_id,))
+
+        await db.execute("UPDATE OR IGNORE subscriptions SET device_id = ? WHERE device_id = ?", (new_id, old_id))
+        await db.execute("DELETE FROM subscriptions WHERE device_id = ?", (old_id,))
+
+        await db.execute(
+            "UPDATE push_campaigns SET target_device_id = ? WHERE target_device_id = ?", (new_id, old_id)
+        )
+        await db.commit()
+        return moved
+
+
 async def record_events(device_id: str, events: List[Dict[str, Any]]):
     """Stores a batch of feature-usage events from a device."""
     if not events:

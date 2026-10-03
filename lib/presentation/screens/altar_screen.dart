@@ -154,13 +154,10 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
         } catch (e) {}
       }
 
-      function forcePlayUnmuted() {
-        if (!player) return;
+      function reportMuteState() {
+        if (!player || !player.isMuted) return;
         try {
-          player.playVideo();
-          player.unMute();
-          player.setVolume(100);
-          if (player.isMuted && player.isMuted()) {
+          if (player.isMuted()) {
             if (!reportedMuted) {
               reportedMuted = true;
               post('muted');
@@ -185,7 +182,6 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
             mute: 1,
             playsinline: 1,
             rel: 0,
-            modestbranding: 1,
             controls: 1,
             fs: 0,
             iv_load_policy: 3,
@@ -194,13 +190,11 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
           },
           events: {
             onReady: function () {
-              forcePlayUnmuted();
-              setTimeout(forcePlayUnmuted, 200);
-              setTimeout(forcePlayUnmuted, 600);
-              setTimeout(forcePlayUnmuted, 1200);
+              try { player.playVideo(); } catch (e) {}
+              reportMuteState();
             },
-            onStateChange: function (event) {
-              if (event.data === 1) forcePlayUnmuted();
+            onStateChange: function () {
+              reportMuteState();
             },
             onError: function (event) {
               post('error:' + event.data);
@@ -213,15 +207,6 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
       if (window.YT && window.YT.Player) {
         onYouTubeIframeAPIReady();
       }
-
-      document.addEventListener('click', function () {
-        reportedMuted = false;
-        forcePlayUnmuted();
-      });
-      document.addEventListener('touchstart', function () {
-        reportedMuted = false;
-        forcePlayUnmuted();
-      }, { passive: true });
     </script>
   </body>
 </html>
@@ -328,7 +313,6 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
       if (player) {
         try {
           player.unMute();
-          player.setVolume(100);
           player.playVideo();
         } catch (e) {}
       }
@@ -637,7 +621,7 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
                         final iframe = element as dynamic;
                         iframe.src =
                             'https://www.youtube.com/embed/$_activeVideoId'
-                            '?autoplay=1&mute=0&playsinline=1&rel=0'
+                            '?autoplay=1&mute=1&playsinline=1&rel=0'
                             '&enablejsapi=1&origin=$_kYoutubeEmbedOrigin';
                         iframe.style.border = 'none';
                         iframe.style.width = '100%';

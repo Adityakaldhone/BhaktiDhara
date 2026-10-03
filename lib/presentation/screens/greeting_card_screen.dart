@@ -15,7 +15,7 @@ import '../greeting/greeting_share_flow.dart';
 import '../greeting/greeting_strings.dart';
 import '../providers/greeting_card_providers.dart';
 import '../providers/locale_provider.dart';
-import '../providers/premium_provider.dart';
+import '../providers/remote_config_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../widgets/greeting/card_canvas.dart';
 import '../widgets/premium_blurred_gate.dart';
@@ -55,7 +55,7 @@ class _GreetingCardScreenState extends ConsumerState<GreetingCardScreen> {
     final s = GreetingStrings(langCode);
     final card = ref.watch(greetingCardProvider);
     final subStatus = ref.watch(subscriptionProvider);
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
 
     return Scaffold(
       backgroundColor: MandirTheme.backgroundCream,
@@ -480,7 +480,7 @@ class CardPreview extends ConsumerWidget {
             .watch(cardImagesProvider((deityId: data.deityId, photoStamp: data.photoStamp)))
             .valueOrNull ??
         const CardImages();
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
     final langCode = ref.watch(localeProvider).languageCode;
 
     return AspectRatio(
@@ -891,7 +891,7 @@ class _GreetingEditSheetState extends ConsumerState<_GreetingEditSheet> {
     String lang,
   ) {
     final subStatus = ref.watch(subscriptionProvider);
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
 
     if (isPremium && !subStatus.isTrial) {
       return Container(
@@ -1053,7 +1053,7 @@ class _StyleChoice extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preview = ref.watch(greetingCardProvider).withStyle(style);
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
 
     return Padding(
       padding: const EdgeInsets.only(right: 10),

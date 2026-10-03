@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/entities/aarti_item.dart';
 import '../providers/aarti_providers.dart';
+import '../providers/bhakti_darshan_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/review_provider.dart';
 import 'altar_screen.dart';
@@ -44,6 +45,16 @@ class DeityAartiListScreen extends ConsumerStatefulWidget {
 class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(recentDeitiesProvider.notifier).recordDeityOpened(widget.deity);
+      }
+    });
+  }
 
   @override
   void dispose() {

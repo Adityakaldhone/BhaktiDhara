@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../providers/premium_provider.dart';
+import '../providers/remote_config_provider.dart';
 import 'premium_blurred_gate.dart';
 
 /// Wraps any widget: if user is free, the child is blurred and a premium
@@ -21,7 +21,7 @@ class PremiumGateWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
     if (isPremium) return child;
 
     return Stack(

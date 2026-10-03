@@ -15,7 +15,7 @@ import '../../services/backend_service.dart';
 import '../panchang/panchang_strings.dart';
 import '../providers/locale_provider.dart';
 import '../providers/panchang_provider.dart';
-import '../providers/premium_provider.dart';
+import '../providers/remote_config_provider.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/premium_content_blur.dart';
 
@@ -214,7 +214,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
         panchang.festivalDescription.isNotEmpty ||
         panchang.dailyMantra.isNotEmpty;
 
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(premiumAccessProvider);
 
     return RefreshIndicator(
       color: MandirTheme.primarySaffron,
