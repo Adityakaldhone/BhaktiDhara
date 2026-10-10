@@ -26,8 +26,13 @@ void main() async {
   if (!kIsWeb) {
     MobileAds.instance.initialize();
   }
+  // Language the user picked by hand, if any; otherwise the device language is used
+  final userLanguageCode = await loadUserLanguageCode();
+
   // Send anonymous install/active user heartbeat in background (fire-and-forget)
-  BackendService.sendAnonymousPing(locale: getInitialDeviceLocale().languageCode);
+  BackendService.sendAnonymousPing(
+    locale: resolveStartupLocale(userLanguageCode).languageCode,
+  );
 
   // Initialise the review service (tracks distinct open-days, loads prefs)
   final reviewOverride = await createReviewServiceOverride();
@@ -51,6 +56,7 @@ void main() async {
       app: ProviderScope(
         overrides: [
           reviewOverride,
+          userLanguageCodeProvider.overrideWithValue(userLanguageCode),
           initialRecentDeitiesProvider.overrideWithValue(cachedRecentDeities),
         ],
         child: const NityaAartiApp(),

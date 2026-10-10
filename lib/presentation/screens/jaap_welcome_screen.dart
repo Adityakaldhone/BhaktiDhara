@@ -9,8 +9,6 @@ import '../jaap/jaap_strings.dart';
 import '../providers/jaap_providers.dart';
 import '../providers/locale_provider.dart';
 import '../widgets/jaap/jaap_sheets.dart';
-import 'jaap_counter_screen.dart';
-
 /// First-time setup: pick a mantra, pick a daily goal, begin. Two choices,
 /// both pre-selected, so "Next → Begin" is enough.
 class JaapWelcomeScreen extends ConsumerStatefulWidget {
@@ -25,16 +23,14 @@ class _JaapWelcomeScreenState extends ConsumerState<JaapWelcomeScreen> {
   String _mantraId = JaapMantraCatalog.defaultMantraId;
   int _goal = 1;
 
+  /// The enclosing `JaapCounterScreen` swaps itself to the counter once
+  /// onboarding completes. Pushing a second counter route here would let the
+  /// old one's dispose release the wakelock the new one is holding.
   Future<void> _finish() async {
     await ref.read(jaapProvider.notifier).completeOnboarding(
           mantraId: _mantraId,
           dailyGoalMalas: _goal,
         );
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const JaapCounterScreen()),
-    );
   }
 
   @override

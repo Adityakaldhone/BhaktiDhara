@@ -48,7 +48,8 @@ enum BhaktiCategory {
   chalisa(['chalisa']),
   mantra(['mantra', 'shloka', 'namavani']),
   bhajan(['bhajan', 'kirtan', 'dhun', 'bhaktigeet']),
-  stotra(['stotra', 'stuti', 'prarthana', 'pushpanjali']);
+  stotra(['stotra', 'stuti', 'prarthana', 'pushpanjali']),
+  song(['song', 'songs', 'geet', 'bhaktigeet']);
 
   /// Lower-cased [AartiItem.tags] values that place an item in this category.
   final List<String> tags;
@@ -71,6 +72,9 @@ enum BhaktiCategory {
         return localeCode == 'mr' ? 'भजने' : 'भजन';
       case BhaktiCategory.stotra:
         return localeCode == 'en' ? 'Stotra' : 'स्तोत्र';
+      case BhaktiCategory.song:
+        if (localeCode == 'en') return 'Songs';
+        return localeCode == 'mr' ? 'गाणी' : 'गाने';
     }
   }
 }

@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../data/datasources/bhajan_catalog.dart';
+import '../../data/datasources/catalog.dart';
 import '../../domain/entities/bhakti_deity.dart';
 import '../providers/bhakti_darshan_providers.dart';
 import '../providers/locale_provider.dart';
@@ -15,6 +17,31 @@ import '../widgets/bhakti/darshan_shrine.dart';
 import '../widgets/bhakti/ganesha_chalisa_sheet.dart';
 import '../widgets/bhakti/ganesha_mantra_sheet.dart';
 import '../widgets/bhakti/ganesha_stotra_sheet.dart';
+import '../widgets/bhakti/deity_category_bottom_sheet.dart';
+import '../widgets/bhakti/hanuman_mantra_sheet.dart';
+import '../widgets/bhakti/hanuman_stotra_sheet.dart';
+import 'altar_screen.dart';
+import 'balumama_songs_screen.dart';
+import 'chandra_songs_screen.dart';
+import 'datta_songs_screen.dart';
+import 'durga_songs_screen.dart';
+import 'ganesha_songs_screen.dart';
+import 'gayatri_songs_screen.dart';
+import 'gondavalekar_maharaj_songs_screen.dart';
+import 'hanuman_songs_screen.dart';
+import 'khandoba_songs_screen.dart';
+import 'krishna_songs_screen.dart';
+import 'lakshmi_songs_screen.dart';
+import 'narmada_songs_screen.dart';
+import 'radha_songs_screen.dart';
+import 'rama_songs_screen.dart';
+import 'renuka_songs_screen.dart';
+import 'shiva_songs_screen.dart';
+import 'siddhanath_songs_screen.dart';
+import 'swami_samarth_songs_screen.dart';
+import 'venkatesh_songs_screen.dart';
+import 'vishnu_songs_screen.dart';
+import 'vitthal_songs_screen.dart';
 
 /// Mandir darshan hub: a carousel of full darshan pages, one per deity.
 ///
@@ -122,6 +149,98 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen>
   }
 
   void _onCategoryTap(BhaktiDeity deity, BhaktiCategory category) {
+    HapticFeedback.lightImpact();
+    ref.read(recentDeitiesProvider.notifier).recordDeityOpened(deity.key);
+
+    // ── Dedicated YouTube Songs Screens ─────────────────────────────────────
+    if (category == BhaktiCategory.song) {
+      if (deity.key == 'Lord Ganesha') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const GaneshaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Hanuman' || deity.key == 'Hanuman') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const HanumanSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Swami Samarth' || deity.key == 'Shri Swami Samarth') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const SwamiSamarthSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Khandoba' || deity.key == 'Khandoba') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const KhandobaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Gondavalekar Maharaj' || deity.key == 'Brahmachaitanya Gondavalekar Maharaj') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const GondavalekarMaharajSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Goddess Lakshmi' || deity.key == 'Lakshmi' || deity.key == 'Mahalakshmi') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const LakshmiSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Rama' || deity.key == 'Rama' || deity.key == 'Prabhu Shri Ram') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const RamaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Goddess Renuka Mata' || deity.key == 'Renuka Mata' || deity.key == 'Renuka Yellamma' || deity.key == 'Yellamma') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const RenukaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Chandra Dev' || deity.key == 'Chandra') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ChandraSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Siddhanath' || deity.key == 'Siddhanath') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const SiddhanathSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Vitthal' || deity.key == 'Vitthal' || deity.key == 'Shri Vitthal') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const VitthalSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Vishnu' || deity.key == 'Vishnu' || deity.key == 'Shri Vishnu') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const VishnuSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Goddess Narmada' || deity.key == 'Narmada' || deity.key == 'Narmada Mata') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const NarmadaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Venkatesh' || deity.key == 'Venkatesh' || deity.key == 'Shri Venkatesh' || deity.key == 'Venkateswara' || deity.key == 'Balaji') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const VenkateshSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Shiva' || deity.key == 'Shiva' || deity.key == 'Mahadev') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ShivaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Sant Balumama' || deity.key == 'Balumama' || deity.key == 'Sadguru Balumama') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const BalumamaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Goddess Durga' || deity.key == 'Durga' || deity.key == 'Durga Mata' || deity.key == 'Maa Durga') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const DurgaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Radha' || deity.key == 'Radha Rani' || deity.key == 'Shri Radha') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const RadhaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Goddess Gayatri' || deity.key == 'Gayatri' || deity.key == 'Gayatri Mata') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const GayatriSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Krishna' || deity.key == 'Krishna' || deity.key == 'Shri Krishna') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const KrishnaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Lord Datta' || deity.key == 'Datta' || deity.key == 'Shri Datta' || deity.key == 'Dattatreya' || deity.key == 'Shri Dattatreya') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const DattaSongsScreen()));
+        return;
+      }
+    }
+
+    // ── Dedicated Ganesha Custom Sheets ──────────────────────────────────────
     if (deity.key == 'Lord Ganesha') {
       if (category == BhaktiCategory.stotra) {
         showGaneshaStotraSheet(context: context);
@@ -136,7 +255,60 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen>
         return;
       }
     }
-    HapticFeedback.lightImpact();
+
+    // ── Dedicated Hanuman Custom Sheets ──────────────────────────────────────
+    if (deity.key == 'Lord Hanuman' || deity.key == 'Hanuman') {
+      if (category == BhaktiCategory.mantra) {
+        showHanumanMantraSheet(context: context);
+        return;
+      }
+      if (category == BhaktiCategory.stotra) {
+        showHanumanStotraSheet(context: context);
+        return;
+      }
+      if (category == BhaktiCategory.chalisa) {
+        final chalisa = kDevotionalCatalog.firstWhere(
+          (i) => i.id == 'hanuman_chalisa',
+          orElse: () => kBhajanCatalog.firstWhere((i) => i.id == 'stotra_hanuman_chalisa'),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AartiAltarScreen(aarti: chalisa)),
+        );
+        return;
+      }
+    }
+
+    // ── Unified Sacred Bottom Sheets for All Deities ─────────────────────────
+    final aartiItems = ref.read(deityContentProvider(deity.key));
+    final sheetItems = buildItemsForDeityCategory(
+      deity: deity,
+      category: category,
+      aartiItems: aartiItems,
+      localeCode: ref.read(localeProvider).languageCode,
+    );
+
+    if (sheetItems.isNotEmpty) {
+      showDeityCategorySheet(
+        context: context,
+        deity: deity,
+        category: category,
+        items: sheetItems,
+      );
+      return;
+    }
+
+    // ── Fallback Direct Altar Screen if no list items exist ──────────────────
+    if (aartiItems.isNotEmpty) {
+      final fallback = aartiItems.firstWhere(
+        (i) => i.tags.any((t) => t.toLowerCase() == category.name.toLowerCase()),
+        orElse: () => aartiItems.first,
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => AartiAltarScreen(aarti: fallback)),
+      );
+    }
   }
 
   @override
@@ -454,13 +626,13 @@ class _DarshanPage extends StatelessWidget {
 
   // TEMP: trying a single full-scene artwork for Shiva instead of temple bg + mandap + deity.
   static const _fullScenes = {
-    'Lord Shiva': (asset: 'assets/bhakti/shiva_darshan_full.jpg', hasOwnTitle: true),
-    'Goddess Lakshmi': (asset: 'assets/bhakti/lakshmi_darshan_full.png', hasOwnTitle: false),
-    'Lord Hanuman': (asset: 'assets/bhakti/hanuman_darshan_full.jpg', hasOwnTitle: false),
+    // 'Lord Shiva': (asset: 'assets/bhakti/shiva_darshan_full.jpg', hasOwnTitle: true),
+    // 'Goddess Lakshmi': (asset: 'assets/bhakti/lakshmi_darshan_full.png', hasOwnTitle: false),
+    // 'Lord Hanuman': (asset: 'assets/bhakti/hanuman_darshan_full.jpg', hasOwnTitle: false),
     'Lord Siddhanath': (asset: 'assets/bhakti/siddhanath_darshan_full.jpg', hasOwnTitle: false),
-    'Lord Ganesha': (asset: 'assets/bhakti/ganesh_darshan_full.jpg', hasOwnTitle: false),
-    'Lord Rama': (asset: 'assets/bhakti/rama_darshan_full.jpg', hasOwnTitle: false),
-    'Lord Vishnu': (asset: 'assets/bhakti/vishnu_darshan_full.jpg', hasOwnTitle: false),
+    // 'Lord Ganesha': (asset: 'assets/bhakti/ganesh_darshan_full.jpg', hasOwnTitle: false),
+    // 'Lord Rama': (asset: 'assets/bhakti/rama_darshan_full.jpg', hasOwnTitle: false),
+    // 'Lord Vishnu': (asset: 'assets/bhakti/vishnu_darshan_full.jpg', hasOwnTitle: false),
   };
 
   /// Every image a page for [deity] draws, so neighbours can be decoded before they slide in.

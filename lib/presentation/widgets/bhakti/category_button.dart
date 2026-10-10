@@ -31,6 +31,7 @@ class _BhaktiCategoryButtonState extends State<BhaktiCategoryButton> {
     BhaktiCategory.mantra: [Color(0xFFFFB23D), Color(0xFFC25A06)],
     BhaktiCategory.bhajan: [Color(0xFFD85BD8), Color(0xFF6E117A)],
     BhaktiCategory.stotra: [Color(0xFFFF9F43), Color(0xFFB8460A)],
+    BhaktiCategory.song: [Color(0xFF9C27B0), Color(0xFF5E149E)],
   };
 
   Widget _icon(double iconSize) {
@@ -51,6 +52,7 @@ class _BhaktiCategoryButtonState extends State<BhaktiCategoryButton> {
       BhaktiCategory.aarti => Icons.local_fire_department_rounded,
       BhaktiCategory.chalisa => Icons.auto_stories_rounded,
       BhaktiCategory.bhajan => Icons.music_note_rounded,
+      BhaktiCategory.song => Icons.music_note_rounded,
       _ => Icons.menu_book_rounded,
     };
     return Icon(icon, size: iconSize, color: Colors.white, shadows: shadows);

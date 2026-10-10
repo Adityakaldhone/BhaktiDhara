@@ -137,6 +137,177 @@ final deityContentProvider =
 /// Category buttons available for a deity, in [BhaktiCategory] order.
 final deityCategoriesProvider =
     Provider.family<List<BhaktiCategory>, String>((ref, deityKey) {
+  if (deityKey == 'Lord Ganesha' || deityKey == 'Ganesha') {
+    return const [
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Shiva' || deityKey == 'Shiva' || deityKey == 'Mahadev') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Hanuman' || deityKey == 'Hanuman') {
+    return const [
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Swami Samarth' || deityKey == 'Shri Swami Samarth') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.mantra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Khandoba' || deityKey == 'Khandoba') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Gondavalekar Maharaj' || deityKey == 'Brahmachaitanya Gondavalekar Maharaj') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Goddess Lakshmi' || deityKey == 'Lakshmi' || deityKey == 'Mahalakshmi') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Rama' || deityKey == 'Rama' || deityKey == 'Prabhu Shri Ram') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Goddess Renuka Mata' ||
+      deityKey == 'Renuka Mata' ||
+      deityKey == 'Renuka Yellamma' ||
+      deityKey == 'Yellamma') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Chandra Dev' || deityKey == 'Chandra') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Siddhanath' || deityKey == 'Siddhanath') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Vitthal' || deityKey == 'Vitthal' || deityKey == 'Shri Vitthal') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Vishnu' || deityKey == 'Vishnu' || deityKey == 'Shri Vishnu') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Goddess Narmada' || deityKey == 'Narmada' || deityKey == 'Narmada Mata') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Venkatesh' ||
+      deityKey == 'Venkatesh' ||
+      deityKey == 'Shri Venkatesh' ||
+      deityKey == 'Venkateswara' ||
+      deityKey == 'Balaji') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Sant Balumama' ||
+      deityKey == 'Balumama' ||
+      deityKey == 'Sadguru Balumama') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.mantra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Goddess Durga' ||
+      deityKey == 'Durga' ||
+      deityKey == 'Durga Mata' ||
+      deityKey == 'Maa Durga') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Radha' ||
+      deityKey == 'Radha Rani' ||
+      deityKey == 'Shri Radha') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Goddess Gayatri' ||
+      deityKey == 'Gayatri' ||
+      deityKey == 'Gayatri Mata') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Krishna' ||
+      deityKey == 'Krishna' ||
+      deityKey == 'Shri Krishna') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Lord Datta' ||
+      deityKey == 'Datta' ||
+      deityKey == 'Shri Datta' ||
+      deityKey == 'Dattatreya' ||
+      deityKey == 'Shri Dattatreya') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
   final items = ref.watch(deityContentProvider(deityKey));
   return BhaktiCategory.values
       .where((c) => items.any((item) => c.matchesTags(item.tags)))

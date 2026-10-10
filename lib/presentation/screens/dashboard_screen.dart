@@ -1974,7 +1974,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     return PopupMenuButton<Locale>(
       tooltip: l10n.navLanguage,
       onSelected: (Locale newLocale) {
-        ref.read(localeProvider.notifier).state = newLocale;
+        selectAppLanguage(ref, newLocale);
       },
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),

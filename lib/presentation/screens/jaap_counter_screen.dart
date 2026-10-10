@@ -67,6 +67,10 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(jaapProvider.notifier).refresh();
+      final jaap = ref.read(jaapProvider);
+      if (jaap.loaded && jaap.progress.isOnboarded) {
+        _setWakelock(jaap.progress.keepScreenOn, force: true);
+      }
     }
   }
 
@@ -74,14 +78,14 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _engine.stop();
-    _setWakelock(false);
+    if (_wakelockOn == true) _setWakelock(false);
     _pulse.dispose();
     _glowController.dispose();
     super.dispose();
   }
 
-  void _setWakelock(bool on) {
-    if (_wakelockOn == on) return;
+  void _setWakelock(bool on, {bool force = false}) {
+    if (!force && _wakelockOn == on) return;
     _wakelockOn = on;
     WakelockPlus.toggle(enable: on).catchError((_) {});
   }
@@ -239,7 +243,10 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
     if (jaap.loaded && !jaap.progress.isOnboarded) {
       return const JaapWelcomeScreen();
     }
-    if (jaap.loaded) _setWakelock(jaap.progress.keepScreenOn);
+    if (jaap.loaded) {
+      _setWakelock(jaap.progress.keepScreenOn);
+      ref.read(jaapFeedbackProvider).warmUp(jaap.progress);
+    }
 
     final mantra = jaap.mantra;
     return Scaffold(

@@ -5,6 +5,7 @@ import 'package:nitya_aarti/data/repositories/recent_deities_repository.dart';
 import 'package:nitya_aarti/domain/entities/bhakti_deity.dart';
 import 'package:nitya_aarti/presentation/providers/bhakti_darshan_providers.dart';
 import 'package:nitya_aarti/presentation/screens/bhajan_screen.dart';
+import 'package:nitya_aarti/presentation/widgets/bhakti/category_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -159,6 +160,96 @@ void main() {
       expect(container.read(bhaktiDeitiesProvider)[0].key, 'Lord Siddhanath');
       expect(container.read(bhaktiDeitiesProvider)[1].key, 'Lord Ganesha');
       expect(container.read(selectedDeityIndexProvider), 0);
+    });
+
+    testWidgets('Tapping a category button on Bhakti tab moves deity (e.g. Balumama) to 1st index and previous deity to 2nd index', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: BhajanScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Initially, Ganesha is 1st
+      expect(container.read(bhaktiDeitiesProvider).first.key, 'Lord Ganesha');
+      expect(container.read(selectedDeityIndexProvider), 0);
+
+      // User is on Lord Ganesha and taps a category button (e.g. Mantra)
+      final ganeshaButtons = find.byType(BhaktiCategoryButton);
+      expect(ganeshaButtons, findsWidgets);
+
+      await tester.tap(ganeshaButtons.first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Ganesha is recorded as opened
+      expect(container.read(recentDeitiesProvider).first, 'Lord Ganesha');
+      expect(container.read(bhaktiDeitiesProvider).first.key, 'Lord Ganesha');
+
+      // Now suppose user navigates to Balumama and taps any category button
+      final balumamaDeity = container.read(bhaktiDeitiesProvider).firstWhere((d) => d.key == 'Sant Balumama');
+      expect(balumamaDeity, isNotNull);
+
+      // Trigger category tap on Balumama
+      await container.read(recentDeitiesProvider.notifier).recordDeityOpened(balumamaDeity.key);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Now Sant Balumama is 1st (index 0) and previous time's current deity (Lord Ganesha) is 2nd (index 1)
+      final deities = container.read(bhaktiDeitiesProvider);
+      expect(deities[0].key, 'Sant Balumama');
+      expect(deities[1].key, 'Lord Ganesha');
+      expect(container.read(selectedDeityIndexProvider), 0);
+
+      // Verify persisted in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getStringList(RecentDeitiesRepository.prefKey);
+      expect(cached, ['Sant Balumama', 'Lord Ganesha']);
+    });
+
+    test('Consecutive button taps on Bhakti tab properly shift previous cards down', () async {
+      SharedPreferences.setMockInitialValues({});
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(recentDeitiesProvider.notifier);
+
+      // 1. User taps button on Ganesha
+      await notifier.recordDeityOpened('Lord Ganesha');
+      expect(container.read(bhaktiDeitiesProvider)[0].key, 'Lord Ganesha');
+
+      // 2. User taps button on Sant Balumama -> Balumama is 1st, Ganesha is 2nd
+      await notifier.recordDeityOpened('Sant Balumama');
+      expect(container.read(bhaktiDeitiesProvider)[0].key, 'Sant Balumama');
+      expect(container.read(bhaktiDeitiesProvider)[1].key, 'Lord Ganesha');
+
+      // 3. User taps button on Lord Hanuman -> Hanuman is 1st, Balumama is 2nd, Ganesha is 3rd
+      await notifier.recordDeityOpened('Lord Hanuman');
+      expect(container.read(bhaktiDeitiesProvider)[0].key, 'Lord Hanuman');
+      expect(container.read(bhaktiDeitiesProvider)[1].key, 'Sant Balumama');
+      expect(container.read(bhaktiDeitiesProvider)[2].key, 'Lord Ganesha');
+
+      // 4. User taps button on Sant Balumama again -> Balumama is 1st, Hanuman is 2nd, Ganesha is 3rd
+      await notifier.recordDeityOpened('Sant Balumama');
+      expect(container.read(bhaktiDeitiesProvider)[0].key, 'Sant Balumama');
+      expect(container.read(bhaktiDeitiesProvider)[1].key, 'Lord Hanuman');
+      expect(container.read(bhaktiDeitiesProvider)[2].key, 'Lord Ganesha');
+
+      // 5. Verify SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList(RecentDeitiesRepository.prefKey), [
+        'Sant Balumama',
+        'Lord Hanuman',
+        'Lord Ganesha',
+      ]);
     });
   });
 }
