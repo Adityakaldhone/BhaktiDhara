@@ -25,13 +25,25 @@ class BackendService {
   );
 
   static Future<String>? _appVersionFuture;
+  static Future<String>? _appDisplayVersionFuture;
 
-  /// Installed version name (e.g. "1.0.6"), read from the platform.
+  /// Installed version name with build number (e.g. "1.0.7+7"), read from platform.
   static Future<String> getAppVersion() => _appVersionFuture ??= () async {
+        try {
+          final info = await PackageInfo.fromPlatform();
+          final build = info.buildNumber.trim();
+          return build.isNotEmpty ? '${info.version}+$build' : info.version;
+        } catch (_) {
+          return '0.0.0';
+        }
+      }();
+
+  /// Clean display version (e.g. "1.0.7") for UI display.
+  static Future<String> getAppDisplayVersion() => _appDisplayVersionFuture ??= () async {
         try {
           return (await PackageInfo.fromPlatform()).version;
         } catch (_) {
-          return '0.0.0';
+          return '1.0.0';
         }
       }();
 

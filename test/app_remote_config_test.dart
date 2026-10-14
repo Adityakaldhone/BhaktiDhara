@@ -2,10 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nitya_aarti/domain/entities/app_remote_config.dart';
 
 void main() {
-  test('compares versions numerically and ignores build numbers', () {
+  test('compares versions numerically and handles build numbers', () {
     expect(AppRemoteConfig.compareVersions('1.0.10', '1.0.9'), greaterThan(0));
     expect(AppRemoteConfig.compareVersions('1.0.6+6', '1.0.6'), 0);
     expect(AppRemoteConfig.compareVersions('1.0', '1.0.1'), lessThan(0));
+    expect(AppRemoteConfig.compareVersions('1.0.7+7', '1.0.7+8'), lessThan(0));
+    expect(AppRemoteConfig.compareVersions('1.0.7+9', '1.0.7+8'), greaterThan(0));
   });
 
   test('force update only applies below the minimum when enabled', () {
@@ -16,6 +18,13 @@ void main() {
       const AppRemoteConfig(minSupportedVersion: '1.1.0').mustUpdate('1.0.6'),
       isFalse,
     );
+  });
+
+  test('force update falls back to latest_version if min_supported is empty', () {
+    const config = AppRemoteConfig(latestVersion: '1.2.0', forceUpdate: true);
+    expect(config.mustUpdate('1.1.9'), isTrue);
+    expect(config.mustUpdate('1.2.0'), isFalse);
+    expect(config.mustUpdate('1.2.1'), isFalse);
   });
 
   test('parses server JSON; unknown flags default to enabled', () {

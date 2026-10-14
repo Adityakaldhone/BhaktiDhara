@@ -31,6 +31,12 @@ High-performance, privacy-first backend built for deployment on your **Hetzner V
    - Tap opens a screen in the app (aarti, panchang, jaap, horoscope, bhajans). Opens are tracked per campaign.
    - Invalid/uninstalled tokens are cleaned up automatically.
 
+6. **Greeting Images** (dashboard → 🖼️ Greetings):
+   - Categories (Good Morning, Love, Motivation…) with names in Marathi, Hindi and English. Six defaults are created on first start.
+   - Drag-and-drop bulk upload. Each image is stored as a 1080px HD JPEG plus a 480px WebP thumbnail in `data/media/greetings/` (inside the Docker volume, so it survives restarts).
+   - Tag each image with the language of its text (the app shows the user's language first) and mark it Premium (free users see it blurred; the API only gives HD links to VIP devices).
+   - The app reads `GET /api/v1/greetings/categories` and `GET /api/v1/greetings/images`; files are served from `/api/v1/greetings/media/` (under `/api/` so the existing nginx rules forward it) with year-long cache headers.
+
 ### Push setup (one time)
 1. Firebase console → project **bhaktidhara-app** → ⚙️ Project settings → **Service accounts** → **Generate new private key**.
 2. Copy it to the server as `data/firebase-service-account.json`:
@@ -106,6 +112,9 @@ Add an Nginx reverse proxy configuration in `/etc/nginx/sites-available/bhaktidh
 ```nginx
 server {
     server_name api.yourdomain.com;
+
+    # Greeting image uploads from the admin dashboard (nginx default is 1 MB)
+    client_max_body_size 20m;
 
     location / {
         proxy_pass http://127.0.0.1:8000;

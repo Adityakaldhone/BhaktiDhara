@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,16 +8,11 @@ import '../../domain/entities/app_remote_config.dart';
 import '../providers/locale_provider.dart';
 import '../providers/remote_config_provider.dart';
 
-const _playStoreUrl = 'https://play.google.com/store/apps/details?id=com.kaldhone.bhaktidhara';
+import '../../services/app_update_service.dart';
+import '../screens/force_update_screen.dart';
 
 String _t(String lang, {required String en, required String hi, required String mr}) =>
     lang == 'en' ? en : (lang == 'hi' ? hi : mr);
-
-String? _updateUrl(AppRemoteConfig config) {
-  if (config.updateUrl.isNotEmpty) return config.updateUrl;
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) return _playStoreUrl;
-  return null;
-}
 
 Future<void> _open(String url) async {
   final uri = Uri.tryParse(url);
@@ -28,8 +22,8 @@ Future<void> _open(String url) async {
   } catch (_) {}
 }
 
-/// Replaces the whole app with an update screen when the admin forces an
-/// update and this build is below `min_supported_version`.
+/// Replaces the entire app tree with the un-dismissible [ForceUpdateScreen]
+/// when the admin forces an update or this build is below `min_supported_version`.
 class ForceUpdateGate extends ConsumerWidget {
   const ForceUpdateGate({super.key, required this.child});
 
@@ -39,59 +33,11 @@ class ForceUpdateGate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(remoteConfigProvider);
     final version = ref.watch(appVersionProvider).valueOrNull;
-    if (version == null || !config.mustUpdate(version)) return child;
 
-    final lang = ref.watch(localeProvider).languageCode;
-    final url = _updateUrl(config);
-    return Scaffold(
-      backgroundColor: MandirTheme.backgroundCream,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/decorations/om.png', height: 64, width: 64),
-                const SizedBox(height: 20),
-                Text(
-                  _t(lang,
-                      en: 'Update required',
-                      hi: 'अपडेट आवश्यक है',
-                      mr: 'अपडेट आवश्यक आहे'),
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.yatraOne(fontSize: 26, color: MandirTheme.secondaryMaroon),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _t(lang,
-                      en: 'This version of BhaktiDhara is no longer supported. Please update to continue.',
-                      hi: 'भक्तिधारा का यह संस्करण अब समर्थित नहीं है। जारी रखने के लिए कृपया अपडेट करें।',
-                      mr: 'भक्तिधाराची ही आवृत्ती आता समर्थित नाही. पुढे सुरू ठेवण्यासाठी कृपया अपडेट करा.'),
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.mukta(fontSize: 17, color: MandirTheme.textDark, height: 1.35),
-                ),
-                if (url != null) ...[
-                  const SizedBox(height: 28),
-                  FilledButton(
-                    onPressed: () => _open(url),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: MandirTheme.primarySaffron,
-                      minimumSize: const Size(220, 52),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                    ),
-                    child: Text(
-                      _t(lang, en: 'Update now', hi: 'अभी अपडेट करें', mr: 'आता अपडेट करा'),
-                      style: GoogleFonts.mukta(fontSize: 18, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    if (version != null && config.mustUpdate(version)) {
+      return const ForceUpdateScreen();
+    }
+    return child;
   }
 }
 
@@ -100,8 +46,8 @@ final _showUpdateBannerProvider = Provider<bool>((ref) {
   final version = ref.watch(appVersionProvider).valueOrNull;
   return version != null &&
       config.canUpdate(version) &&
-      ref.watch(dismissedUpdateProvider) != config.latestVersion &&
-      _updateUrl(config) != null;
+      !config.mustUpdate(version) &&
+      ref.watch(dismissedUpdateProvider) != config.latestVersion;
 });
 
 /// Whether [AppNoticeBanners] currently shows anything.
@@ -143,7 +89,12 @@ class AppNoticeBanners extends ConsumerWidget {
                 hi: 'नया संस्करण (${config.latestVersion}) उपलब्ध है।',
                 mr: 'नवीन आवृत्ती (${config.latestVersion}) उपलब्ध आहे.'),
             actionLabel: _t(lang, en: 'Update', hi: 'अपडेट', mr: 'अपडेट'),
-            onAction: () => _open(_updateUrl(config)!),
+            onAction: () async {
+              final didUpdate = await AppUpdateService.tryPlayStoreFlexibleUpdate();
+              if (!didUpdate) {
+                await AppUpdateService.openStore(customUrl: config.updateUrl);
+              }
+            },
             onClose: () =>
                 ref.read(dismissedUpdateProvider.notifier).dismiss(config.latestVersion),
           ),

@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Hands a rendered card to the system share sheet. Needs no permissions:
+/// Hands a greeting image to the system share sheet. Needs no permissions:
 /// the file lives in the app's own temp folder and is cleaned up next time.
 class CardShareService {
   CardShareService._();
@@ -16,27 +16,29 @@ class CardShareService {
   /// run, pay for, or secure.
   static String playStoreLink() {
     final referrer = Uri.encodeComponent(
-      'utm_source=whatsapp&utm_medium=status_card&utm_campaign=daily_card',
+      'utm_source=whatsapp&utm_medium=greeting_image&utm_campaign=greetings',
     );
     return 'https://play.google.com/store/apps/details?id=$_packageId&referrer=$referrer';
   }
 
   static Future<ShareResultStatus> share({
-    required Uint8List png,
+    required Uint8List bytes,
     required String caption,
+    String mimeType = 'image/png',
+    String extension = 'png',
     Rect? origin,
   }) async {
-    final name = 'bhaktidhara_card_${DateTime.now().millisecondsSinceEpoch}.png';
+    final name = 'bhaktidhara_greeting_${DateTime.now().millisecondsSinceEpoch}.$extension';
     final XFile file;
     if (kIsWeb) {
-      file = XFile.fromData(png, mimeType: 'image/png', name: name);
+      file = XFile.fromData(bytes, mimeType: mimeType, name: name);
     } else {
       final dir = Directory('${(await getTemporaryDirectory()).path}/status_cards');
       await dir.create(recursive: true);
       await _cleanOldCards(dir);
       final path = '${dir.path}/$name';
-      await File(path).writeAsBytes(png, flush: true);
-      file = XFile(path, mimeType: 'image/png', name: name);
+      await File(path).writeAsBytes(bytes, flush: true);
+      file = XFile(path, mimeType: mimeType, name: name);
     }
 
     final result = await SharePlus.instance.share(ShareParams(

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../domain/entities/subscription_plan.dart';
 import 'backend_service.dart';
@@ -318,6 +319,49 @@ class SubscriptionService {
       return backendStatus;
     }
     return loadSubscriptionStatus();
+  }
+
+  /// Opens the native Google Play or Apple App Store subscription management page.
+  /// Complies with Google Play Billing Policies and the FTC "Click to Cancel" rule,
+  /// guaranteeing users can inspect, pause, change, or cancel recurring subscriptions in 1 tap.
+  Future<void> openManageSubscription({String? sku}) async {
+    const String package = 'com.kaldhone.bhaktidhara';
+    final Uri url;
+
+    if (!kIsWeb && Platform.isIOS) {
+      url = Uri.parse('https://apps.apple.com/account/subscriptions');
+    } else {
+      if (sku != null && sku.isNotEmpty) {
+        url = Uri.parse(
+          'https://play.google.com/store/account/subscriptions?sku=$sku&package=$package',
+        );
+      } else {
+        url = Uri.parse(
+          'https://play.google.com/store/account/subscriptions?package=$package',
+        );
+      }
+    }
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (e) {
+      debugPrint('[SubscriptionService] Error launching direct store url: $e');
+    }
+
+    // Fallback to general subscriptions page
+    try {
+      final fallbackUrl = Uri.parse(
+        'https://play.google.com/store/account/subscriptions',
+      );
+      if (await canLaunchUrl(fallbackUrl)) {
+        await launchUrl(fallbackUrl, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('[SubscriptionService] Fallback store URL error: $e');
+    }
   }
 
   /// Load persisted subscription state from SharedPreferences.

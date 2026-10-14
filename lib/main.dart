@@ -18,6 +18,7 @@ import 'data/repositories/recent_deities_repository.dart';
 import 'presentation/providers/bhakti_darshan_providers.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'presentation/widgets/remote_notices.dart';
+import 'services/app_update_service.dart';
 import 'services/backend_service.dart';
 import 'services/push_notification_service.dart';
 
@@ -86,6 +87,8 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
       if (!mounted) return;
       _syncPushTopics();
       PushNotificationService.handlePendingTap();
+      // Silently check for background flexible updates via Google Play
+      AppUpdateService.tryPlayStoreFlexibleUpdate();
     });
   }
 
@@ -99,6 +102,7 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(remoteConfigProvider.notifier).refresh();
+      ref.invalidate(appVersionProvider);
       ref.invalidate(announcementsProvider);
     }
   }

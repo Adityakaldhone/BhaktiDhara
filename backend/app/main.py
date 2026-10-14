@@ -81,6 +81,7 @@ from app.push_service import (
     send_to_tokens,
 )
 from app.gemini_service import consult_vedic_ai
+from app.greetings import init_greetings_db, public_router as greetings_public_router, build_admin_router as build_greetings_admin_router
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -97,6 +98,7 @@ scheduler = AsyncIOScheduler()
 async def lifespan(app: FastAPI):
     # 1. Initialize SQLite Database
     await init_db()
+    await init_greetings_db()
     logger.info("SQLite Database initialized.")
     if ADMIN_SECRET == DEFAULT_ADMIN_SECRET:
         logger.warning("ADMIN_SECRET is still the default value. Set a strong secret in .env!")
@@ -167,6 +169,10 @@ async def require_admin(
 ):
     if not (_secret_ok(x_admin_secret) or _secret_ok(secret)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin secret")
+
+
+app.include_router(greetings_public_router)
+app.include_router(build_greetings_admin_router(require_admin))
 
 
 # ── Models ───────────────────────────────────────────────────────────────────

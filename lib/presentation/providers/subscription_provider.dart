@@ -87,6 +87,12 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionStatus> {
       return false;
     }
   }
+
+  /// Opens the native Google Play or Apple App Store subscription management center
+  /// so users can directly view, manage, pause, or cancel their subscription in 1 tap.
+  Future<void> openManageSubscription({String? sku}) async {
+    await SubscriptionService.instance.openManageSubscription(sku: sku);
+  }
 }
 
 /// Provider exposing the current subscription status.

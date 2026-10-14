@@ -1,30 +1,35 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/theme.dart';
 import '../../greeting/greeting_strings.dart';
-import '../../providers/greeting_card_providers.dart';
+import '../../providers/greeting_providers.dart';
 import '../../providers/locale_provider.dart';
-import '../../screens/greeting_card_screen.dart';
+import '../../screens/greetings_screen.dart';
+import 'greeting_tile.dart';
 
-/// Home-screen entry: today's card thumbnail; tapping anywhere opens the
-/// preview to change and send the card.
+/// Home-screen entry: the Good Morning cover image; tapping anywhere opens
+/// the greetings library.
 class GreetingDashboardCard extends ConsumerWidget {
   const GreetingDashboardCard({super.key});
 
-  static void _openPreview(BuildContext context) => Navigator.push(
+  static void _open(BuildContext context) => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const GreetingCardScreen()),
+        MaterialPageRoute(builder: (_) => const GreetingsScreen()),
       );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(statusCardsEnabledProvider).valueOrNull == false) {
-      return const SizedBox.shrink();
-    }
+    if (!ref.watch(greetingsEnabledProvider)) return const SizedBox.shrink();
     final s = GreetingStrings(ref.watch(localeProvider).languageCode);
-    final card = ref.watch(greetingCardProvider);
+    final categories = ref.watch(greetingCategoriesProvider).valueOrNull ?? const [];
+    final cover = categories
+            .where((c) => c.slug == kDefaultGreetingCategory && c.coverUrl != null)
+            .map((c) => c.coverUrl)
+            .firstOrNull ??
+        categories.map((c) => c.coverUrl).nonNulls.firstOrNull;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -33,7 +38,7 @@ class GreetingDashboardCard extends ConsumerWidget {
         child: InkWell(
           key: const Key('greeting-dashboard-card'),
           borderRadius: BorderRadius.circular(20),
-          onTap: () => _openPreview(context),
+          onTap: () => _open(context),
           child: Ink(
             padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
             decoration: BoxDecoration(
@@ -54,10 +59,24 @@ class GreetingDashboardCard extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                SizedBox(
-                  width: 40,
-                  height: 72,
-                  child: CardPreview(data: card, radius: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: 48,
+                    height: 72,
+                    child: cover == null
+                        ? const ColoredBox(
+                            color: kGreetingPlaceholder,
+                            child: Center(child: Text('🌅', style: TextStyle(fontSize: 24))),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: cover,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 150,
+                            placeholder: (_, _) => const ColoredBox(color: kGreetingPlaceholder),
+                            errorWidget: (_, _, _) => const ColoredBox(color: kGreetingPlaceholder),
+                          ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -93,7 +112,7 @@ class GreetingDashboardCard extends ConsumerWidget {
                 const SizedBox(width: 8),
                 FilledButton(
                   key: const Key('greeting-dashboard-view'),
-                  onPressed: () => _openPreview(context),
+                  onPressed: () => _open(context),
                   style: FilledButton.styleFrom(
                     backgroundColor: MandirTheme.cardPrimaryButton,
                     foregroundColor: Colors.white,

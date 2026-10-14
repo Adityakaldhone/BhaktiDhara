@@ -5,11 +5,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// The sender's photo for the card badge. Kept in app-private storage on this
-/// phone only — never uploaded. It leaves the phone only as pixels inside a
-/// card the user chooses to share.
+/// The sender's photo for the circle on greeting images. Kept in app-private
+/// storage on this phone only — never uploaded. It leaves the phone only as
+/// pixels inside an image the user chooses to share.
 class GreetingPhotoStore {
-  /// Stored square size; the badge is 76pt, so this is sharp at 3x with margin.
+  /// Stored square size; the circle is ~200px on a 1080px image.
   static const size = 360;
   static const _maxInputBytes = 20 * 1024 * 1024;
 
@@ -36,6 +36,16 @@ class GreetingPhotoStore {
     try {
       final file = await _file();
       return await file.exists() ? await file.readAsBytes() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Changes whenever the photo is replaced; null when there is no photo.
+  Future<int?> stamp() async {
+    try {
+      final file = await _file();
+      return await file.exists() ? (await file.lastModified()).millisecondsSinceEpoch : null;
     } catch (_) {
       return null;
     }

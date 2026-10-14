@@ -905,6 +905,61 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     : 'वॉटरमार्कशिवाय अमर्याद शुभेच्छा पत्रे',
               ),
               const SizedBox(height: 20),
+              // 1. Primary Action: Manage / Cancel on Google Play
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    ref
+                        .read(subscriptionProvider.notifier)
+                        .openManageSubscription();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B1D18),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    elevation: 2,
+                  ),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: Text(
+                    localeCode == 'en'
+                        ? 'Manage / Cancel on Google Play'
+                        : (localeCode == 'hi'
+                            ? 'Google Play पर सदस्यता प्रबंधित / रद्द करें'
+                            : 'Google Play वर सदस्यता व्यवस्थापित / रद्द करा'),
+                    style: GoogleFonts.mukta(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Transparent legal disclosure
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Text(
+                  localeCode == 'en'
+                      ? 'ℹ️ To cancel auto-renewal or update billing, manage your subscription directly in Google Play. Cancellation takes effect at the end of the billing cycle; your VIP access remains active until then.'
+                      : (localeCode == 'hi'
+                          ? 'ℹ️ ऑटो-पे रद्द करने या भुगतान बदलने के लिए Google Play में सदस्यता प्रबंधित करें। बिलिंग चक्र समाप्त होने तक आपकी वीआईपी सुविधाएं सक्रिय रहेंगी।'
+                          : 'ℹ️ ऑटो-पे रद्द करण्यासाठी Google Play मध्ये सदस्यता व्यवस्थापित करा. बिलिंग सायकल संपेपर्यंत तुमचे व्हीआयपी सदस्यत्व सुरू राहील.'),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.mukta(
+                    fontSize: 11.5,
+                    color: MandirTheme.textMuted,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 2. Secondary: View All Plans
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
@@ -929,38 +984,24 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              TextButton.icon(
-                onPressed: () async {
-                  await ref
-                      .read(subscriptionProvider.notifier)
-                      .cancelSubscription();
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          '🔄 Reset to Free Tier! You can now test the Paywall & Purchase flow.',
-                        ),
-                        backgroundColor: Color(0xFF8B1D18),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
+              const SizedBox(height: 6),
+
+              // 3. Subscription Terms & Policy Link
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  showSubscriptionTermsDialog(context, localeCode);
                 },
-                icon: const Icon(
-                  Icons.restart_alt_rounded,
-                  size: 18,
-                  color: Color(0xFF8B1D18),
-                ),
-                label: Text(
+                child: Text(
                   localeCode == 'en'
-                      ? 'Reset to Free Tier (Test Flow)'
-                      : 'चाचणीसाठी रीसेट करा (Free Tier)',
+                      ? 'Subscription Terms & Policy'
+                      : (localeCode == 'hi'
+                          ? 'सदस्यता नियम व नीतियां'
+                          : 'सदस्यता नियम व धोरण'),
                   style: GoogleFonts.mukta(
-                    fontSize: 13,
-                    color: const Color(0xFF8B1D18),
-                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                    color: MandirTheme.textMuted,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
@@ -1204,6 +1245,54 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 },
               ),
 
+              // ── Manage / Cancel Subscription (Mandatory for FTC / Play Store) ──
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.manage_accounts_rounded,
+                    color: Color(0xFF8B1D18),
+                    size: 22,
+                  ),
+                ),
+                title: Text(
+                  localeCode == 'en'
+                      ? 'Manage / Cancel Subscription'
+                      : (localeCode == 'hi'
+                          ? 'सदस्यता प्रबंधित / रद्द करें'
+                          : 'सदस्यता व्यवस्थापित / रद्द करा'),
+                  style: GoogleFonts.mukta(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2C2416),
+                  ),
+                ),
+                subtitle: Text(
+                  localeCode == 'en'
+                      ? 'Google Play auto-renewal & cancellations'
+                      : (localeCode == 'hi'
+                          ? 'Google Play ऑटो-पे व रद्दीकरण'
+                          : 'Google Play ऑटो-पे व रद्द करणे'),
+                  style: GoogleFonts.mukta(
+                    fontSize: 12,
+                    color: MandirTheme.textMuted,
+                  ),
+                ),
+                trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ref
+                      .read(subscriptionProvider.notifier)
+                      .openManageSubscription();
+                },
+              ),
+
               // ── Rate BhaktiDhara ─────────────────────────────────────
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -1261,6 +1350,52 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 },
               ),
 
+              // Terms of Use & Subscription Policy Link
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.gavel_rounded,
+                    color: Color(0xFF8B1D18),
+                    size: 22,
+                  ),
+                ),
+                title: Text(
+                  localeCode == 'en'
+                      ? 'Terms of Use & Subscription Policy'
+                      : (localeCode == 'hi'
+                          ? 'नियम व शर्तें एवं सदस्यता नीति'
+                          : 'वापर नियम व सदस्यता धोरण'),
+                  style: GoogleFonts.mukta(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2C2416),
+                  ),
+                ),
+                subtitle: Text(
+                  localeCode == 'en'
+                      ? 'Trial terms, auto-renewal & cancellation policy'
+                      : (localeCode == 'hi'
+                          ? 'ट्रायल, स्वतः नवीनीकरण एवं रद्दीकरण नियम'
+                          : 'ट्रायल, स्वयं-नूतनीकरण व रद्द करण्याचे नियम'),
+                  style: GoogleFonts.mukta(
+                    fontSize: 12,
+                    color: MandirTheme.textMuted,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  showSubscriptionTermsDialog(context, localeCode);
+                },
+              ),
+
               // Privacy Policy Link
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -1299,6 +1434,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   final uri = Uri.parse('http://46.225.142.210/privacy.html');
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (context.mounted) {
+                      showSubscriptionTermsDialog(context, localeCode);
+                    }
                   }
                 },
               ),

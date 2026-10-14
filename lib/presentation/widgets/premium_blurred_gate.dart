@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/theme.dart';
 import '../../domain/entities/app_remote_config.dart';
 import '../../domain/entities/subscription_plan.dart';
 import '../../services/backend_service.dart';
+import '../../services/subscription_service.dart';
 import '../providers/premium_provider.dart';
 import '../providers/remote_config_provider.dart';
 import '../providers/subscription_provider.dart';
@@ -976,77 +978,331 @@ class _SubscriptionPaywallSheetState
   }
 
   Widget _buildFooterActions(String lang, bool isPremium) {
+    final isEn = lang == 'en';
+    final isHi = lang == 'hi';
+
     return Column(
       children: [
-        // Restore purchase
-        TextButton(
-          onPressed: () async {
-            final restored = await ref
-                .read(subscriptionProvider.notifier)
-                .restorePurchase();
-            if (mounted) {
-              if (restored) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      lang == 'en'
-                          ? '✅ Purchase restored successfully!'
-                          : (lang == 'hi'
-                                ? '✅ खरीदी सफलतापूर्वक पुनर्प्राप्त!'
-                                : '✅ खरेदी यशस्वीरीत्या पुनर्प्राप्त!'),
-                    ),
-                    backgroundColor: const Color(0xFF2E7D32),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      lang == 'en'
-                          ? 'No previous purchase found'
-                          : (lang == 'hi'
-                                ? 'पिछली खरीदी नहीं मिली'
-                                : 'मागील खरेदी सापडली नाही'),
-                    ),
-                    backgroundColor: Colors.orange.shade800,
-                  ),
-                );
-              }
-            }
-          },
-          child: Text(
-            lang == 'en'
-                ? 'Restore Purchase'
-                : (lang == 'hi'
-                      ? 'खरीदी पुनर्प्राप्त करें'
-                      : 'खरेदी पुनर्प्राप्त करा'),
+        // 1. Manage / Cancel Subscription Button (Prominent & Compliant with FTC Click to Cancel & Google Play)
+        OutlinedButton.icon(
+          onPressed: () =>
+              SubscriptionService.instance.openManageSubscription(),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF8B1D18),
+            side: const BorderSide(color: Color(0xFFD4AF37), width: 1.2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+          icon: const Icon(Icons.manage_accounts_rounded, size: 18),
+          label: Text(
+            isEn
+                ? 'Manage / Cancel Subscription'
+                : (isHi
+                    ? 'सदस्यता प्रबंधित / रद्द करें'
+                    : 'सदस्यता व्यवस्थापित / रद्द करा'),
             style: GoogleFonts.mukta(
               fontSize: 13,
-              color: MandirTheme.textMuted,
-              decoration: TextDecoration.underline,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
-        // Legal footnote
-        Text(
-          lang == 'en'
-              ? 'Cancel anytime. Payment via Google Play.\nNo charge during 7-day trial.'
-              : (lang == 'hi'
-                    ? 'कभी भी रद्द करें। Google Play से भुगतान।\n7 दिन ट्रायल में कोई शुल्क नहीं।'
-                    : 'कधीही रद्द करा. Google Play द्वारे पेमेंट.\n७ दिवस ट्रायलमध्ये कोणतेही शुल्क नाही.'),
-          textAlign: TextAlign.center,
-          style: GoogleFonts.mukta(
-            fontSize: 11,
-            color: MandirTheme.textMuted.withValues(alpha: 0.5),
-            height: 1.3,
+        // 2. Action links: Restore | Terms of Use | Privacy Policy
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 4,
+          children: [
+            // Restore Purchases
+            GestureDetector(
+              onTap: () async {
+                final restored = await ref
+                    .read(subscriptionProvider.notifier)
+                    .restorePurchase();
+                if (mounted) {
+                  if (restored) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isEn
+                              ? '✅ Purchase restored successfully!'
+                              : (isHi
+                                  ? '✅ खरीदी सफलतापूर्वक पुनर्प्राप्त!'
+                                  : '✅ खरेदी यशस्वीरीत्या पुनर्प्राप्त!'),
+                        ),
+                        backgroundColor: const Color(0xFF2E7D32),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isEn
+                              ? 'No previous purchase found'
+                              : (isHi
+                                  ? 'पिछली खरीदी नहीं मिली'
+                                  : 'मागील खरेदी सापडली नाही'),
+                        ),
+                        backgroundColor: Colors.orange.shade800,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text(
+                isEn
+                    ? 'Restore Purchase'
+                    : (isHi ? 'खरीदी पुनर्प्राप्त करें' : 'खरेदी पुनर्प्राप्त करा'),
+                style: GoogleFonts.mukta(
+                  fontSize: 12,
+                  color: MandirTheme.textMuted,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+            // Terms of Use
+            GestureDetector(
+              onTap: () => showSubscriptionTermsDialog(context, lang),
+              child: Text(
+                isEn
+                    ? 'Terms of Use'
+                    : (isHi ? 'नियम व शर्तें' : 'नियम व अटी'),
+                style: GoogleFonts.mukta(
+                  fontSize: 12,
+                  color: MandirTheme.textMuted,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+            // Privacy Policy
+            GestureDetector(
+              onTap: () async {
+                final uri = Uri.parse('http://46.225.142.210/privacy.html');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else if (mounted) {
+                  showSubscriptionTermsDialog(context, lang);
+                }
+              },
+              child: Text(
+                isEn
+                    ? 'Privacy Policy'
+                    : (isHi ? 'गोपनीयता नीति' : 'गोपनीयता धोरण'),
+                style: GoogleFonts.mukta(
+                  fontSize: 12,
+                  color: MandirTheme.textMuted,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 3. Clear Legal Auto-Renewal & 7-Day Trial Footnote (Mandatory under FTC & Google Play)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9F3E8),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFEADBCE), width: 0.8),
+          ),
+          child: Text(
+            isEn
+                ? '• Auto-Renewal: Renews automatically unless cancelled at least 24 hours before the end of the current period or 7-day trial.\n• Charges: Your Google Play account is charged upon confirmation or trial completion.\n• Cancel Anytime: You can pause or cancel anytime via Google Play Subscriptions.'
+                : (isHi
+                    ? '• स्वतः नवीनीकरण: वर्तमान अवधि या 7-दिवसीय ट्रायल समाप्त होने से 24 घंटे पहले रद्द न करने पर स्वतः नवीनीकरण होगा।\n• शुल्क: ट्रायल समाप्त होने पर Google Play खाते से शुल्क लिया जाएगा।\n• कभी भी रद्द करें: Google Play Store > सदस्यताएं में जाकर कभी भी रद्द कर सकते हैं।'
+                    : '• स्वयं-नूतनीकरण: सध्याचा कालावधी किंवा ७-दिवसीय ट्रायल संपण्याच्या २४ तास आधी रद्द न केल्यास सदस्यता आपोआप रिन्यू होईल.\n• शुल्क आकारणी: ट्रायल संपल्यानंतर Google Play खात्यातून शुल्क आकारले जाईल.\n• कधीही रद्द करा: आपण Google Play Store > सदस्यतेमधून कधीही रद्द करू शकता.'),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.mukta(
+              fontSize: 11,
+              color: MandirTheme.textMuted.withValues(alpha: 0.85),
+              height: 1.35,
+            ),
           ),
         ),
       ],
     );
   }
+}
+
+/// In-app Subscription Terms & Cancellation Policy Dialog.
+/// Guarantees transparent disclosure of recurring billing, free trial, and 1-tap cancellation.
+void showSubscriptionTermsDialog(BuildContext context, String lang) {
+  final isEn = lang == 'en';
+  final isHi = lang == 'hi';
+
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        backgroundColor: const Color(0xFFFFFBF2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.gavel_rounded, color: Color(0xFF8B1D18), size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                isEn
+                    ? 'Subscription Terms & Policy'
+                    : (isHi ? 'सदस्यता नियम व नीतियां' : 'सदस्यता नियम व अटी'),
+                style: GoogleFonts.mukta(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF5D120B),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTermsSection(
+                icon: Icons.autorenew_rounded,
+                title: isEn
+                    ? '1. Automatic Renewal'
+                    : (isHi ? '1. स्वतः नवीनीकरण' : '1. स्वयं-नूतनीकरण'),
+                description: isEn
+                    ? 'All subscriptions auto-renew at the end of each billing cycle (monthly, 3-month, 6-month, or annual) unless cancelled at least 24 hours prior to the renewal date. Payments are billed securely via Google Play.'
+                    : (isHi
+                        ? 'सभी सदस्यताएं बिलिंग चक्र के अंत में स्वतः नवीनीकृत होती हैं। नवीनीकरण से कम से कम 24 घंटे पहले रद्द न करने पर Google Play से शुल्क लिया जाएगा।'
+                        : 'सर्व सदस्यता कालावधी संपल्यावर आपोआप रिन्यू होतात. नूतनीकरणाच्या किमान २४ तास आधी रद्द न केल्यास Google Play द्वारे पेमेंट घेतले जाईल.'),
+              ),
+              const SizedBox(height: 12),
+              _buildTermsSection(
+                icon: Icons.card_giftcard_rounded,
+                title: isEn
+                    ? '2. 7-Day Free Trial'
+                    : (isHi ? '2. 7 दिन का मुफ्त ट्रायल' : '2. ७ दिवस मोफत ट्रायल'),
+                description: isEn
+                    ? 'Eligible new subscribers receive 7 days of free access. If you do not cancel before the 7-day trial ends, your Google Play account will automatically be charged the selected plan price.'
+                    : (isHi
+                        ? 'नए उपयोगकर्ताओं को 7 दिन का निःशुल्क ट्रायल मिलता है। 7 दिन समाप्त होने से पहले रद्द न करने पर चयनित प्लान की राशि काटी जाएगी।'
+                        : 'नवीन वापरकर्त्यांना ७ दिवसांचा मोफत ट्रायल मिळतो. ७ दिवस संपण्यापूर्वी रद्द न केल्यास निवडलेल्या योजनेची रक्कम आकारली जाईल.'),
+              ),
+              const SizedBox(height: 12),
+              _buildTermsSection(
+                icon: Icons.cancel_outlined,
+                title: isEn
+                    ? '3. How to Cancel Anytime'
+                    : (isHi ? '3. सदस्यता कैसे रद्द करें' : '3. सदस्यता कशी रद्द करावी'),
+                description: isEn
+                    ? 'You can cancel anytime in 1 tap without any fee. Open Google Play Store ➔ Tap Profile icon ➔ Payments & Subscriptions ➔ Subscriptions ➔ BhaktiDhara ➔ Cancel Subscription. VIP benefits remain active until the billing cycle expires.'
+                    : (isHi
+                        ? 'आप कभी भी बिना किसी शुल्क के सदस्यता रद्द कर सकते हैं। Google Play Store ➔ प्रोफाइल ➔ भुगतान और सदस्यताएं ➔ सदस्यता ➔ BhaktiDhara ➔ सदस्यता रद्द करें पर टैप करें।'
+                        : 'आपण कोणत्याही शुल्काशिवाय कधीही रद्द करू शकता. Google Play Store ➔ प्रोफाईल ➔ पेमेंट्स आणि सदस्यता ➔ BhaktiDhara ➔ सदस्यता रद्द करा वर टॅप करा.'),
+              ),
+              const SizedBox(height: 12),
+              _buildTermsSection(
+                icon: Icons.shield_outlined,
+                title: isEn
+                    ? '4. Privacy & Payment Security'
+                    : (isHi ? '4. गोपनीयता व डेटा सुरक्षा' : '4. गोपनीयता व डेटा सुरक्षा'),
+                description: isEn
+                    ? 'In accordance with DPDP and consumer protection guidelines, BhaktiDhara never stores or accesses your bank accounts, credit cards, or UPI PINs. All billing transactions are encrypted and processed by Google Play.'
+                    : (isHi
+                        ? 'DPDP और उपभोक्ता नियमों के तहत, BhaktiDhara आपके बैंक, कार्ड या UPI विवरण को संग्रहीत नहीं करता। सभी भुगतान Google Play द्वारा सुरक्षित हैं।'
+                        : 'DPDP नियमांनुसार BhaktiDhara तुमचे बँक, कार्ड किंवा UPI तपशील कधीही साठवत नाही. सर्व व्यवहार Google Play द्वारे सुरक्षितपणे केले जातात.'),
+              ),
+              const SizedBox(height: 16),
+              // Direct button to open Google Play Subscriptions
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    SubscriptionService.instance.openManageSubscription();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B1D18),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: Text(
+                    isEn
+                        ? 'Open Google Play Subscriptions'
+                        : (isHi
+                            ? 'Google Play सदस्यताएं खोलें'
+                            : 'Google Play सदस्यता उघडा'),
+                    style: GoogleFonts.mukta(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              isEn ? 'Close' : (isHi ? 'बंद करें' : 'बंद करा'),
+              style: GoogleFonts.mukta(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF8B1D18),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Widget _buildTermsSection({
+  required IconData icon,
+  required String title,
+  required String description,
+}) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 18, color: const Color(0xFF8B1D18)),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.mukta(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF2C2416),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              description,
+              style: GoogleFonts.mukta(
+                fontSize: 12,
+                color: const Color(0xFF6B5843),
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -22,6 +22,10 @@
         tools:node="remove"/>
     <!-- Required: Firebase push notifications on Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Required: saving greeting images to the gallery on Android 9 and older -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
 
     <!-- Prevent Google Play from filtering out devices (Phones, Tablets, TVs) that lack specific hardware -->
     <uses-feature android:name="android.hardware.microphone" android:required="false"/>
@@ -36,7 +40,9 @@
     <application
         android:label="BhaktiDhara"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true">
 
         <!-- AdMob Test App ID — replace with production ID before release -->
         <meta-data
@@ -79,7 +85,7 @@
             android:value="2" />
     </application>
 
-    <!-- Required for Flutter text processing plugin and speech recognition -->
+    <!-- Required for Flutter text processing plugin, speech recognition, and Play Store redirection -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
@@ -87,6 +93,14 @@
         </intent>
         <intent>
             <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="market" />
         </intent>
     </queries>
 </manifest>

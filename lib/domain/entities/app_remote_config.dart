@@ -31,13 +31,27 @@ class AppRemoteConfig {
   /// working offline or against an older backend.
   bool isEnabled(String flag) => featureFlags[flag] ?? true;
 
-  bool mustUpdate(String currentVersion) =>
-      forceUpdate &&
-      minSupportedVersion.isNotEmpty &&
-      compareVersions(currentVersion, minSupportedVersion) < 0;
+  /// Returns true if the user must update immediately before using the app.
+  /// Triggers only when [forceUpdate] is enabled AND the current version is below
+  /// the minimum supported version (or latest version if min_supported_version is empty).
+  bool mustUpdate(String currentVersion) {
+    final cur = currentVersion.trim();
+    if (cur.isEmpty || !forceUpdate) return false;
 
-  bool canUpdate(String currentVersion) =>
-      latestVersion.isNotEmpty && compareVersions(currentVersion, latestVersion) < 0;
+    final threshold = minSupportedVersion.isNotEmpty ? minSupportedVersion : latestVersion;
+    if (threshold.isNotEmpty && compareVersions(cur, threshold) < 0) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Returns true if an optional update is available (latestVersion > currentVersion).
+  bool canUpdate(String currentVersion) {
+    final cur = currentVersion.trim();
+    return cur.isNotEmpty &&
+        latestVersion.isNotEmpty &&
+        compareVersions(cur, latestVersion) < 0;
+  }
 
   factory AppRemoteConfig.fromJson(Map<String, dynamic> json) {
     final flags = json['feature_flags'];
@@ -69,21 +83,40 @@ class AppRemoteConfig {
 
   static String _str(Object? v) => v?.toString().trim() ?? '';
 
-  /// Compares dotted versions numerically ("1.0.10" > "1.0.9"); ignores any
-  /// "+build" suffix. Returns <0, 0 or >0.
+  /// Compares dotted versions numerically ("1.0.10" > "1.0.9");
+  /// Also compares build numbers if present ("1.0.7+8" > "1.0.7+7").
+  /// Returns <0, 0 or >0.
   static int compareVersions(String a, String b) {
-    List<int> parts(String v) => v
-        .split('+')
-        .first
+    final cleanA = a.trim();
+    final cleanB = b.trim();
+    if (cleanA.isEmpty || cleanB.isEmpty) return 0;
+    if (cleanA == cleanB) return 0;
+
+    final partsA = cleanA.split('+');
+    final partsB = cleanB.split('+');
+
+    List<int> parseDots(String v) => v
         .split('.')
         .map((p) => int.tryParse(p.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
         .toList();
-    final pa = parts(a), pb = parts(b);
-    for (var i = 0; i < pa.length || i < pb.length; i++) {
-      final x = i < pa.length ? pa[i] : 0;
-      final y = i < pb.length ? pb[i] : 0;
+
+    final semA = parseDots(partsA[0]);
+    final semB = parseDots(partsB[0]);
+
+    final maxLen = semA.length > semB.length ? semA.length : semB.length;
+    for (var i = 0; i < maxLen; i++) {
+      final x = i < semA.length ? semA[i] : 0;
+      final y = i < semB.length ? semB[i] : 0;
       if (x != y) return x.compareTo(y);
     }
+
+    // If semver is equal, compare build numbers if both provide them
+    if (partsA.length > 1 && partsB.length > 1) {
+      final buildA = int.tryParse(partsA[1].replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final buildB = int.tryParse(partsB[1].replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      if (buildA != buildB) return buildA.compareTo(buildB);
+    }
+
     return 0;
   }
 }
