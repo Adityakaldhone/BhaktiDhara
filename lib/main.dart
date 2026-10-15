@@ -21,11 +21,13 @@ import 'presentation/widgets/remote_notices.dart';
 import 'services/app_update_service.dart';
 import 'services/backend_service.dart';
 import 'services/push_notification_service.dart';
+import 'services/rewarded_ad_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (!kIsWeb) {
     MobileAds.instance.initialize();
+    RewardedAdService.instance.preload();
   }
   // Language the user picked by hand, if any; otherwise the device language is used
   final userLanguageCode = await loadUserLanguageCode();

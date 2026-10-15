@@ -7,11 +7,11 @@ import '../../domain/entities/horoscope.dart';
 // import '../../services/gemini_horoscope_service.dart';
 import '../providers/horoscope_provider.dart';
 import '../providers/locale_provider.dart';
-import '../providers/remote_config_provider.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/premium_content_blur.dart';
 import '../../services/personal_numerology_service.dart';
 import '../../services/push_notification_service.dart';
+import '../../services/rewarded_ad_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Screen displaying Vedic Horoscopes (राशीभविष्य / राशिफल) powered by Google Gemini AI.
@@ -232,7 +232,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       ),
                     ),
                     data: (reading) {
-                      final isPremium = ref.watch(premiumAccessProvider);
+                      final isPremium = ref.watch(isHoroscopeUnlockedProvider);
                       return ListView(
                         controller: _listScrollController,
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -356,7 +356,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           // Premium Badge / Button
           Builder(
             builder: (ctx) {
-              final isPremium = ref.watch(premiumAccessProvider);
+              final isPremium = ref.watch(isHoroscopeUnlockedProvider);
               final langCode = ref.watch(localeProvider).languageCode;
               return GestureDetector(
                 onTap: () => showPremiumPaywallSheet(context, ref, langCode),
@@ -2288,6 +2288,79 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Rewarded Ad alternative — unlocks ONLY horoscope for 24 hours!
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                RewardedAdService.instance.show(
+                  onRewarded: () async {
+                    await ref.read(horoscopeRewardedUnlockProvider.notifier).unlock24Hours();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            langCode == 'en'
+                                ? '🎉 Horoscope unlocked for 24 hours!'
+                                : (langCode == 'hi'
+                                    ? '🎉 राशिफल 24 घंटे के लिए अनलॉक हो गया!'
+                                    : '🎉 भविष्य २४ तासांसाठी अनलॉक झाले!'),
+                            style: GoogleFonts.mukta(fontWeight: FontWeight.w600),
+                          ),
+                          backgroundColor: const Color(0xFF2E7D32),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  onAdNotReady: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          langCode == 'en'
+                              ? 'Ad not ready yet. Please try again in a moment.'
+                              : (langCode == 'hi'
+                                  ? 'विज्ञापन अभी तैयार नहीं है। कृपया थोड़ी देर बाद प्रयास करें।'
+                                  : 'जाहिरात अजून तयार नाही. कृपया थोड्या वेळाने प्रयत्न करा.'),
+                          style: GoogleFonts.mukta(),
+                        ),
+                        backgroundColor: const Color(0xFF8B1D18),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                );
+              },
+              icon: const Icon(
+                Icons.play_circle_outline_rounded,
+                size: 20,
+                color: Color(0xFF8B1D18),
+              ),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  langCode == 'en'
+                      ? '▶ Watch Ad — Unlock Horoscope (24h Free)'
+                      : (langCode == 'hi'
+                          ? '▶ विज्ञापन देखें — राशिफल 24 घंटे मुफ्त'
+                          : '▶ जाहिरात पहा — भविष्य २४ तास मोफत'),
+                  style: GoogleFonts.mukta(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF8B1D18),
+                  ),
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),

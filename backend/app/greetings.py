@@ -16,8 +16,10 @@ from typing import Any, Dict, List, Optional
 
 # pyrefly: ignore [missing-import]
 import aiosqlite
+import boto3
+from botocore.config import Config
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, Field
 
@@ -28,6 +30,16 @@ logger = logging.getLogger("bhaktidhara.greetings")
 MEDIA_DIR = Path(os.getenv("MEDIA_DIR", str(Path(DB_PATH).resolve().parent / "media"))) / "greetings"
 # Under /api/ because nginx on the server only forwards /api/ and /admin here.
 MEDIA_URL_PREFIX = "/api/v1/greetings/media"
+
+# Cloudflare R2 Object Storage configuration
+USE_R2_STORAGE = os.getenv("USE_R2_STORAGE", "false").strip().lower() in ("true", "1", "yes")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "bhaktidharabucket").strip()
+R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID", "").strip()
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "").strip()
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "").strip()
+R2_PUBLIC_URL = os.getenv("R2_PUBLIC_URL", "").strip().rstrip("/")
+if R2_PUBLIC_URL and not R2_PUBLIC_URL.startswith("http"):
+    R2_PUBLIC_URL = f"https://{R2_PUBLIC_URL}"
 
 HD_WIDTH = 1080
 THUMB_WIDTH = 480
@@ -100,7 +112,94 @@ async def init_greetings_db() -> None:
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+def _is_r2_active() -> bool:
+    return bool(
+        USE_R2_STORAGE
+        and R2_BUCKET_NAME
+        and R2_ACCOUNT_ID
+        and R2_ACCESS_KEY_ID
+        and R2_SECRET_ACCESS_KEY
+    )
+
+
+_r2_client = None
+
+
+def _get_r2_client():
+    global _r2_client
+    if not _is_r2_active():
+        return None
+    if _r2_client is None:
+        try:
+            _r2_client = boto3.client(
+                service_name="s3",
+                endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+                aws_access_key_id=R2_ACCESS_KEY_ID,
+                aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+                region_name="auto",
+                config=Config(s3={"addressing_style": "path"}, signature_version="s3v4"),
+            )
+        except Exception as e:
+            logger.error("Failed to initialize Cloudflare R2 client: %s", e)
+            return None
+    return _r2_client
+
+
+def _upload_to_r2(local_path: Path, object_key: str, content_type: str) -> bool:
+    client = _get_r2_client()
+    if not client:
+        return False
+    try:
+        with open(local_path, "rb") as f:
+            client.upload_fileobj(
+                f,
+                R2_BUCKET_NAME,
+                object_key,
+                ExtraArgs={
+                    "ContentType": content_type,
+                    "CacheControl": "public, max-age=31536000, immutable",
+                },
+            )
+        logger.info("Uploaded %s to R2 (%s/%s)", local_path.name, R2_BUCKET_NAME, object_key)
+        return True
+    except Exception as e:
+        logger.error("Failed to upload %s to R2: %s", local_path.name, e)
+        return False
+
+
+def _delete_from_r2(*object_keys: str) -> None:
+    client = _get_r2_client()
+    if not client:
+        return
+    for key in object_keys:
+        if not key:
+            continue
+        try:
+            client.delete_object(Bucket=R2_BUCKET_NAME, Key=key)
+            logger.info("Deleted %s from R2 bucket %s", key, R2_BUCKET_NAME)
+        except Exception as e:
+            logger.warning("Failed to delete %s from R2: %s", key, e)
+
+
+def _sync_local_to_r2() -> Dict[str, Any]:
+    if not _is_r2_active():
+        return {"status": "error", "message": "R2 storage is not active or credentials missing"}
+    files = [p for p in MEDIA_DIR.iterdir() if p.is_file() and FILE_RE.match(p.name)] if MEDIA_DIR.exists() else []
+    uploaded = 0
+    errors = 0
+    for f in files:
+        ct = "image/webp" if f.name.endswith(".webp") else "image/jpeg"
+        ok = _upload_to_r2(f, f"greetings/{f.name}", ct)
+        if ok:
+            uploaded += 1
+        else:
+            errors += 1
+    return {"status": "ok", "total": len(files), "uploaded": uploaded, "errors": errors}
+
+
 def _media_url(file_name: str) -> str:
+    if _is_r2_active() and R2_PUBLIC_URL:
+        return f"{R2_PUBLIC_URL}/greetings/{file_name}"
     return f"{MEDIA_URL_PREFIX}/{file_name}"
 
 
@@ -138,8 +237,16 @@ def _process_upload(raw: bytes) -> Dict[str, Any]:
     hd_name = f"{secrets.token_hex(16)}.jpg"
     thumb_name = f"{secrets.token_hex(16)}.webp"
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
-    hd.save(MEDIA_DIR / hd_name, "JPEG", quality=88, optimize=True, progressive=True)
-    thumb.save(MEDIA_DIR / thumb_name, "WEBP", quality=78, method=6)
+    hd_path = MEDIA_DIR / hd_name
+    thumb_path = MEDIA_DIR / thumb_name
+    hd.save(hd_path, "JPEG", quality=88, optimize=True, progressive=True)
+    thumb.save(thumb_path, "WEBP", quality=78, method=6)
+
+    # Upload to Cloudflare R2 bucket
+    if _is_r2_active():
+        _upload_to_r2(hd_path, f"greetings/{hd_name}", "image/jpeg")
+        _upload_to_r2(thumb_path, f"greetings/{thumb_name}", "image/webp")
+
     return {"hd_file": hd_name, "thumb_file": thumb_name, "width": hd.width, "height": hd.height}
 
 
@@ -150,6 +257,10 @@ def _delete_files(*names: str) -> None:
                 (MEDIA_DIR / name).unlink(missing_ok=True)
             except OSError as e:
                 logger.warning("Could not delete %s: %s", name, e)
+    if _is_r2_active():
+        r2_keys = [f"greetings/{name}" for name in names if name and FILE_RE.match(name)]
+        if r2_keys:
+            _delete_from_r2(*r2_keys)
 
 
 async def _has_premium_access(device_id: str) -> bool:
@@ -285,13 +396,15 @@ async def serve_greeting_media(file_name: str):
     if not FILE_RE.match(file_name):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     path = MEDIA_DIR / file_name
-    if not path.is_file():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return FileResponse(
-        path,
-        media_type="image/webp" if file_name.endswith(".webp") else "image/jpeg",
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
-    )
+    if path.is_file():
+        return FileResponse(
+            path,
+            media_type="image/webp" if file_name.endswith(".webp") else "image/jpeg",
+            headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        )
+    if _is_r2_active() and R2_PUBLIC_URL:
+        return RedirectResponse(url=f"{R2_PUBLIC_URL}/greetings/{file_name}", status_code=307)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
 # ── Admin API ────────────────────────────────────────────────────────────────
@@ -473,9 +586,90 @@ def build_admin_router(require_admin) -> APIRouter:
         await log_admin_action("greeting_image_delete", str(image_id))
         return {"status": "ok"}
 
+    @router.get("/auto-gen/status")
+    async def admin_autogen_status():
+        from app.greeting_generator import get_generator_status
+        return get_generator_status()
+
+    @router.post("/auto-gen/trigger")
+    async def admin_autogen_trigger(
+        images_per_lang: int = Query(10, ge=1, le=20),
+        languages: Optional[str] = Query("hi,mr,en"),
+    ):
+        from app.greeting_generator import run_daily_morning_greetings_pipeline, get_generator_status
+        status = get_generator_status()
+        if status.get("running"):
+            raise HTTPException(status_code=409, detail="A generation job is already running.")
+        langs = [l.strip().lower() for l in (languages or "hi,mr,en").split(",") if l.strip()]
+        asyncio.create_task(
+            run_daily_morning_greetings_pipeline(
+                languages=langs,
+                images_per_lang=images_per_lang,
+                is_manual_trigger=True,
+            )
+        )
+        return {"status": "started", "languages": langs, "images_per_lang": images_per_lang}
+
+    @router.post("/auto-gen/test")
+    async def admin_autogen_test(lang: str = Query("hi", description="hi, mr, or en")):
+        from app.greeting_generator import (
+            THEME_ARCHETYPES_HI, THEME_ARCHETYPES_MR, THEME_ARCHETYPES_EN,
+            build_image_prompt, generate_single_greeting_image, _save_greeting_to_db
+        )
+        import random
+        banks = {"hi": THEME_ARCHETYPES_HI, "mr": THEME_ARCHETYPES_MR, "en": THEME_ARCHETYPES_EN}
+        chosen_bank = banks.get(lang.lower(), THEME_ARCHETYPES_HI)
+        theme = random.choice(chosen_bank)
+        prompt = build_image_prompt(theme, lang.lower())
+        try:
+            raw_bytes = await generate_single_greeting_image(prompt)
+            img_id = await _save_greeting_to_db(raw_bytes, lang=lang.lower(), category_slug="morning")
+            return {
+                "status": "ok",
+                "imageId": img_id,
+                "theme": theme.get("theme"),
+                "deity": theme.get("deity"),
+                "heading": theme.get("heading"),
+                "quote": theme.get("quote"),
+                "lang": lang.lower(),
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @router.get("/r2-status")
+    async def admin_r2_status():
+        active = _is_r2_active()
+        test_ok = False
+        test_err = None
+        if active:
+            try:
+                client = _get_r2_client()
+                if client:
+                    client.head_bucket(Bucket=R2_BUCKET_NAME)
+                    test_ok = True
+            except Exception as e:
+                test_err = str(e)
+        return {
+            "active": active,
+            "connected": test_ok,
+            "bucket": R2_BUCKET_NAME if active else None,
+            "publicUrl": R2_PUBLIC_URL if active else None,
+            "error": test_err,
+        }
+
+    @router.post("/sync-r2")
+    async def admin_sync_r2():
+        return await asyncio.to_thread(_sync_local_to_r2)
+
     return router
 
 
-def _storage_usage() -> Dict[str, int]:
+def _storage_usage() -> Dict[str, Any]:
     files = [p for p in MEDIA_DIR.iterdir() if p.is_file()] if MEDIA_DIR.exists() else []
-    return {"files": len(files), "bytes": sum(p.stat().st_size for p in files)}
+    return {
+        "files": len(files),
+        "bytes": sum(p.stat().st_size for p in files),
+        "r2_active": _is_r2_active(),
+        "r2_bucket": R2_BUCKET_NAME if _is_r2_active() else None,
+        "r2_public_url": R2_PUBLIC_URL if _is_r2_active() else None,
+    }

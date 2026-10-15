@@ -1287,6 +1287,25 @@
         </div>
       </div>
       <div class="grid g2">
+        <div class="card" style="grid-column: 1 / -1; border-left: 4px solid var(--accent, #f59e0b);">
+          <div class="row sp" style="align-items:flex-start">
+            <div>
+              <h3>🤖 Automated Daily Morning Greetings (12:00 AM IST)</h3>
+              <p style="margin:4px 0 10px; color:var(--text-dim); font-size:13px">
+                Generates <b>15 unique Good Morning greeting cards</b> every midnight (5 Hindi "सुप्रभात", 5 Marathi "शुभ सकाळ", 5 English "Good Morning"). <i>Temporarily paused — manual upload is active.</i>
+              </p>
+            </div>
+            <div id="gr-autogen-badge"><span class="pill">⏸️ Paused (Manual Upload Active)</span></div>
+          </div>
+          <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px">
+            <button type="button" class="btn primary sm" id="gr-btn-run-all">⚡ Run 15-Image Generation Now</button>
+            <button type="button" class="btn ghost sm" id="gr-btn-test-hi">🧪 Test 1 Hindi</button>
+            <button type="button" class="btn ghost sm" id="gr-btn-test-mr">🧪 Test 1 Marathi</button>
+            <button type="button" class="btn ghost sm" id="gr-btn-test-en">🧪 Test 1 English</button>
+            <span id="gr-autogen-status" style="font-size:12px; color:var(--text-dim); margin-left:auto">Checking status…</span>
+          </div>
+          <div id="gr-autogen-log" style="margin-top:10px; font-size:12px; font-family:monospace; color:var(--text-dim); display:none"></div>
+        </div>
         <div class="card">
           <h3>Upload Images</h3>
           <div class="form-grid">
@@ -2231,11 +2250,16 @@
   }
   loaders.greetings = async () => {
     const data = await api('/api/v1/admin/greetings/categories');
-    grCategories = data.categories;
-    $('#gr-storage').textContent = `💾 ${fmt(data.storage.files)} files · ${mb(data.storage.bytes)}`;
-    const upSel = $('#gr-up-cat').value, viewSel = $('#gr-view-cat').value;
+    grCategories = data.categories || [];
+    const r2Badge = data.storage && data.storage.r2_active ? `☁️ Cloudflare R2 · ` : '';
+    $('#gr-storage').textContent = `${r2Badge}💾 ${fmt(data.storage.files)} files · ${mb(data.storage.bytes)}`;
+    const firstSlug = grCategories[0] ? grCategories[0].slug : '';
+    const upSel = $('#gr-up-cat').value || firstSlug;
+    const viewSel = $('#gr-view-cat').value || firstSlug;
     $('#gr-up-cat').innerHTML = grCatOptions(upSel);
     $('#gr-view-cat').innerHTML = grCatOptions(viewSel);
+    if (upSel) $('#gr-up-cat').value = upSel;
+    if (viewSel) $('#gr-view-cat').value = viewSel;
     $('#gr-cats').innerHTML = grCategories.map(c => `
       <div class="gr-cat">
         <span style="font-size:20px">${esc(c.emoji) || '🖼️'}</span>
@@ -2246,6 +2270,7 @@
         <button type="button" class="btn danger sm" data-grc-del="${c.id}" ${c.imageCount ? 'disabled title="Delete its images first"' : ''}>Delete</button>
       </div>`).join('') || '<div class="empty">No categories yet</div>';
     await grLoadImages();
+    grUpdateAutogenStatus();
     stamp();
   };
   async function grLoadImages() {
@@ -2358,6 +2383,79 @@
     await api('/api/v1/admin/greetings/images/' + s.dataset.griLang, { method: 'PATCH', body: JSON.stringify({ lang: s.value }) });
     toast('🌐 Language updated');
   });
+
+  // ── Automated Greetings Generation handlers ───────────────────
+  async function grUpdateAutogenStatus() {
+    try {
+      const s = await api('/api/v1/admin/greetings/auto-gen/status');
+      const prov = (s.provider || 'openai').toUpperCase();
+      const cfg = s.openai_configured ? 'OpenAI ✓' : (s.gemini_configured ? 'Gemini ✓' : '⚠️ No API Key in .env');
+      const statEl = $('#gr-autogen-status');
+      const badgeEl = $('#gr-autogen-badge');
+      const logEl = $('#gr-autogen-log');
+      
+      if (!statEl || !badgeEl) return;
+
+      if (s.running) {
+        badgeEl.innerHTML = '<span class="pill warn" style="animation:pulse 1.5s infinite">⚡ Generating Images…</span>';
+        statEl.textContent = s.current_progress || 'Generating in background…';
+        statEl.style.color = 'var(--accent, #f59e0b)';
+        if (logEl) {
+          logEl.style.display = 'block';
+          logEl.textContent = s.current_progress;
+        }
+      } else {
+        badgeEl.innerHTML = '<span class="pill">⏸️ Paused (Manual Upload Active)</span>';
+        const total = s.total_generated || 0;
+        statEl.textContent = `Engine: ${prov} (${cfg}) · Total generated: ${total}`;
+        statEl.style.color = 'var(--text-dim)';
+        if (logEl && s.errors && s.errors.length) {
+          logEl.style.display = 'block';
+          logEl.textContent = 'Notice: ' + s.errors[s.errors.length - 1];
+        }
+      }
+    } catch (_) {}
+  }
+
+  $('#gr-btn-run-all')?.addEventListener('click', async () => {
+    const ok = await showConfirm({
+      title: 'Run 15-Image Morning Generation?',
+      body: 'This will generate 5 Hindi, 5 Marathi, and 5 English unique Good Morning greeting cards in the background and save them to the server.',
+      icon: '🌅',
+      confirmText: 'Start Generation',
+      confirmClass: 'btn primary sm'
+    });
+    if (!ok) return;
+    try {
+      await api('/api/v1/admin/greetings/auto-gen/trigger?images_per_lang=5&languages=hi,mr,en', { method: 'POST' });
+      toast('🚀 Morning generation pipeline started in background!');
+      grUpdateAutogenStatus();
+    } catch (e) {
+      toast('❌ Error: ' + e.message);
+    }
+  });
+
+  async function grTestSingle(lang) {
+    const btn = lang === 'hi' ? $('#gr-btn-test-hi') : (lang === 'mr' ? $('#gr-btn-test-mr') : $('#gr-btn-test-en'));
+    if (!btn) return;
+    const orig = btn.textContent;
+    btn.textContent = '⏳ Generating…';
+    btn.disabled = true;
+    try {
+      const res = await api(`/api/v1/admin/greetings/auto-gen/test?lang=${lang}`, { method: 'POST' });
+      toast(`✅ Generated ${lang.toUpperCase()} card #${res.imageId} (${res.theme})!`);
+      loaders.greetings();
+    } catch (e) {
+      toast('❌ ' + (e.message || 'Generation failed'));
+    } finally {
+      btn.textContent = orig;
+      btn.disabled = false;
+    }
+  }
+
+  $('#gr-btn-test-hi')?.addEventListener('click', () => grTestSingle('hi'));
+  $('#gr-btn-test-mr')?.addEventListener('click', () => grTestSingle('mr'));
+  $('#gr-btn-test-en')?.addEventListener('click', () => grTestSingle('en'));
 
   // ── config ─────────────────────────────────────────────────
   const FLAG_LABELS = {

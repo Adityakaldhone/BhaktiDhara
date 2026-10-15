@@ -18,7 +18,8 @@ bool _busy = false;
 Future<GreetingExport> _export(WidgetRef ref, GreetingImage image) async {
   final stamp = ref.read(greetingPhotoEnabledProvider) ? ref.read(greetingPhotoProvider) : null;
   final photo = stamp == null ? null : await ref.read(greetingPhotoBytesProvider(stamp).future);
-  return GreetingImageComposer.build(image.hdUrl!, photo: photo);
+  final url = image.hdUrl ?? image.thumbUrl;
+  return GreetingImageComposer.build(url, photo: photo);
 }
 
 Future<void> shareGreetingImage(
@@ -28,7 +29,7 @@ Future<void> shareGreetingImage(
   required String categoryName,
   Rect? origin,
 }) async {
-  if (_busy || image.hdUrl == null) return;
+  if (_busy || (image.hdUrl == null && image.thumbUrl.isEmpty)) return;
   _busy = true;
   final s = GreetingStrings(ref.read(localeProvider).languageCode);
   final messenger = ScaffoldMessenger.maybeOf(context);
@@ -59,7 +60,7 @@ Future<void> shareGreetingImage(
 }
 
 Future<void> saveGreetingImage(BuildContext context, WidgetRef ref, GreetingImage image) async {
-  if (_busy || image.hdUrl == null) return;
+  if (_busy || (image.hdUrl == null && image.thumbUrl.isEmpty)) return;
   _busy = true;
   final s = GreetingStrings(ref.read(localeProvider).languageCode);
   final messenger = ScaffoldMessenger.maybeOf(context);

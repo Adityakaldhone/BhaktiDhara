@@ -106,7 +106,7 @@ class GaneshaStotraSheet extends ConsumerWidget {
                     child: Container(
                       color: const Color(0xFF38150C),
                       child: Image.asset(
-                        'assets/bhakti/ganesh.png',
+                        'assets/bhakti/ganesh.webp',
                         fit: BoxFit.contain,
                         errorBuilder: (_, _, _) => const Icon(
                           Icons.temple_hindu_rounded,

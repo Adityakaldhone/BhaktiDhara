@@ -113,7 +113,7 @@ class HanumanMantraSheet extends ConsumerWidget {
                     child: Container(
                       color: const Color(0xFF38150C),
                       child: Image.asset(
-                        'assets/bhakti/hanuman.png',
+                        'assets/bhakti/hanuman.webp',
                         fit: BoxFit.contain,
                         errorBuilder: (_, _, _) => const Icon(
                           Icons.temple_hindu_rounded,

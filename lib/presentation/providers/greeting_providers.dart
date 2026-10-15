@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/repositories/greeting_photo_store.dart';
 import '../../data/repositories/greeting_repository.dart';
@@ -192,4 +193,39 @@ final greetingPhotoProvider = StateNotifierProvider<GreetingPhotoNotifier, int?>
 /// The photo bytes for a [greetingPhotoProvider] version.
 final greetingPhotoBytesProvider = FutureProvider.family<Uint8List?, int>((ref, stamp) {
   return ref.watch(greetingPhotoStoreProvider).read();
+});
+
+/// Tracks IDs of greeting cards unlocked individually via rewarded ads.
+class UnlockedGreetingsNotifier extends StateNotifier<Set<int>> {
+  UnlockedGreetingsNotifier() : super(const {}) {
+    _load();
+  }
+
+  static const _prefKey = 'rewarded_unlocked_greeting_ids';
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_prefKey) ?? const [];
+      if (mounted) {
+        state = list.map(int.tryParse).whereType<int>().toSet();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> unlock(int id) async {
+    if (state.contains(id)) return;
+    state = {...state, id};
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_prefKey, state.map((i) => i.toString()).toList());
+    } catch (_) {}
+  }
+
+  bool isUnlocked(int id) => state.contains(id);
+}
+
+final unlockedGreetingsProvider =
+    StateNotifierProvider<UnlockedGreetingsNotifier, Set<int>>((ref) {
+  return UnlockedGreetingsNotifier();
 });

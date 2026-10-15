@@ -14,8 +14,15 @@ import '../../providers/remote_config_provider.dart';
 const kGreetingPlaceholder = Color(0xFFF3E7D5);
 
 /// Whether [image] must stay blurred for this user.
-bool greetingLocked(GreetingImage image, {required bool premiumAccess}) =>
-    image.hdUrl == null || (image.premium && !premiumAccess);
+bool greetingLocked(
+  GreetingImage image, {
+  required bool premiumAccess,
+  Set<int> unlockedIds = const {},
+}) {
+  if (premiumAccess) return false;
+  if (!image.premium) return false;
+  return !unlockedIds.contains(image.id);
+}
 
 /// Grid tile: thumbnail with premium badge, lock blur and favourite heart.
 class GreetingTile extends ConsumerWidget {
@@ -27,7 +34,11 @@ class GreetingTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = GreetingStrings(ref.watch(localeProvider).languageCode);
-    final locked = greetingLocked(image, premiumAccess: ref.watch(premiumAccessProvider));
+    final locked = greetingLocked(
+      image,
+      premiumAccess: ref.watch(premiumAccessProvider),
+      unlockedIds: ref.watch(unlockedGreetingsProvider),
+    );
     final isFavorite = ref.watch(greetingFavoritesProvider).any((i) => i.id == image.id);
     final thumb = CachedNetworkImage(
       imageUrl: image.thumbUrl,

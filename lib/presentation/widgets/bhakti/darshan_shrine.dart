@@ -17,7 +17,7 @@ class DarshanShrine extends StatefulWidget {
     required this.direction,
   });
 
-  static const frameAsset = 'assets/bhakti/mandap_frame.png';
+  static const frameAsset = 'assets/bhakti/mandap_frame.webp';
 
   @override
   State<DarshanShrine> createState() => _DarshanShrineState();

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/horoscope.dart';
 import '../../services/gemini_horoscope_service.dart';
 import 'locale_provider.dart';
+import 'remote_config_provider.dart';
 
 /// Provider for the Gemini Horoscope Service singleton.
 final geminiHoroscopeServiceProvider = Provider<GeminiHoroscopeService>((ref) {
@@ -67,5 +68,50 @@ class MorningReminderNotifier extends StateNotifier<bool> {
 final morningReminderEnabledProvider =
     StateNotifierProvider<MorningReminderNotifier, bool>((ref) {
   return MorningReminderNotifier();
+});
+
+/// Manages temporary horoscope unlock (24 hours) after watching a rewarded ad.
+class HoroscopeRewardedUnlockNotifier extends StateNotifier<bool> {
+  static const _prefKey = 'rewarded_horoscope_expires';
+
+  HoroscopeRewardedUnlockNotifier() : super(false) {
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final expires = prefs.getInt(_prefKey);
+      if (expires != null) {
+        if (DateTime.now().millisecondsSinceEpoch < expires) {
+          state = true;
+          return;
+        } else {
+          await prefs.remove(_prefKey);
+        }
+      }
+      state = false;
+    } catch (_) {}
+  }
+
+  Future<void> unlock24Hours() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final expiresAt = DateTime.now().add(const Duration(hours: 24)).millisecondsSinceEpoch;
+      await prefs.setInt(_prefKey, expiresAt);
+    } catch (_) {}
+    state = true;
+  }
+}
+
+final horoscopeRewardedUnlockProvider =
+    StateNotifierProvider<HoroscopeRewardedUnlockNotifier, bool>((ref) {
+  return HoroscopeRewardedUnlockNotifier();
+});
+
+/// Whether horoscope reading is fully unlocked:
+/// User has VIP subscription OR has watched a rewarded ad for horoscope.
+final isHoroscopeUnlockedProvider = Provider<bool>((ref) {
+  return ref.watch(premiumAccessProvider) || ref.watch(horoscopeRewardedUnlockProvider);
 });
 

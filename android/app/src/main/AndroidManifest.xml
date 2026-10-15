@@ -47,7 +47,7 @@
         <!-- AdMob Test App ID — replace with production ID before release -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-2701330811649318~3629395379"/>
 
         <!-- Firebase Cloud Messaging: channel & icon used for background notifications -->
         <meta-data

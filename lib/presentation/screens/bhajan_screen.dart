@@ -600,8 +600,8 @@ class _RRectClipper extends CustomClipper<RRect> {
 
 /// One complete darshan screen for a single deity, laid out at full screen size.
 class _DarshanPage extends StatelessWidget {
-  static const _templeBg = 'assets/bhakti/temple_bg.png';
-  static const _garland = 'assets/bhakti/garland_top.png';
+  static const _templeBg = 'assets/bhakti/temple_bg.webp';
+  static const _garland = 'assets/bhakti/garland_top.webp';
 
   static const titleHeight = 40 * 1.25;
   static double titleTopFor(double width) => width * 0.07;
@@ -626,13 +626,13 @@ class _DarshanPage extends StatelessWidget {
 
   // TEMP: trying a single full-scene artwork for Shiva instead of temple bg + mandap + deity.
   static const _fullScenes = {
-    // 'Lord Shiva': (asset: 'assets/bhakti/shiva_darshan_full.jpg', hasOwnTitle: true),
-    // 'Goddess Lakshmi': (asset: 'assets/bhakti/lakshmi_darshan_full.png', hasOwnTitle: false),
-    // 'Lord Hanuman': (asset: 'assets/bhakti/hanuman_darshan_full.jpg', hasOwnTitle: false),
-    'Lord Siddhanath': (asset: 'assets/bhakti/siddhanath_darshan_full.jpg', hasOwnTitle: false),
-    // 'Lord Ganesha': (asset: 'assets/bhakti/ganesh_darshan_full.jpg', hasOwnTitle: false),
-    // 'Lord Rama': (asset: 'assets/bhakti/rama_darshan_full.jpg', hasOwnTitle: false),
-    // 'Lord Vishnu': (asset: 'assets/bhakti/vishnu_darshan_full.jpg', hasOwnTitle: false),
+    // 'Lord Shiva': (asset: 'assets/bhakti/shiva_darshan_full.webp', hasOwnTitle: true),
+    // 'Goddess Lakshmi': (asset: 'assets/bhakti/lakshmi_darshan_full.webp', hasOwnTitle: false),
+    // 'Lord Hanuman': (asset: 'assets/bhakti/hanuman_darshan_full.webp', hasOwnTitle: false),
+    'Lord Siddhanath': (asset: 'assets/bhakti/siddhanath_darshan_full.webp', hasOwnTitle: false),
+    // 'Lord Ganesha': (asset: 'assets/bhakti/ganesh_darshan_full.webp', hasOwnTitle: false),
+    // 'Lord Rama': (asset: 'assets/bhakti/rama_darshan_full.webp', hasOwnTitle: false),
+    // 'Lord Vishnu': (asset: 'assets/bhakti/vishnu_darshan_full.webp', hasOwnTitle: false),
   };
 
   /// Every image a page for [deity] draws, so neighbours can be decoded before they slide in.

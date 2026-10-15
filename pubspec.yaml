@@ -1,7 +1,7 @@
 name: nitya_aarti
 description: "BhaktiDhara: Aarti Sangrah"
 publish_to: 'none'
-version: 1.0.8+8
+version: 1.0.9+9
 
 environment:
   sdk: ^3.12.2
@@ -33,10 +33,9 @@ dependencies:
 
   # Strict In-App Embedded Video Player
   webview_flutter: ^4.10.0
-  flutter_launcher_icons: ^0.14.4
   google_fonts: ^8.2.1
-  change_app_package_name: ^1.5.0
   speech_to_text: ^7.5.0
+
   google_generative_ai: ^0.4.7
   http: ^1.6.0
   geolocator: ^14.0.3
@@ -69,6 +68,8 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_native_splash: ^2.4.8
+  flutter_launcher_icons: ^0.14.4
+  change_app_package_name: ^1.5.0
 
 flutter:
   uses-material-design: true

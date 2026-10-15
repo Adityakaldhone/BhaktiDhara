@@ -13,8 +13,8 @@ import '../domain/entities/jaap_tap_result.dart';
 /// Audio players are created lazily so a missing plugin (tests) or a missing
 /// asset never breaks counting — haptics still work.
 class JaapFeedbackService {
-  static const String _tickAsset = 'sounds/jaap_tick.wav';
-  static const String _bellAsset = 'sounds/ghanti.wav';
+  static const String _tickAsset = 'sounds/jaap_tick.mp3';
+  static const String _bellAsset = 'sounds/ghanti.mp3';
   static const String _shankhAsset = 'sounds/shankh_dhun.mp3';
   static const Duration _shankhLength = Duration(seconds: 4);
 

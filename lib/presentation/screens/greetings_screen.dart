@@ -12,7 +12,6 @@ import '../providers/greeting_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/remote_config_provider.dart';
 import '../widgets/greeting/greeting_tile.dart';
-import '../widgets/premium_blurred_gate.dart';
 import 'greeting_viewer_screen.dart';
 
 const _bandColors = [
@@ -317,15 +316,13 @@ class _GreetingGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lang = ref.watch(localeProvider).languageCode;
     final premiumAccess = ref.watch(premiumAccessProvider);
+    final unlockedIds = ref.watch(unlockedGreetingsProvider);
 
     void open(int index) {
       final image = images[index];
-      if (greetingLocked(image, premiumAccess: premiumAccess)) {
+      if (greetingLocked(image, premiumAccess: premiumAccess, unlockedIds: unlockedIds)) {
         BackendService.trackEvent('paywall_view', item: 'greeting_image');
-        showPremiumPaywallSheet(context, ref, lang);
-        return;
       }
       Navigator.push(
         context,

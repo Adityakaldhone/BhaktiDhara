@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/entities/greeting_image.dart';
 import '../../services/greeting_image_composer.dart';
+import '../../services/rewarded_ad_service.dart';
 import '../greeting/greeting_share_flow.dart';
 import '../greeting/greeting_strings.dart';
 import '../providers/greeting_providers.dart';
@@ -81,7 +82,11 @@ class _ViewerPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final locked = greetingLocked(image, premiumAccess: ref.watch(premiumAccessProvider));
+    final locked = greetingLocked(
+      image,
+      premiumAccess: ref.watch(premiumAccessProvider),
+      unlockedIds: ref.watch(unlockedGreetingsProvider),
+    );
     final photoEnabled = ref.watch(greetingPhotoEnabledProvider);
     final thumb = CachedNetworkImage(
       imageUrl: image.thumbUrl,
@@ -106,7 +111,7 @@ class _ViewerPage extends ConsumerWidget {
                     _LockedOverlay(),
                   ] else ...[
                     CachedNetworkImage(
-                      imageUrl: image.hdUrl!,
+                      imageUrl: image.hdUrl ?? image.thumbUrl,
                       fit: BoxFit.cover,
                       fadeInDuration: const Duration(milliseconds: 150),
                       placeholder: (_, _) => Stack(
@@ -279,7 +284,11 @@ class _ActionBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(localeProvider).languageCode;
     final s = GreetingStrings(lang);
-    final locked = greetingLocked(image, premiumAccess: ref.watch(premiumAccessProvider));
+    final locked = greetingLocked(
+      image,
+      premiumAccess: ref.watch(premiumAccessProvider),
+      unlockedIds: ref.watch(unlockedGreetingsProvider),
+    );
     final isFavorite = ref.watch(greetingFavoritesProvider).any((i) => i.id == image.id);
     final categories = ref.watch(greetingCategoriesProvider).valueOrNull ?? const [];
     final categoryName =
@@ -289,19 +298,89 @@ class _ActionBar extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: locked
-          ? SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: FilledButton.icon(
-                key: const Key('greeting-unlock-button'),
-                onPressed: () => showPremiumPaywallSheet(context, ref, lang),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B1D18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    key: const Key('greeting-watch-ad-button'),
+                    onPressed: () {
+                      RewardedAdService.instance.show(
+                        onRewarded: () async {
+                          await ref.read(unlockedGreetingsProvider.notifier).unlock(image.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  lang == 'en'
+                                      ? '🎉 This greeting is unlocked! You can now share & download it.'
+                                      : (lang == 'hi'
+                                          ? '🎉 यह शुभकामना अनलॉक हो गई है! अब आप इसे शेयर और सेव कर सकते हैं।'
+                                          : '🎉 ही शुभेच्छा अनलॉक झाली आहे! आता तुम्ही शेअर व सेव्ह करू शकता.'),
+                                  style: GoogleFonts.mukta(fontWeight: FontWeight.w600),
+                                ),
+                                backgroundColor: const Color(0xFF2E7D32),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        onAdNotReady: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                lang == 'en'
+                                    ? 'Ad not ready yet. Please try again in a moment.'
+                                    : (lang == 'hi'
+                                        ? 'विज्ञापन अभी तैयार नहीं है। कृपया थोड़ी देर बाद प्रयास करें।'
+                                        : 'जाहिरात अजून तयार नाही. कृपया थोड्या वेळाने प्रयत्न करा.'),
+                                style: GoogleFonts.mukta(),
+                              ),
+                              backgroundColor: const Color(0xFF8B1D18),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B1D18),
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFFFD54F), width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    ),
+                    icon: const Icon(Icons.play_circle_fill_rounded, color: Color(0xFFFFD54F), size: 24),
+                    label: Text(
+                      lang == 'en'
+                          ? 'Watch Ad to Unlock This Card'
+                          : (lang == 'hi'
+                              ? 'विज्ञापन देखें — यह कार्ड अनलॉक करें'
+                              : 'जाहिरात पहा — हे कार्ड अनलॉक करा'),
+                      style: GoogleFonts.mukta(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ),
                 ),
-                icon: const Icon(Icons.lock_open_rounded, color: Color(0xFFFFD54F)),
-                label: Text(s.unlock, style: buttonText),
-              ),
+                const SizedBox(height: 6),
+                TextButton.icon(
+                  key: const Key('greeting-unlock-button'),
+                  onPressed: () => showPremiumPaywallSheet(context, ref, lang),
+                  icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD54F), size: 18),
+                  label: Text(
+                    lang == 'en'
+                        ? 'Or get Ad-Free VIP Subscription →'
+                        : (lang == 'hi'
+                            ? 'या विज्ञापन-मुक्त VIP सदस्यता लें →'
+                            : 'किंवा जाहिरात-मुक्त VIP सदस्य व्हा →'),
+                    style: GoogleFonts.mukta(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFFFD54F),
+                    ),
+                  ),
+                ),
+              ],
             )
           : Row(
               children: [

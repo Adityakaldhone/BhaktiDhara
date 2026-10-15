@@ -19,7 +19,7 @@ class AudioService {
     await HapticFeedback.heavyImpact();
     try {
       await _bellPlayer.stop();
-      await _bellPlayer.play(AssetSource('sounds/ghanti.wav'));
+      await _bellPlayer.play(AssetSource('sounds/ghanti.mp3'));
     } catch (_) {
       // Audio asset not yet bundled — haptic feedback only (expected in demo)
     }

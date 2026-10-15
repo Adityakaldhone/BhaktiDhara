@@ -43,7 +43,7 @@ class MandirDashboardScreen extends ConsumerStatefulWidget {
 
 class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   BannerAd? _bannerAd;
-  final bool _isBannerAdLoaded = false;
+  bool _isBannerAdLoaded = false;
   _DashTab _tab = _DashTab.home;
 
   // Search and voice recognition controllers
@@ -59,7 +59,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     super.initState();
     _homeScrollController.addListener(_onHomeScroll);
     _initSpeech();
-    // _loadBannerAd();
+    _loadBannerAd();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AppPermissionService.checkAndRequestStartupPermissions(ref);
     });
@@ -103,22 +103,22 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     } catch (_) {}
   }
 
-  // void _loadBannerAd() {
-  //   _bannerAd = BannerAd(
-  //     adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test Ad Unit ID
-  //     request: const AdRequest(),
-  //     size: AdSize.banner,
-  //     listener: BannerAdListener(
-  //       onAdLoaded: (ad) {
-  //         if (mounted) setState(() => _isBannerAdLoaded = true);
-  //       },
-  //       onAdFailedToLoad: (ad, error) {
-  //         ad.dispose();
-  //         _bannerAd = null;
-  //       },
-  //     ),
-  //   )..load();
-  // }
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-2701330811649318/2466602925', // Production Banner Ad Unit ID
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) setState(() => _isBannerAdLoaded = true);
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          _bannerAd = null;
+        },
+      ),
+    )..load();
+  }
 
   @override
   void dispose() {
