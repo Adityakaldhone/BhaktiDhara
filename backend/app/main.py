@@ -131,18 +131,18 @@ async def lifespan(app: FastAPI):
         misfire_grace_time=1800,
     )
     # 4. Schedule Daily 12:00 AM IST Good Morning Greetings Generation (18:30 UTC)
-    # NOTE: TEMPORARILY DISABLED. When I have money / app is in profit, I will definitely add the API key and uncomment this code!
-    # from app.greeting_generator import run_daily_morning_greetings_pipeline
-    # scheduler.add_job(
-    #     lambda: run_daily_morning_greetings_pipeline(images_per_lang=5),
-    #     trigger=CronTrigger(hour=18, minute=30, timezone="UTC"),  # 12:00 AM IST
-    #     id="daily_morning_greetings_auto_gen",
-    #     replace_existing=True,
-    #     max_instances=1,
-    #     misfire_grace_time=3600,
-    # )
+    # Generates 24 fresh cards daily (15 with quotes, 9 title-only) at $0.00 using Cloudflare Workers AI FLUX
+    from app.greeting_generator import run_daily_morning_greetings_pipeline
+    scheduler.add_job(
+        lambda: asyncio.create_task(run_daily_morning_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=8)),
+        trigger=CronTrigger(hour=18, minute=30, timezone="UTC"),  # 12:00 AM IST
+        id="daily_morning_greetings_auto_gen",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
     scheduler.start()
-    logger.info("Nightly precaching (00:05 AM IST) and morning push (06:00 AM IST) schedulers started.")
+    logger.info("Nightly precaching, morning greetings cron (12:00 AM IST), and morning push schedulers started.")
     logger.info("Push notifications: %s", push_status())
 
     yield

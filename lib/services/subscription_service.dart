@@ -154,9 +154,18 @@ class SubscriptionService {
     if (matchingProducts.isEmpty) {
       final available = _storeProducts.map((p) => p.id).toList();
       final reason =
-          'Subscription "${plan.productId}" was not returned by Google Play. Available products in store: $available';
+          'Subscription "${plan.productId}" is not yet propagated by Google Play. Available products in store: $available';
       debugPrint('[SubscriptionService] $reason');
       lastErrorMessage = reason;
+
+      // In debug mode, allow simulated test purchase so developer testing is not blocked by Google Play CDN propagation delay
+      if (kDebugMode) {
+        debugPrint(
+          '[SubscriptionService] Falling back to test simulation for ${plan.productId} (Debug Mode)',
+        );
+        return simulatePurchase(plan);
+      }
+
       throw Exception(reason);
     }
 
@@ -199,6 +208,32 @@ class SubscriptionService {
                 selectedOfferId = offer.offerId;
                 debugPrint(
                   '[SubscriptionService] Selected promotional offer "$selectedOfferId" for ${plan.productId}',
+                );
+                break;
+              }
+            }
+            if (selectedOfferToken != null) break;
+          }
+        }
+      }
+
+      // Prefer offer matching the plan's expected billing period (e.g. P3M, P6M, P1Y/P12M, P1M)
+      if (selectedOfferToken == null) {
+        final expectedPeriod = 'P${plan.durationMonths}M';
+        for (final p in matchingProducts) {
+          if (p is GooglePlayProductDetails) {
+            final offers = p.productDetails.subscriptionOfferDetails ?? [];
+            for (final offer in offers) {
+              final matchesPeriod = offer.pricingPhases.any(
+                (phase) =>
+                    phase.billingPeriod == expectedPeriod ||
+                    (plan.durationMonths == 12 && phase.billingPeriod == 'P1Y'),
+              );
+              if (matchesPeriod) {
+                selectedOfferToken = offer.offerIdToken;
+                selectedOfferId = offer.basePlanId;
+                debugPrint(
+                  '[SubscriptionService] Selected base plan "${offer.basePlanId}" matching duration ${plan.durationMonths}mo for ${plan.productId}',
                 );
                 break;
               }

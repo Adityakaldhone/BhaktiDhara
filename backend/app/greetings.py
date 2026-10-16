@@ -593,7 +593,7 @@ def build_admin_router(require_admin) -> APIRouter:
 
     @router.post("/auto-gen/trigger")
     async def admin_autogen_trigger(
-        images_per_lang: int = Query(10, ge=1, le=20),
+        images_per_lang: int = Query(8, ge=1, le=20),
         languages: Optional[str] = Query("hi,mr,en"),
     ):
         from app.greeting_generator import run_daily_morning_greetings_pipeline, get_generator_status
@@ -611,7 +611,10 @@ def build_admin_router(require_admin) -> APIRouter:
         return {"status": "started", "languages": langs, "images_per_lang": images_per_lang}
 
     @router.post("/auto-gen/test")
-    async def admin_autogen_test(lang: str = Query("hi", description="hi, mr, or en")):
+    async def admin_autogen_test(
+        lang: str = Query("hi", description="hi, mr, or en"),
+        with_quote: bool = Query(True, description="Set false to generate title-only cards without quotes"),
+    ):
         from app.greeting_generator import (
             THEME_ARCHETYPES_HI, THEME_ARCHETYPES_MR, THEME_ARCHETYPES_EN,
             build_image_prompt, generate_single_greeting_image, _save_greeting_to_db
@@ -619,19 +622,23 @@ def build_admin_router(require_admin) -> APIRouter:
         import random
         banks = {"hi": THEME_ARCHETYPES_HI, "mr": THEME_ARCHETYPES_MR, "en": THEME_ARCHETYPES_EN}
         chosen_bank = banks.get(lang.lower(), THEME_ARCHETYPES_HI)
-        theme = random.choice(chosen_bank)
+        theme = dict(random.choice(chosen_bank))
+        if not with_quote:
+            theme["quote"] = ""
         prompt = build_image_prompt(theme, lang.lower())
         try:
-            raw_bytes = await generate_single_greeting_image(prompt)
+            raw_bytes = await generate_single_greeting_image(prompt, theme=theme, lang=lang.lower())
             img_id = await _save_greeting_to_db(raw_bytes, lang=lang.lower(), category_slug="morning")
             return {
                 "status": "ok",
                 "imageId": img_id,
                 "theme": theme.get("theme"),
                 "deity": theme.get("deity"),
+                "layout_style": theme.get("layout_style", "bottom_gradient"),
                 "heading": theme.get("heading"),
                 "quote": theme.get("quote"),
                 "lang": lang.lower(),
+                "has_quote": bool(theme.get("quote")),
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

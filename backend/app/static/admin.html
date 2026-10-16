@@ -1292,13 +1292,13 @@
             <div>
               <h3>🤖 Automated Daily Morning Greetings (12:00 AM IST)</h3>
               <p style="margin:4px 0 10px; color:var(--text-dim); font-size:13px">
-                Generates <b>15 unique Good Morning greeting cards</b> every midnight (5 Hindi "सुप्रभात", 5 Marathi "शुभ सकाळ", 5 English "Good Morning"). <i>Temporarily paused — manual upload is active.</i>
+                Generates <b>24 unique Good Morning greeting cards</b> every midnight at $0.00 via Cloudflare Workers AI FLUX (8 Hindi "सुप्रभात", 8 Marathi "शुभ सकाळ", 8 English "Good Morning" — 15 with quotes, 9 title-only). <i>Active & Scheduled daily at 12:00 AM IST.</i>
               </p>
             </div>
-            <div id="gr-autogen-badge"><span class="pill">⏸️ Paused (Manual Upload Active)</span></div>
+            <div id="gr-autogen-badge"><span class="pill ok">🟢 Active (Daily 12:00 AM IST)</span></div>
           </div>
           <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px">
-            <button type="button" class="btn primary sm" id="gr-btn-run-all">⚡ Run 15-Image Generation Now</button>
+            <button type="button" class="btn primary sm" id="gr-btn-run-all">⚡ Run 24-Image Generation Now</button>
             <button type="button" class="btn ghost sm" id="gr-btn-test-hi">🧪 Test 1 Hindi</button>
             <button type="button" class="btn ghost sm" id="gr-btn-test-mr">🧪 Test 1 Marathi</button>
             <button type="button" class="btn ghost sm" id="gr-btn-test-en">🧪 Test 1 English</button>
@@ -2387,9 +2387,8 @@
   // ── Automated Greetings Generation handlers ───────────────────
   async function grUpdateAutogenStatus() {
     try {
-      const s = await api('/api/v1/admin/greetings/auto-gen/status');
-      const prov = (s.provider || 'openai').toUpperCase();
-      const cfg = s.openai_configured ? 'OpenAI ✓' : (s.gemini_configured ? 'Gemini ✓' : '⚠️ No API Key in .env');
+      const prov = (s.provider || 'cloudflare').toUpperCase();
+      const cfg = s.cloudflare_configured ? 'Cloudflare FLUX (100% Free) ✓' : (s.gemini_configured ? 'Gemini ✓' : (s.openai_configured ? 'OpenAI ✓' : '⚠️ No API Key in .env'));
       const statEl = $('#gr-autogen-status');
       const badgeEl = $('#gr-autogen-badge');
       const logEl = $('#gr-autogen-log');
@@ -2405,7 +2404,7 @@
           logEl.textContent = s.current_progress;
         }
       } else {
-        badgeEl.innerHTML = '<span class="pill">⏸️ Paused (Manual Upload Active)</span>';
+        badgeEl.innerHTML = '<span class="pill ok">🟢 Active (Daily 12:00 AM IST)</span>';
         const total = s.total_generated || 0;
         statEl.textContent = `Engine: ${prov} (${cfg}) · Total generated: ${total}`;
         statEl.style.color = 'var(--text-dim)';
@@ -2419,16 +2418,16 @@
 
   $('#gr-btn-run-all')?.addEventListener('click', async () => {
     const ok = await showConfirm({
-      title: 'Run 15-Image Morning Generation?',
-      body: 'This will generate 5 Hindi, 5 Marathi, and 5 English unique Good Morning greeting cards in the background and save them to the server.',
+      title: 'Run 24-Image Morning Generation?',
+      body: 'This will generate 24 cards (8 Hindi, 8 Marathi, 8 English — 15 with uplifting quotes, 9 clean title-only) in the background at $0.00 and save them to the server.',
       icon: '🌅',
       confirmText: 'Start Generation',
       confirmClass: 'btn primary sm'
     });
     if (!ok) return;
     try {
-      await api('/api/v1/admin/greetings/auto-gen/trigger?images_per_lang=5&languages=hi,mr,en', { method: 'POST' });
-      toast('🚀 Morning generation pipeline started in background!');
+      await api('/api/v1/admin/greetings/auto-gen/trigger?images_per_lang=8&languages=hi,mr,en', { method: 'POST' });
+      toast('🚀 Morning generation pipeline started in background (24 cards)!');
       grUpdateAutogenStatus();
     } catch (e) {
       toast('❌ Error: ' + e.message);
