@@ -111,6 +111,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get navBhajan => 'भक्ती';
 
   @override
+  String get navGranth => 'ग्रंथ';
+
+  @override
   String get bhajanSangrah => 'भक्ती संग्रह';
 
   @override

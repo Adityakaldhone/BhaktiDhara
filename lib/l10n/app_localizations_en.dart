@@ -111,6 +111,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navBhajan => 'Bhakti';
 
   @override
+  String get navGranth => 'Granth';
+
+  @override
   String get bhajanSangrah => 'Bhakti Sangrah';
 
   @override

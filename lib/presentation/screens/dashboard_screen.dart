@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -25,12 +26,13 @@ import '../widgets/premium_blurred_gate.dart';
 import '../widgets/remote_notices.dart';
 import 'bhajan_screen.dart';
 import 'deity_aarti_list_screen.dart';
+import 'granth_catalog_screen.dart';
 import 'horoscope_screen.dart';
 import 'panchang_screen.dart';
 import '../../services/app_permission_service.dart';
 
 /// Order must match the [IndexedStack] children in the dashboard.
-enum _DashTab { home, bhajan, horoscope, panchang }
+enum _DashTab { home, bhajan, granth, horoscope, panchang }
 
 /// Screen 1 — BhaktiDhara Dashboard (pixel-perfect match to UI mockup)
 class MandirDashboardScreen extends ConsumerStatefulWidget {
@@ -53,6 +55,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   bool _speechEnabled = false;
   bool _isListening = false;
   bool _showScrollToTop = false;
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -151,6 +154,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     final tabs = [
       _DashTab.home,
       if (on(AppRemoteConfig.bhajan)) _DashTab.bhajan,
+      if (on(AppRemoteConfig.granth)) _DashTab.granth,
       if (on(AppRemoteConfig.horoscope)) _DashTab.horoscope,
       if (on(AppRemoteConfig.panchang)) _DashTab.panchang,
     ];
@@ -162,117 +166,184 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       children: [
         _buildHomeTab(catalogAsync, l10n, localeCode),
         tabs.contains(_DashTab.bhajan) ? const BhajanScreen() : const SizedBox.shrink(),
+        tabs.contains(_DashTab.granth) ? const GranthCatalogScreen() : const SizedBox.shrink(),
         tabs.contains(_DashTab.horoscope) ? const HoroscopeScreen() : const SizedBox.shrink(),
         tabs.contains(_DashTab.panchang) ? const PanchangScreen() : const SizedBox.shrink(),
       ],
     );
 
-    return Scaffold(
-      backgroundColor: MandirTheme.backgroundCream,
-      body: ref.watch(appNoticesVisibleProvider)
-          ? Column(
-              children: [
-                const SafeArea(bottom: false, child: AppNoticeBanners()),
-                Expanded(
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeTop: true,
-                    child: tabStack,
-                  ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        // 1. If not on Home tab, switch to Home tab first
+        if (_tab != _DashTab.home) {
+          setState(() {
+            _tab = _DashTab.home;
+            _showScrollToTop = _homeScrollController.hasClients &&
+                _homeScrollController.offset > 320;
+          });
+          return;
+        }
+
+        // 2. If search has text, clear search first
+        if (_searchController.text.trim().isNotEmpty) {
+          setState(() {
+            _searchController.clear();
+          });
+          ref.read(searchQueryProvider.notifier).state = '';
+          return;
+        }
+
+        // 3. Double back press to exit within 2 seconds
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          final msg = localeCode == 'mr'
+              ? 'बाहेर पडण्यासाठी पुन्हा एकदा मागे दाबा'
+              : (localeCode == 'hi'
+                  ? 'बाहर निकलने के लिए फिर से बैक दबाएं'
+                  : 'Press back again to exit');
+
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                msg,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.mukta(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
-              ],
-            )
-          : tabStack,
-
-      // ── Scroll-to-Top Floating Action Button ───────────────────────────
-      floatingActionButton: (currentTab == _DashTab.home && _showScrollToTop)
-          ? FloatingActionButton(
-              onPressed: _scrollToTop,
-              mini: true,
-              backgroundColor: MandirTheme.primarySaffron,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shape: const CircleBorder(),
-              tooltip: localeCode == 'mr'
-                  ? 'वर जा'
-                  : (localeCode == 'hi' ? 'ऊपर जाएं' : 'Scroll to top'),
-              child: const Icon(Icons.arrow_upward_rounded, size: 22),
-            )
-          : null,
-
-      // ── Bottom Navigation ──────────────────────────────────────────────
-      // BottomNavigationBar needs at least two items.
-      bottomNavigationBar: tabs.length < 2 ? null : Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, -4),
+              ),
+              backgroundColor: const Color(0xFF3E2723),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.fromLTRB(40, 0, 40, 24),
             ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: navIndex,
-          onTap: (index) {
-            final tapped = tabs[index];
-            // Re-tapping Home scrolls the collection back to the top
-            if (tapped == _DashTab.home &&
-                currentTab == _DashTab.home &&
-                _homeScrollController.hasClients) {
-              _homeScrollController.animateTo(
-                0,
-                duration: const Duration(milliseconds: 450),
-                curve: Curves.easeOutCubic,
-              );
-            }
-            setState(() {
-              _tab = tapped;
-              if (tapped != _DashTab.home) {
-                _showScrollToTop = false;
-              } else if (_homeScrollController.hasClients) {
-                _showScrollToTop = _homeScrollController.offset > 320;
+          );
+          return;
+        }
+
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
+        backgroundColor: MandirTheme.backgroundCream,
+        body: ref.watch(appNoticesVisibleProvider)
+            ? Column(
+                children: [
+                  const SafeArea(bottom: false, child: AppNoticeBanners()),
+                  Expanded(
+                    child: MediaQuery.removePadding(
+                      context: context,
+                      removeTop: true,
+                      child: tabStack,
+                    ),
+                  ),
+                ],
+              )
+            : tabStack,
+
+        // ── Scroll-to-Top Floating Action Button ───────────────────────────
+        floatingActionButton: (currentTab == _DashTab.home && _showScrollToTop)
+            ? FloatingActionButton(
+                onPressed: _scrollToTop,
+                mini: true,
+                backgroundColor: MandirTheme.primarySaffron,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shape: const CircleBorder(),
+                tooltip: localeCode == 'mr'
+                    ? 'वर जा'
+                    : (localeCode == 'hi' ? 'ऊपर जाएं' : 'Scroll to top'),
+                child: const Icon(Icons.arrow_upward_rounded, size: 22),
+              )
+            : null,
+
+        // ── Bottom Navigation ──────────────────────────────────────────────
+        // BottomNavigationBar needs at least two items.
+        bottomNavigationBar: tabs.length < 2 ? null : Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: BottomNavigationBar(
+            currentIndex: navIndex,
+            onTap: (index) {
+              final tapped = tabs[index];
+              // Re-tapping Home scrolls the collection back to the top
+              if (tapped == _DashTab.home &&
+                  currentTab == _DashTab.home &&
+                  _homeScrollController.hasClients) {
+                _homeScrollController.animateTo(
+                  0,
+                  duration: const Duration(milliseconds: 450),
+                  curve: Curves.easeOutCubic,
+                );
               }
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: MandirTheme.surfaceWhite,
-          selectedItemColor: MandirTheme.primarySaffron,
-          unselectedItemColor: MandirTheme.textMuted,
-          iconSize: 26,
-          selectedFontSize: 15,
-          unselectedFontSize: 13.5,
-          selectedLabelStyle: GoogleFonts.mukta(
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-            height: 1.2,
+              setState(() {
+                _tab = tapped;
+                if (tapped != _DashTab.home) {
+                  _showScrollToTop = false;
+                } else if (_homeScrollController.hasClients) {
+                  _showScrollToTop = _homeScrollController.offset > 320;
+                }
+              });
+            },
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: MandirTheme.surfaceWhite,
+            selectedItemColor: MandirTheme.primarySaffron,
+            unselectedItemColor: MandirTheme.textMuted,
+            iconSize: 26,
+            selectedFontSize: 15,
+            unselectedFontSize: 13.5,
+            selectedLabelStyle: GoogleFonts.mukta(
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              height: 1.2,
+            ),
+            unselectedLabelStyle: GoogleFonts.mukta(
+              fontWeight: FontWeight.w600,
+              fontSize: 13.5,
+              height: 1.2,
+            ),
+            items: [
+              for (final tab in tabs)
+                switch (tab) {
+                  _DashTab.home => BottomNavigationBarItem(
+                      icon: const Icon(Icons.home_filled),
+                      label: l10n.navHome,
+                    ),
+                  _DashTab.bhajan => BottomNavigationBarItem(
+                      icon: const Icon(Icons.library_music_rounded),
+                      label: l10n.navBhajan,
+                    ),
+                  _DashTab.granth => BottomNavigationBarItem(
+                      icon: const Icon(Icons.menu_book_rounded),
+                      label: l10n.navGranth,
+                    ),
+                  _DashTab.horoscope => BottomNavigationBarItem(
+                      icon: const Icon(Icons.auto_awesome),
+                      label: l10n.navHoroscope,
+                    ),
+                  _DashTab.panchang => BottomNavigationBarItem(
+                      icon: const Icon(Icons.calendar_month_rounded),
+                      label: l10n.navPanchang,
+                    ),
+                },
+            ],
           ),
-          unselectedLabelStyle: GoogleFonts.mukta(
-            fontWeight: FontWeight.w600,
-            fontSize: 13.5,
-            height: 1.2,
-          ),
-          items: [
-            for (final tab in tabs)
-              switch (tab) {
-                _DashTab.home => BottomNavigationBarItem(
-                    icon: const Icon(Icons.home_filled),
-                    label: l10n.navHome,
-                  ),
-                _DashTab.bhajan => BottomNavigationBarItem(
-                    icon: const Icon(Icons.library_music_rounded),
-                    label: l10n.navBhajan,
-                  ),
-                _DashTab.horoscope => BottomNavigationBarItem(
-                    icon: const Icon(Icons.auto_awesome),
-                    label: l10n.navHoroscope,
-                  ),
-                _DashTab.panchang => BottomNavigationBarItem(
-                    icon: const Icon(Icons.calendar_month_rounded),
-                    label: l10n.navPanchang,
-                  ),
-              },
-          ],
         ),
       ),
     );

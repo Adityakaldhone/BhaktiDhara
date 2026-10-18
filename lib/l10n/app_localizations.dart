@@ -298,6 +298,12 @@ abstract class AppLocalizations {
   /// **'Bhakti'**
   String get navBhajan;
 
+  /// No description provided for @navGranth.
+  ///
+  /// In en, this message translates to:
+  /// **'Granth'**
+  String get navGranth;
+
   /// No description provided for @bhajanSangrah.
   ///
   /// In en, this message translates to:

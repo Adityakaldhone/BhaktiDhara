@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import hmac
 import io
@@ -82,6 +83,7 @@ from app.push_service import (
 )
 from app.gemini_service import consult_vedic_ai
 from app.greetings import init_greetings_db, public_router as greetings_public_router, build_admin_router as build_greetings_admin_router
+from app.granth import router as granth_router
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -132,9 +134,17 @@ async def lifespan(app: FastAPI):
     )
     # 4. Schedule Daily 12:00 AM IST Good Morning Greetings Generation (18:30 UTC)
     # Generates 24 fresh cards daily (15 with quotes, 9 title-only) at $0.00 using Cloudflare Workers AI FLUX
-    from app.greeting_generator import run_daily_morning_greetings_pipeline
+    async def run_scheduled_morning_greetings() -> None:
+        logger.info("🌅 [Cron] Starting scheduled 12:00 AM IST Good Morning Greetings Generation...")
+        try:
+            from app.greeting_generator import run_daily_morning_greetings_pipeline
+            result = await run_daily_morning_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=8)
+            logger.info("🌅 [Cron] Daily Morning Greetings Generation completed: %s", result)
+        except Exception as e:
+            logger.error("❌ [Cron] Error running scheduled morning greetings generation: %s", e, exc_info=True)
+
     scheduler.add_job(
-        lambda: asyncio.create_task(run_daily_morning_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=8)),
+        run_scheduled_morning_greetings,
         trigger=CronTrigger(hour=18, minute=30, timezone="UTC"),  # 12:00 AM IST
         id="daily_morning_greetings_auto_gen",
         replace_existing=True,
@@ -184,6 +194,7 @@ async def require_admin(
 
 app.include_router(greetings_public_router)
 app.include_router(build_greetings_admin_router(require_admin))
+app.include_router(granth_router)
 
 
 # ── Models ───────────────────────────────────────────────────────────────────

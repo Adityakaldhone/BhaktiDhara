@@ -241,6 +241,63 @@ async def init_db():
             )
         """)
 
+        # ── Sacred Granthas & Scriptures ─────────────────────────────────────
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS granth_books (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug TEXT UNIQUE NOT NULL,
+                title_mr TEXT NOT NULL,
+                title_hi TEXT NOT NULL,
+                title_en TEXT NOT NULL,
+                subtitle_mr TEXT,
+                subtitle_hi TEXT,
+                subtitle_en TEXT,
+                description_mr TEXT,
+                description_hi TEXT,
+                description_en TEXT,
+                total_chapters INTEGER DEFAULT 0,
+                total_verses INTEGER DEFAULT 0,
+                free_chapters INTEGER DEFAULT 1,
+                cover_image TEXT,
+                sort_order INTEGER DEFAULT 1,
+                is_active INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS granth_chapters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_slug TEXT NOT NULL,
+                chapter_number INTEGER NOT NULL,
+                name_mr TEXT,
+                name_hi TEXT,
+                name_en TEXT,
+                name_sanskrit TEXT,
+                summary_mr TEXT,
+                summary_hi TEXT,
+                summary_en TEXT,
+                verses_count INTEGER DEFAULT 0,
+                UNIQUE(book_slug, chapter_number)
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS granth_verses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_slug TEXT NOT NULL,
+                chapter_number INTEGER NOT NULL,
+                verse_number INTEGER NOT NULL,
+                slok TEXT NOT NULL,
+                transliteration TEXT,
+                word_meanings TEXT,
+                meaning_mr TEXT,
+                meaning_hi TEXT,
+                meaning_en TEXT,
+                UNIQUE(book_slug, chapter_number, verse_number)
+            )
+        """)
+
         await db.commit()
 
 

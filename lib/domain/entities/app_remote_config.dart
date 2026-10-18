@@ -18,6 +18,7 @@ class AppRemoteConfig {
   static const premiumPaywall = 'premium_paywall';
   static const statusCards = 'status_cards';
   static const statusCardPhoto = 'status_card_photo';
+  static const granth = 'granth';
 
   final String minSupportedVersion;
   final String latestVersion;
