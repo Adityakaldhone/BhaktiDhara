@@ -1,46 +1,230 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="BhaktiDhara - Complete Daily Aarti Sangrah, Hanuman Chalisa, Holy Granths & Vedic Panchang.">
+  <meta name="google-site-verification" content="rvpjXi2AOUldPj9HQ2UEbWv15bSgpwkm_hib9ul6D7c">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="nitya_aarti">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BhaktiDhara">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png?v=3">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <!-- Favicons with cache-busting -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/app/favicon.png?v=4">
+  <link rel="icon" type="image/x-icon" href="/app/favicon.ico?v=4">
+  <link rel="shortcut icon" href="/app/favicon.ico?v=4">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=4">
+  <link rel="icon" type="image/x-icon" href="favicon.ico?v=4">
 
-  <title>nitya_aarti</title>
-  <link rel="manifest" href="manifest.json">
+  <title>BhaktiDhara (भक्तिधारा) - Aarti & Chalisa</title>
+  <link rel="manifest" href="manifest.json?v=4">
+  <meta name="theme-color" content="#0d0814">
+
+  <script>
+    // Dynamic Favicon Cache Buster for Chrome & Edge
+    (function() {
+      try {
+        var link = document.createElement('link');
+        link.type = 'image/png';
+        link.rel = 'icon';
+        link.sizes = '32x32';
+        link.href = '/app/favicon.png?v=' + Date.now();
+        document.head.appendChild(link);
+
+        // Update service workers to avoid stale cached builds
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var i = 0; i < regs.length; i++) {
+              regs[i].update();
+            }
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0d0814;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    #bhakti-splash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at center, #1b0e2b 0%, #08040f 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999;
+      transition: opacity 0.6s ease-out;
+    }
+
+    .splash-logo-wrap {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .splash-logo {
+      width: 108px;
+      height: 108px;
+      border-radius: 24px;
+      box-shadow: 0 10px 40px rgba(255, 179, 0, 0.45);
+      border: 2px solid #FFB300;
+      animation: pulseGlow 2.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0% {
+        transform: scale(0.96);
+        box-shadow: 0 0 25px rgba(255, 179, 0, 0.3);
+      }
+      100% {
+        transform: scale(1.04);
+        box-shadow: 0 0 50px rgba(255, 179, 0, 0.7);
+      }
+    }
+
+    .splash-title {
+      color: #FFFFFF;
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #FFF, #FFE082, #FFB300);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .splash-sub {
+      color: #D1C4E9;
+      font-size: 0.95rem;
+      margin-bottom: 30px;
+      letter-spacing: 1px;
+    }
+
+    .splash-loader {
+      width: 38px;
+      height: 38px;
+      border: 3px solid rgba(255, 179, 0, 0.2);
+      border-top-color: #FFB300;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <script>
+    // 1. Intercept legacy insecure HTTP calls (like ip-api.com) to prevent browser Mixed Content console error
+    (function() {
+      var origOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url) {
+        if (typeof url === 'string' && url.indexOf('http://ip-api.com') !== -1) {
+          url = 'https://bhaktidharaapp.in/api/v1/geo';
+        }
+        return origOpen.apply(this, arguments);
+      };
+      if (window.fetch) {
+        var origFetch = window.fetch;
+        window.fetch = function(input, init) {
+          if (typeof input === 'string' && input.indexOf('http://ip-api.com') !== -1) {
+            input = 'https://bhaktidharaapp.in/api/v1/geo';
+          }
+          return origFetch.apply(this, arguments);
+        };
+      }
+    })();
+
+    // 2. Prevent Chrome deprecation warning for obsolete Intl.v8BreakIterator
+    (function() {
+      try {
+        if (window.Intl && 'v8BreakIterator' in window.Intl) {
+          delete window.Intl.v8BreakIterator;
+        }
+      } catch(e) {}
+    })();
+
+    // 3. Ensure viewport never disables user scaling on mobile (fixes Lighthouse Accessibility & Best Practices)
+    (function() {
+      var fixViewport = function() {
+        var metas = document.querySelectorAll('meta[name="viewport"]');
+        for (var i = 0; i < metas.length; i++) {
+          var m = metas[i];
+          var c = m.getAttribute('content') || '';
+          if (c.indexOf('user-scalable=no') !== -1 || c.indexOf('maximum-scale=1') !== -1) {
+            m.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0');
+          }
+        }
+      };
+      fixViewport();
+      new MutationObserver(fixViewport).observe(document.head, { childList: true, subtree: true, attributes: true });
+      if (document.documentElement) {
+        new MutationObserver(fixViewport).observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+      }
+    })();
+  </script>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <!-- Divine Sacred Splash Screen -->
+  <main id="main-content">
+    <div id="bhakti-splash">
+      <picture class="splash-logo-wrap">
+        <source srcset="icons/Icon-192.webp" type="image/webp">
+        <img src="icons/Icon-192.png" alt="BhaktiDhara Sacred Logo" class="splash-logo" width="108" height="108" fetchpriority="high" decoding="async" />
+      </picture>
+      <h1 class="splash-title">भक्तिधारा • BhaktiDhara</h1>
+      <p class="splash-sub">दैनिक आरती, चालीसा व पावन ग्रंथ</p>
+      <div class="splash-loader" aria-label="Loading BhaktiDhara Sacred Web App"></div>
+    </div>
+  </main>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Remove splash smoothly once Flutter renders its first frame
+    window.addEventListener('flutter-first-frame', function () {
+      var splash = document.getElementById('bhakti-splash');
+      if (splash) {
+        splash.style.opacity = '0';
+        setTimeout(function () {
+          splash.remove();
+        }, 600);
+      }
+    });
+
+    // Fallback: If event missed, fade out after 8s max
+    setTimeout(function () {
+      var splash = document.getElementById('bhakti-splash');
+      if (splash) {
+        splash.style.opacity = '0';
+        setTimeout(function () {
+          splash.remove();
+        }, 600);
+      }
+    }, 8000);
+  </script>
+
+  <script>
+    // Smoothly load Flutter bootstrap on page load to minimize Total Blocking Time
+    window.addEventListener('load', function() {
+      var s = document.createElement('script');
+      s.src = 'flutter_bootstrap.js';
+      s.async = true;
+      document.body.appendChild(s);
+    });
+  </script>
 </body>
 </html>

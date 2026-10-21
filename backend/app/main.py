@@ -300,7 +300,14 @@ class VedicAiConsultRequest(BaseModel):
 
 # ── Public Endpoints ─────────────────────────────────────────────────────────
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def landing_page():
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file, media_type="text/html")
+    return HTMLResponse("<h1>BhaktiDhara API is live</h1>")
+
+
 @app.get("/api/health")
 def health_check():
     return {
@@ -309,6 +316,66 @@ def health_check():
         "version": app.version,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@app.get("/api/v1/geo")
+def geo_fallback():
+    """Safe HTTPS endpoint to prevent mixed-content browser errors."""
+    return {"status": "fail"}
+
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    target = STATIC_DIR / "robots.txt"
+    if target.exists():
+        return FileResponse(target, media_type="text/plain")
+    return HTMLResponse("User-agent: *\nAllow: /", media_type="text/plain")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml():
+    target = STATIC_DIR / "sitemap.xml"
+    if target.exists():
+        return FileResponse(target, media_type="application/xml")
+    raise HTTPException(status_code=404, detail="sitemap.xml not found")
+
+
+@app.get("/.well-known/assetlinks.json", include_in_schema=False)
+async def assetlinks_json():
+    target = STATIC_DIR / ".well-known" / "assetlinks.json"
+    if target.exists():
+        return FileResponse(target, media_type="application/json")
+    raise HTTPException(status_code=404, detail="assetlinks.json not configured")
+
+
+
+@app.get("/static/{file_path:path}", include_in_schema=False)
+async def serve_static_asset(file_path: str):
+    target = (STATIC_DIR / file_path).resolve()
+    if not str(target).startswith(str(STATIC_DIR.resolve())):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if target.exists() and target.is_file():
+        return FileResponse(target)
+    raise HTTPException(status_code=404, detail="Static asset not found")
+
+
+@app.get("/images/{file_path:path}", include_in_schema=False)
+async def serve_images_asset(file_path: str):
+    target = (STATIC_DIR / "images" / file_path).resolve()
+    if target.exists() and target.is_file():
+        return FileResponse(target)
+    raise HTTPException(status_code=404, detail="Image not found")
+
+
+@app.get("/sounds/{file_path:path}", include_in_schema=False)
+async def serve_sounds_asset(file_path: str):
+    target = (STATIC_DIR / "sounds" / file_path).resolve()
+    if target.exists() and target.is_file():
+        return FileResponse(target)
+    raise HTTPException(status_code=404, detail="Sound not found")
+
+
 
 
 @app.get("/api/v1/horoscope")

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
@@ -83,6 +84,10 @@ class LocationService {
   }
 
   Future<PanchangCity?> _detectViaIp() async {
+    if (kIsWeb) {
+      // In web browsers, insecure HTTP requests over HTTPS trigger Mixed Content errors.
+      return null;
+    }
     final response = await http
         .get(Uri.parse('http://ip-api.com/json'))
         .timeout(const Duration(seconds: 3));

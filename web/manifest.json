@@ -1,11 +1,11 @@
 {
-    "name": "nitya_aarti",
-    "short_name": "nitya_aarti",
+    "name": "BhaktiDhara - Aarti, Chalisa & Granth",
+    "short_name": "BhaktiDhara",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0d0814",
+    "theme_color": "#FFB300",
+    "description": "Complete Daily Aarti Sangrah, Hanuman Chalisa, Holy Granths & Vedic Panchang.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

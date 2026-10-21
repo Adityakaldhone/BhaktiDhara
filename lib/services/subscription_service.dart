@@ -45,6 +45,10 @@ class SubscriptionService {
 
   /// Initializes Google Play Billing and starts listening to the purchase stream.
   Future<void> initialize() async {
+    if (kIsWeb) {
+      debugPrint('[SubscriptionService] Store billing disabled on Web');
+      return;
+    }
     try {
       _isBillingAvailable = await _iap.isAvailable();
       if (!_isBillingAvailable) {
@@ -71,6 +75,7 @@ class SubscriptionService {
 
   /// Queries product details from store for all configured plans.
   Future<void> refreshProducts() async {
+    if (kIsWeb) return;
     if (!_isBillingAvailable) {
       _isBillingAvailable = await _iap.isAvailable();
       if (!_isBillingAvailable) {

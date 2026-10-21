@@ -107,6 +107,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   }
 
   void _loadBannerAd() {
+    if (kIsWeb) return;
     _bannerAd = BannerAd(
       adUnitId: 'ca-app-pub-2701330811649318/2466602925', // Production Banner Ad Unit ID
       request: const AdRequest(),

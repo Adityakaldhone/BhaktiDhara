@@ -21,7 +21,7 @@ class BackendService {
   /// or set it directly in code.
   static String backendUrl = const String.fromEnvironment(
     'BACKEND_URL',
-    defaultValue: 'http://46.225.142.210',
+    defaultValue: 'https://bhaktidharaapp.in',
   );
 
   static Future<String>? _appVersionFuture;

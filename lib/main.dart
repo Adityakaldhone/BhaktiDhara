@@ -1,4 +1,4 @@
-import 'package:clarity_flutter/clarity_flutter.dart';
+import 'core/analytics/clarity_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,16 +47,12 @@ void main() async {
   await BackendService.loadCachedRemoteConfig();
 
   // Tag Clarity sessions with the same anonymous device ID the backend uses
-  BackendService.getAnonymousDeviceId().then(Clarity.setCustomUserId);
+  BackendService.getAnonymousDeviceId().then(ClarityService.setUserId);
 
   runApp(
-    ClarityWidget(
-      clarityConfig: ClarityConfig(
-        projectId: _clarityProjectId,
-        logLevel: kDebugMode ? LogLevel.Info : LogLevel.None,
-      ),
-      // ProviderScope is required for Riverpod
-      app: ProviderScope(
+    ClarityService.wrapWithClarity(
+      projectId: _clarityProjectId,
+      child: ProviderScope(
         overrides: [
           reviewOverride,
           userLanguageCodeProvider.overrideWithValue(userLanguageCode),
@@ -129,7 +125,7 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
     ref.listen(morningReminderEnabledProvider, (_, _) => _syncPushTopics());
 
     return MaterialApp(
-      title: 'Digital Mandir',
+      title: 'BhaktiDhara: Aarti & Chalisa',
       debugShowCheckedModeBanner: false,
       navigatorKey: PushNotificationService.navigatorKey,
       theme: MandirTheme.lightTheme,

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bhaktidharaapp.in/sitemap.xml
+Sitemap: https://bhaktidharaapp.in/app/sitemap.xml
