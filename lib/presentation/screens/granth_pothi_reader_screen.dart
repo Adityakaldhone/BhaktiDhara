@@ -62,8 +62,14 @@ class _GranthPothiReaderScreenState
   Future<void> _saveBookmark(int page) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_bookmarkKey, page);
-    if (!mounted) return;
     final langCode = ref.read(localeProvider).languageCode;
+    ref.read(granthLastReadProvider.notifier).save(
+      bookSlug: widget.book.slug,
+      bookTitle: widget.book.titleFor(langCode),
+      isPothi: true,
+      pageNumber: page,
+    );
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -78,6 +84,7 @@ class _GranthPothiReaderScreenState
       ),
     );
   }
+
 
   @override
   void dispose() {
@@ -480,10 +487,18 @@ class _GranthPothiReaderScreenState
                   controller: _pageController,
                   itemCount: _totalPages,
                   onPageChanged: (idx) {
+                    final page = idx + 1;
                     setState(() {
-                      _currentPage = idx + 1;
+                      _currentPage = page;
                     });
+                    ref.read(granthLastReadProvider.notifier).save(
+                      bookSlug: widget.book.slug,
+                      bookTitle: widget.book.titleFor(langCode),
+                      isPothi: true,
+                      pageNumber: page,
+                    );
                   },
+
                   itemBuilder: (context, index) {
                     final pageNum = index + 1;
                     final isLocked = !isVip && (pageNum > _freePages);

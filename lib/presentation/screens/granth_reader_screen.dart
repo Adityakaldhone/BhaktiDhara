@@ -91,6 +91,19 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
     final currentCh = _getCurrentChapter();
     final chTitle = currentCh.nameFor(langCode);
 
+    // Save reading progress in post frame callback
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(granthLastReadProvider.notifier).save(
+          bookSlug: widget.book.slug,
+          bookTitle: widget.book.titleFor(langCode),
+          chapterNumber: _currentChapterNumber,
+          chapterTitle: chTitle,
+          verseNumber: 1,
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: MandirTheme.backgroundCream,
       appBar: AppBar(
@@ -99,15 +112,17 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
             Text(
               widget.book.titleFor(langCode),
               style: GoogleFonts.mukta(
-                fontSize: 14,
+                fontSize: 13,
                 color: MandirTheme.primarySaffron,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
             Text(
               'अध्याय $_currentChapterNumber: $chTitle',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.mukta(
-                fontSize: 17,
+                fontSize: 16.5,
                 fontWeight: FontWeight.bold,
                 color: MandirTheme.textDark,
               ),
@@ -115,16 +130,44 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
           ],
         ),
         actions: [
-          // Font size adjuster
+          // 1-Tap Quick Font Zoom Cycle (A / A+ / A++)
           IconButton(
-            tooltip: 'फॉन्ट आकार',
-            icon: const Icon(Icons.format_size_rounded, size: 22),
+            tooltip: 'फॉन्ट आकार झूम (Font Scale)',
+            icon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: MandirTheme.primarySaffron.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: MandirTheme.primarySaffron.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Text(
+                fontSize <= 16.0 ? 'A' : (fontSize <= 20.0 ? 'A+' : 'A++'),
+                style: GoogleFonts.mukta(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: MandirTheme.primarySaffron,
+                ),
+              ),
+            ),
+            onPressed: () {
+              final next = fontSize <= 16.0 ? 20.0 : (fontSize <= 20.0 ? 24.0 : 16.0);
+              ref.read(granthFontSizeProvider.notifier).state = next;
+            },
+          ),
+
+          // Granular Font Size Slider Dialog
+          IconButton(
+            tooltip: 'फॉन्ट आकार निवडा',
+            icon: const Icon(Icons.format_size_rounded, size: 21),
             onPressed: () => _showFontSizeDialog(context),
           ),
-          // Language selector popup
+
+          // Language Selector Popup
           PopupMenuButton<String>(
-            tooltip: 'भाषा बदला',
-            icon: const Icon(Icons.translate_rounded, size: 22),
+            tooltip: 'भाषा बदला (Translation)',
+            icon: const Icon(Icons.translate_rounded, size: 21),
             initialValue: selectedLang,
             onSelected: (val) {
               ref.read(granthTranslationLangProvider.notifier).state = val;
@@ -132,15 +175,33 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'mr',
-                child: Text('मराठी अर्थ', style: GoogleFonts.mukta(fontWeight: FontWeight.bold)),
+                child: Row(
+                  children: [
+                    if (selectedLang == 'mr') const Icon(Icons.check_rounded, size: 16, color: MandirTheme.primarySaffron),
+                    const SizedBox(width: 8),
+                    Text('मराठी भावार्थ', style: GoogleFonts.mukta(fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
               PopupMenuItem(
                 value: 'hi',
-                child: Text('हिंदी अर्थ', style: GoogleFonts.mukta(fontWeight: FontWeight.bold)),
+                child: Row(
+                  children: [
+                    if (selectedLang == 'hi') const Icon(Icons.check_rounded, size: 16, color: MandirTheme.primarySaffron),
+                    const SizedBox(width: 8),
+                    Text('हिंदी भावार्थ', style: GoogleFonts.mukta(fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
               PopupMenuItem(
                 value: 'en',
-                child: Text('English Meaning', style: GoogleFonts.mukta(fontWeight: FontWeight.bold)),
+                child: Row(
+                  children: [
+                    if (selectedLang == 'en') const Icon(Icons.check_rounded, size: 16, color: MandirTheme.primarySaffron),
+                    const SizedBox(width: 8),
+                    Text('English Meaning', style: GoogleFonts.mukta(fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ],
           ),
@@ -196,7 +257,7 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
               ),
 
               const SliverToBoxAdapter(
-                child: SizedBox(height: 36),
+                child: SizedBox(height: 48),
               ),
             ],
           );
@@ -231,6 +292,7 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
     );
   }
 
+  // ── Chapter Banner ─────────────────────────────────────────────────────────
   Widget _buildChapterBanner(GranthChapterDetail detail, String langCode) {
     final summary = detail.chapterSummaryFor(langCode);
     final chName = detail.chapterNameFor(langCode);
@@ -240,7 +302,7 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: MandirTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: MandirTheme.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -275,7 +337,7 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
                 child: Text(
                   chName,
                   style: GoogleFonts.mukta(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: MandirTheme.textDark,
                   ),
@@ -315,6 +377,7 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
     );
   }
 
+  // ── Verse Card (Opulent Vedic Styling) ─────────────────────────────────────
   Widget _buildVerseCard(
     BuildContext context,
     GranthVerse verse,
@@ -332,10 +395,10 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
-        color: MandirTheme.surfaceWhite,
+        color: const Color(0xFFFFFDF8), // Warm parchment tone
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: MandirTheme.cardBorder,
+          color: const Color(0xFFE2B04F).withValues(alpha: 0.55),
           width: 1.2,
         ),
         boxShadow: [
@@ -346,234 +409,259 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header: Verse number + Share
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: MandirTheme.chipBackground.withValues(alpha: 0.5),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  '॥ श्लोक $vNum ॥',
-                  style: GoogleFonts.mukta(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: MandirTheme.primarySaffron,
-                  ),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: () {
-                    final shareText =
-                        'श्रीमद्भगवद्गीता (अध्याय $chapterNumber, श्लोक $vNum)\n\n'
-                        '${verse.slok}\n\n'
-                        'अर्थ:\n$meaning\n\n'
-                        'भक्तीधारा ॲपवरून साभार';
-                    SharePlus.instance.share(
-                      ShareParams(text: shareText),
-                    );
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.share_rounded,
-                      size: 18,
-                      color: MandirTheme.textMuted,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Sanskrit Shlok Text
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF9EE),
-            ),
-            child: Text(
-              verse.slok,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.mukta(
-                fontSize: fontSize + 2.0,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF6B1B0B),
-                height: 1.6,
-                letterSpacing: 0.3,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          decoration: const BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: MandirTheme.primarySaffron,
+                width: 4.0,
               ),
             ),
           ),
-
-          // Transliteration Toggle
-          if (hasTranslit) ...[
-            InkWell(
-              onTap: () {
-                setState(() {
-                  if (isTranslitExpanded) {
-                    _expandedTransliterations.remove(vNum);
-                  } else {
-                    _expandedTransliterations.add(vNum);
-                  }
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header: Verse number + Share
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7E6),
                   border: Border(
-                    top: BorderSide(color: MandirTheme.cardBorder.withValues(alpha: 0.6)),
+                    bottom: BorderSide(
+                      color: const Color(0xFFFFE082).withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
                 child: Row(
                   children: [
                     Text(
-                      'उच्चार (Pronunciation)',
+                      '॥ श्लोक $vNum ॥',
                       style: GoogleFonts.mukta(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: MandirTheme.textMuted,
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      isTranslitExpanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 18,
-                      color: MandirTheme.textMuted,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (isTranslitExpanded)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: Colors.amber.shade50.withValues(alpha: 0.4),
-                child: Text(
-                  verse.transliteration,
-                  style: GoogleFonts.robotoMono(
-                    fontSize: fontSize - 3.0,
-                    fontStyle: FontStyle.italic,
-                    color: const Color(0xFF5D4037),
-                    height: 1.4,
-                  ),
-                ),
-              ),
-          ],
-
-          // Word Meanings Toggle
-          if (hasWordMeanings) ...[
-            InkWell(
-              onTap: () {
-                setState(() {
-                  if (isWordMeaningsExpanded) {
-                    _expandedWordMeanings.remove(vNum);
-                  } else {
-                    _expandedWordMeanings.add(vNum);
-                  }
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: MandirTheme.cardBorder.withValues(alpha: 0.6)),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'पदच्छेद व शब्दार्थ (Word Meanings)',
-                      style: GoogleFonts.mukta(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: MandirTheme.textMuted,
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      isWordMeaningsExpanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 18,
-                      color: MandirTheme.textMuted,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (isWordMeaningsExpanded)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: Colors.amber.shade50.withValues(alpha: 0.3),
-                child: Text(
-                  verse.wordMeanings,
-                  style: GoogleFonts.mukta(
-                    fontSize: fontSize - 3.5,
-                    color: MandirTheme.textDark,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-          ],
-
-          // Meaning / Bhavarth
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: MandirTheme.cardBorder),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: MandirTheme.primarySaffron,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      selectedLang == 'hi'
-                          ? 'भावार्थ'
-                          : (selectedLang == 'en' ? 'Translation' : 'भावार्थ / अर्थ'),
-                      style: GoogleFonts.mukta(
-                        fontSize: 13,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.bold,
                         color: MandirTheme.primarySaffron,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const Spacer(),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        final shareText =
+                            '${widget.book.titleFor('mr')} (अध्याय $chapterNumber, श्लोक $vNum)\n\n'
+                            '${verse.slok}\n\n'
+                            'अर्थ:\n$meaning\n\n'
+                            'भक्तीधारा ॲपवरून साभार';
+                        SharePlus.instance.share(
+                          ShareParams(text: shareText),
+                        );
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.share_rounded,
+                          size: 18,
+                          color: MandirTheme.textMuted,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  meaning.isNotEmpty ? meaning : 'अर्थ उपलब्ध होत आहे...',
+              ),
+
+              // Sanskrit Shlok Text Container
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFFBF2),
+                ),
+                child: Text(
+                  verse.slok,
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.mukta(
-                    fontSize: fontSize,
-                    color: MandirTheme.textDark,
-                    height: 1.55,
+                    fontSize: fontSize + 2.0,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF6B1B0B),
+                    height: 1.65,
+                    letterSpacing: 0.4,
                   ),
                 ),
+              ),
+
+              // Transliteration Toggle
+              if (hasTranslit) ...[
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isTranslitExpanded) {
+                        _expandedTransliterations.remove(vNum);
+                      } else {
+                        _expandedTransliterations.add(vNum);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: MandirTheme.cardBorder.withValues(alpha: 0.6)),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.record_voice_over_rounded, size: 14, color: MandirTheme.textMuted),
+                        const SizedBox(width: 6),
+                        Text(
+                          'उच्चार (Pronunciation)',
+                          style: GoogleFonts.mukta(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: MandirTheme.textMuted,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          isTranslitExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: MandirTheme.textMuted,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (isTranslitExpanded)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                    color: Colors.amber.shade50.withValues(alpha: 0.5),
+                    child: Text(
+                      verse.transliteration,
+                      style: GoogleFonts.robotoMono(
+                        fontSize: fontSize - 3.0,
+                        fontStyle: FontStyle.italic,
+                        color: const Color(0xFF5D4037),
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
               ],
-            ),
+
+              // Word Meanings Toggle
+              if (hasWordMeanings) ...[
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isWordMeaningsExpanded) {
+                        _expandedWordMeanings.remove(vNum);
+                      } else {
+                        _expandedWordMeanings.add(vNum);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: MandirTheme.cardBorder.withValues(alpha: 0.6)),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.format_list_bulleted_rounded, size: 14, color: MandirTheme.textMuted),
+                        const SizedBox(width: 6),
+                        Text(
+                          'पदच्छेद व शब्दार्थ (Word Meanings)',
+                          style: GoogleFonts.mukta(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: MandirTheme.textMuted,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          isWordMeaningsExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: MandirTheme.textMuted,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (isWordMeaningsExpanded)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                    color: Colors.amber.shade50.withValues(alpha: 0.35),
+                    child: Text(
+                      verse.wordMeanings,
+                      style: GoogleFonts.mukta(
+                        fontSize: fontSize - 3.0,
+                        color: MandirTheme.textDark,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+              ],
+
+              // Meaning / Bhavarth Container
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    top: BorderSide(color: MandirTheme.cardBorder.withValues(alpha: 0.8)),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: MandirTheme.primarySaffron,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          selectedLang == 'hi'
+                              ? 'भावार्थ'
+                              : (selectedLang == 'en' ? 'Translation' : 'भावार्थ / अर्थ'),
+                          style: GoogleFonts.mukta(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: MandirTheme.primarySaffron,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      meaning.isNotEmpty ? meaning : 'अर्थ उपलब्ध होत आहे...',
+                      style: GoogleFonts.mukta(
+                        fontSize: fontSize,
+                        color: MandirTheme.textDark,
+                        height: 1.55,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
+  // ── Paywall Locked Gate ────────────────────────────────────────────────────
   Widget _buildPaywallGate(
     BuildContext context,
     WidgetRef ref,
@@ -604,95 +692,61 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
       child: Column(
         children: [
           Container(
-            width: 58,
-            height: 58,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFD54F).withValues(alpha: 0.18),
+              color: const Color(0xFFFFD54F).withValues(alpha: 0.2),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFFFFD54F),
-                width: 1.5,
-              ),
             ),
             child: const Icon(
               Icons.lock_rounded,
               color: Color(0xFFFFD54F),
-              size: 28,
+              size: 32,
             ),
           ),
           const SizedBox(height: 14),
           Text(
             langCode == 'hi'
-                ? 'अध्याय $_currentChapterNumber के सम्पूर्ण श्लोक अनलॉक करें'
+                ? 'यह अध्याय प्रीमियम सदस्यों के लिए है'
                 : (langCode == 'en'
-                    ? 'Unlock Chapter $_currentChapterNumber Full Verses'
-                    : 'अध्याय $_currentChapterNumber चे सर्व श्लोक अनलॉक करा'),
+                    ? 'This Chapter is Locked'
+                    : 'हा अध्याय प्रीमियम सदस्यांसाठी आहे'),
             textAlign: TextAlign.center,
             style: GoogleFonts.mukta(
-              fontSize: 19,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
-              height: 1.25,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            langCode == 'en'
-                ? '7 Days Free Trial • Then ₹51/month'
-                : (langCode == 'hi'
-                    ? '7 दिन मुफ्त ट्रायल • फिर ₹51/माह'
-                    : '७ दिवस मोफत ट्रायल • मग ₹५१/महिना'),
-            textAlign: TextAlign.center,
-            style: GoogleFonts.mukta(
-              fontSize: 13,
-              color: const Color(0xFFFFD54F),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
             langCode == 'hi'
-                ? '${widget.book.titleFor(langCode)} के सभी ${widget.book.totalChapters} अध्याय एवं सविस्तार अर्थ पढ़ने के लिए भक्तिधारा प्रीमियम सदस्य बनें।'
+                ? 'सभी अध्याय, संपूर्ण १८ महापुराण एवं अखंड वाचनासाठी प्रीमियम अनलॉक करें।'
                 : (langCode == 'en'
-                    ? 'Join BhaktiDhara VIP to read all ${widget.book.totalChapters} chapters of ${widget.book.titleFor(langCode)} with detailed meanings.'
-                    : '${widget.book.titleFor(langCode)}चे सर्व ${widget.book.totalChapters} अध्याय आणि सविस्तर भावार्थ वाचण्यासाठी भक्तीधारा प्रीमियम सदस्य व्हा।'),
+                    ? 'Unlock all chapters and sacred scriptures with Premium.'
+                    : 'सर्व अध्याय, संपूर्ण १८ महापुराणे व अखंड वाचनासाठी प्रीमियम अनलॉक करा.'),
             textAlign: TextAlign.center,
             style: GoogleFonts.mukta(
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: 13.5,
+              color: const Color(0xFFFFE082),
               height: 1.35,
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed: () => showPremiumPaywallSheet(context, ref, langCode),
-              icon: const Icon(Icons.lock_open_rounded, size: 18),
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  langCode == 'en'
-                      ? 'Start 7-Day Free Trial'
-                      : (langCode == 'hi'
-                          ? '7 दिन मुफ्त ट्रायल शुरू करें'
-                          : '७ दिवस मोफत ट्रायल सुरू करा'),
-                  style: GoogleFonts.mukta(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    height: 1.2,
-                  ),
-                ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFD54F),
+              foregroundColor: const Color(0xFF5D1D00),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD54F),
-                foregroundColor: const Color(0xFF4A1500),
-                elevation: 4,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+            ),
+            onPressed: () => showPremiumPaywallSheet(context, ref, langCode),
+            child: Text(
+              langCode == 'hi' ? 'प्रीमियम अनलॉक करें' : (langCode == 'en' ? 'Unlock VIP' : 'प्रीमियम अनलॉक करा'),
+              style: GoogleFonts.mukta(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -701,6 +755,7 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
     );
   }
 
+  // ── Bottom Navigation Bar (Prev / Next Chapter) ────────────────────────────
   Widget _buildBottomNav(String langCode) {
     final hasPrev = _currentChapterNumber > 1;
     final hasNext = _currentChapterNumber < widget.allChapters.length;
@@ -709,11 +764,18 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: MandirTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: MandirTheme.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -722,15 +784,24 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
             onPressed: hasPrev ? () => _goToChapter(_currentChapterNumber - 1) : null,
             icon: const Icon(Icons.arrow_back_ios_rounded, size: 14),
             label: Text(
-              langCode == 'hi' ? 'पिछला अध्याय' : (langCode == 'en' ? 'Prev Chapter' : 'मागील अध्याय'),
-              style: GoogleFonts.mukta(fontWeight: FontWeight.bold),
+              langCode == 'hi' ? 'पिछला अध्याय' : (langCode == 'en' ? 'Prev' : 'मागील अध्याय'),
+              style: GoogleFonts.mukta(fontWeight: FontWeight.bold, fontSize: 13.5),
             ),
           ),
-          Text(
-            '$_currentChapterNumber / ${widget.allChapters.length}',
-            style: GoogleFonts.mukta(
-              fontWeight: FontWeight.bold,
-              color: MandirTheme.textMuted,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: MandirTheme.chipBackground,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: MandirTheme.chipBorder),
+            ),
+            child: Text(
+              '$_currentChapterNumber / ${widget.allChapters.length}',
+              style: GoogleFonts.mukta(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: MandirTheme.chipText,
+              ),
             ),
           ),
           TextButton.icon(
@@ -743,11 +814,12 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
             label: Text(
               isNextLocked
                   ? (langCode == 'hi'
-                      ? 'अगला अध्याय (अनलॉक)'
-                      : (langCode == 'en' ? 'Next (Unlock)' : 'पुढील अध्याय (अनलॉक)'))
-                  : (langCode == 'hi' ? 'अगला अध्याय' : (langCode == 'en' ? 'Next Chapter' : 'पुढील अध्याय')),
+                      ? 'अगला (अनलॉक)'
+                      : (langCode == 'en' ? 'Next (VIP)' : 'पुढील (अनलॉक)'))
+                  : (langCode == 'hi' ? 'अगला अध्याय' : (langCode == 'en' ? 'Next' : 'पुढील अध्याय')),
               style: GoogleFonts.mukta(
                 fontWeight: FontWeight.bold,
+                fontSize: 13.5,
                 color: isNextLocked ? const Color(0xFFD84315) : null,
               ),
             ),
@@ -757,6 +829,7 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
     );
   }
 
+  // ── Font Size Dialog ───────────────────────────────────────────────────────
   void _showFontSizeDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -790,8 +863,8 @@ class _GranthReaderScreenState extends ConsumerState<GranthReaderScreen> {
                         child: Slider(
                           value: size,
                           min: 14.0,
-                          max: 26.0,
-                          divisions: 6,
+                          max: 28.0,
+                          divisions: 7,
                           activeColor: MandirTheme.primarySaffron,
                           label: '${size.toInt()}',
                           onChanged: (val) {

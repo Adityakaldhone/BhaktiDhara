@@ -30,6 +30,9 @@ import 'granth_catalog_screen.dart';
 import 'horoscope_screen.dart';
 import 'panchang_screen.dart';
 import '../../services/app_permission_service.dart';
+import '../providers/granth_providers.dart';
+import '../widgets/nitya_aarti_shelf.dart';
+import 'granth_chapter_list_screen.dart';
 
 /// Order must match the [IndexedStack] children in the dashboard.
 enum _DashTab { home, bhajan, granth, horoscope, panchang }
@@ -381,6 +384,16 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
                 const SliverToBoxAdapter(child: AnnouncementCards()),
 
+                // ── My Nitya Aarti Shelf (Daily Prayer Favorites) ────────
+                if (ref.watch(searchQueryProvider).trim().isEmpty)
+                  SliverToBoxAdapter(
+                    child: NityaAartiShelf(onOpenAarti: _openAarti),
+                  ),
+
+                // ── Multi-Category Search: Matching Scriptures ───────────
+                if (ref.watch(searchQueryProvider).trim().isNotEmpty)
+                  ..._buildMatchingGranthsSlivers(context, ref, localeCode),
+
                 // ── Naam Jaap entry ──────────────────────────────────────
                 if (ref.watch(featureEnabledProvider(AppRemoteConfig.jaap)))
                   const SliverToBoxAdapter(child: JaapDashboardCard()),
@@ -527,6 +540,166 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  List<Widget> _buildMatchingGranthsSlivers(
+    BuildContext context,
+    WidgetRef ref,
+    String localeCode,
+  ) {
+    final query = ref.watch(searchQueryProvider).trim().toLowerCase();
+    final booksAsync = ref.watch(granthBooksProvider);
+
+    return booksAsync.maybeWhen(
+      data: (books) {
+        final matches = books.where((b) {
+          final title = b.titleFor(localeCode).toLowerCase();
+          final subtitle = b.subtitleFor(localeCode).toLowerCase();
+          final slug = b.slug.toLowerCase();
+          return title.contains(query) ||
+              subtitle.contains(query) ||
+              slug.contains(query);
+        }).toList();
+
+        if (matches.isEmpty) return const [];
+
+        return [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+              child: Row(
+                children: [
+                  const Text('📖', style: TextStyle(fontSize: 15)),
+                  const SizedBox(width: 8),
+                  Text(
+                    localeCode == 'hi'
+                        ? 'पवित्र ग्रंथ (${matches.length})'
+                        : (localeCode == 'en'
+                            ? 'Scriptures (${matches.length})'
+                            : 'पवित्र ग्रंथ (${matches.length})'),
+                    style: GoogleFonts.mukta(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: MandirTheme.textDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 82,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: matches.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 10),
+                itemBuilder: (context, i) {
+                  final b = matches[i];
+                  return Container(
+                    width: 220,
+                    decoration: BoxDecoration(
+                      color: MandirTheme.surfaceWhite,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(0xFFE2B04F).withValues(alpha: 0.5),
+                        width: 1.1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GranthChapterListScreen(book: b),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: MandirTheme.primarySaffron
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    b.coverImage ?? '📖',
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      b.titleFor(localeCode),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.mukta(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: MandirTheme.textDark,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                    Text(
+                                      b.subtitleFor(localeCode),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.mukta(
+                                        fontSize: 11,
+                                        color: MandirTheme.primarySaffron,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: MandirTheme.primarySaffron,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        ];
+      },
+      orElse: () => const [],
     );
   }
 

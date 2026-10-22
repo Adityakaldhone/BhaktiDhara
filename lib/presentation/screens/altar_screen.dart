@@ -12,9 +12,11 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../../services/audio_service.dart';
 import '../../services/backend_service.dart';
+import '../providers/aarti_favorites_provider.dart';
 import '../widgets/lyric_card.dart';
 
 /// App origin used as Referer so YouTube embeds avoid Error 153 /
@@ -25,15 +27,15 @@ const String _kYoutubeEmbedOrigin = 'https://com.kaldhone.bhaktidhara';
 ///
 /// Top area (Header, Video, Pooja Tools) is fixed.
 /// Lyrics below are manually scrollable (no audio sync).
-class AartiAltarScreen extends StatefulWidget {
+class AartiAltarScreen extends ConsumerStatefulWidget {
   final AartiItem aarti;
   const AartiAltarScreen({super.key, required this.aarti});
 
   @override
-  State<AartiAltarScreen> createState() => _AartiAltarScreenState();
+  ConsumerState<AartiAltarScreen> createState() => _AartiAltarScreenState();
 }
 
-class _AartiAltarScreenState extends State<AartiAltarScreen>
+class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   WebViewController? _webController;
   bool _isLoading = true;
@@ -43,11 +45,31 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
   bool _showUnmuteHint = false;
   int _videoFallbackIndex = 0;
 
-  // Accessibility font scaler for 50+ demographic
+  // Accessibility font scaler for 50+ demographic (1.0x, 1.25x, 1.5x)
   static const _fontScales = [1.0, 1.25, 1.5];
-  // ignore: prefer_final_fields
   int _fontScaleIndex = 0;
   double get _fontScale => _fontScales[_fontScaleIndex];
+
+  void _cycleFontScale() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _fontScaleIndex = (_fontScaleIndex + 1) % _fontScales.length;
+    });
+    final label = _fontScaleIndex == 0
+        ? 'सामान्य (1.0x)'
+        : (_fontScaleIndex == 1 ? 'मोठा (1.25x)' : 'खूप मोठा (1.5x)');
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'अक्षर आकार: $label',
+          style: GoogleFonts.mukta(fontWeight: FontWeight.bold),
+        ),
+        duration: const Duration(milliseconds: 900),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   final AudioService _audio = AudioService();
 
@@ -575,6 +597,89 @@ class _AartiAltarScreenState extends State<AartiAltarScreen>
                   height: 60,
                   fit: BoxFit.contain,
                 ),
+              ),
+            ),
+
+            // Right Controls: Font Zoom (A±) and Daily Aarti Favorite (Heart)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final isFav = ref.watch(aartiFavoritesProvider).contains(widget.aarti.id);
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Font Size Scaler Button
+                      GestureDetector(
+                        onTap: _cycleFontScale,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF8E8),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFDCA65D), width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            _fontScaleIndex == 0 ? 'A' : (_fontScaleIndex == 1 ? 'A+' : 'A++'),
+                            style: GoogleFonts.mukta(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF7B1E1E),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Favorite / Nitya Aarti Toggle
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          ref.read(aartiFavoritesProvider.notifier).toggle(widget.aarti.id);
+                          ScaffoldMessenger.of(context).clearSnackBars();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                !isFav
+                                    ? 'नित्य आरती मध्ये जोडले 🙏'
+                                    : 'नित्य आरती मधून काढले',
+                                style: GoogleFonts.mukta(fontWeight: FontWeight.bold),
+                              ),
+                              duration: const Duration(milliseconds: 900),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF8E8),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFDCA65D), width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isFav ? const Color(0xFFE53935) : const Color(0xFF7B1E1E),
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],

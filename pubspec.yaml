@@ -98,15 +98,6 @@ flutter_launcher_icons:
   min_sdk_android: 21
   remove_alpha_ios: true
 
-# Regenerate native launch screens after changes: dart run flutter_native_splash:create
-flutter_native_splash:
-  color: "#FCF6E8"
-  image: assets/app_logo/logo.png
-  color_dark: "#FCF6E8"
-  image_dark: assets/app_logo/logo.png
-  android_12:
-    color: "#FCF6E8"
-    image: assets/app_logo/logo.png
-    color_dark: "#FCF6E8"
-    image_dark: assets/app_logo/logo.png
-  web: false
+
+# Native splash disabled: instant sub-second home launch directly into #FCF6E8 cream background
+

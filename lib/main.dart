@@ -25,29 +25,18 @@ import 'services/rewarded_ad_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (!kIsWeb) {
-    MobileAds.instance.initialize();
-    RewardedAdService.instance.preload();
-  }
-  // Language the user picked by hand, if any; otherwise the device language is used
-  final userLanguageCode = await loadUserLanguageCode();
 
-  // Send anonymous install/active user heartbeat in background (fire-and-forget)
-  BackendService.sendAnonymousPing(
-    locale: resolveStartupLocale(userLanguageCode).languageCode,
-  );
+  // Load essential local preferences concurrently in a single batch (sub-50ms)
+  final results = await Future.wait([
+    loadUserLanguageCode(),
+    createReviewServiceOverride(),
+    RecentDeitiesRepository.getInitialRecentDeities(),
+    BackendService.loadCachedRemoteConfig(),
+  ]);
 
-  // Initialise the review service (tracks distinct open-days, loads prefs)
-  final reviewOverride = await createReviewServiceOverride();
-
-  // Load cached recent deities order for the Bhakti tab
-  final cachedRecentDeities = await RecentDeitiesRepository.getInitialRecentDeities();
-
-  // Last known admin config, so disabled features stay hidden from the first frame
-  await BackendService.loadCachedRemoteConfig();
-
-  // Tag Clarity sessions with the same anonymous device ID the backend uses
-  BackendService.getAnonymousDeviceId().then(ClarityService.setUserId);
+  final userLanguageCode = results[0] as String?;
+  final reviewOverride = results[1] as Override;
+  final cachedRecentDeities = results[2] as List<String>;
 
   runApp(
     ClarityService.wrapWithClarity(
@@ -79,13 +68,26 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Eagerly initialize subscription & 7-day free trial state
+      // 1. Initialize AdMob and preload ads quietly in background without delaying frame 0
+      if (!kIsWeb) {
+        MobileAds.instance.initialize();
+        RewardedAdService.instance.preload();
+      }
+
+      // 2. Background analytics ping & Clarity session tagging
+      final userLang = ref.read(userLanguageCodeProvider);
+      BackendService.sendAnonymousPing(
+        locale: resolveStartupLocale(userLang).languageCode,
+      );
+      BackendService.getAnonymousDeviceId().then(ClarityService.setUserId);
+
+      // 3. Eagerly initialize subscription & 7-day free trial state
       ref.read(subscriptionProvider);
       await PushNotificationService.init();
       if (!mounted) return;
       _syncPushTopics();
       PushNotificationService.handlePendingTap();
-      // Silently check for background flexible updates via Google Play
+      // 4. Silently check for background flexible updates via Google Play
       AppUpdateService.tryPlayStoreFlexibleUpdate();
     });
   }
