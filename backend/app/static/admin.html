@@ -658,6 +658,9 @@
           <div class="sub">Installs, active devotees and app growth telemetry</div>
         </div>
         <div class="row">
+          <div class="pill ok row" style="font-size:12px;font-weight:600;padding:6px 12px;background:var(--saffron-light);color:#92400E;border-color:var(--border-accent)" title="Live Indian Standard Time (Asia/Kolkata)">
+            <span>🕒</span> <span class="live-ist-time">--:--:-- IST</span>
+          </div>
           <select class="inp" id="ov-days">
             <option value="14">Last 14 days</option>
             <option value="30" selected>Last 30 days</option>
@@ -2336,9 +2339,7 @@
   // ── boot ───────────────────────────────────────────────────
   if (secret) tryLogin(secret, !!localStorage.getItem('bd_admin')).catch(() => logout());
 })();
-</script>
 
-<script>
 (() => {
   const $ = (s, el = document) => el.querySelector(s);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2363,7 +2364,6 @@
   new MutationObserver(moveGlider).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
   new MutationObserver(() => requestAnimationFrame(moveGlider)).observe(app, { attributes: true, attributeFilter: ['class'] });
   addEventListener('resize', moveGlider);
-
 
   // ── button ripple ──────────────────────────────────────────
   if (!reduce) {
@@ -2409,7 +2409,7 @@
   }
   new MutationObserver((muts) => {
     const hit = new Set();
-    muts.forEach((m) => { if (m.target.classList && m.target.classList.contains('kpis')) hit.add(m.target); });
+    muts.forEach((m) => { if (m.target && m.target.classList && m.target.classList.contains('kpis')) hit.add(m.target); });
     hit.forEach(countUp);
   }).observe($('main'), { childList: true, subtree: true });
 
@@ -2418,15 +2418,27 @@
   const pvDate = $('#pv-date');
   function tick() {
     const now = new Date();
-    clock.innerHTML = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + '<small>IST</small>';
-    pvDate.textContent = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+    const timeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    if (clock) {
+      clock.innerHTML = timeStr + '<small>IST</small>';
+    }
+    if (pvDate) {
+      pvDate.textContent = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    document.querySelectorAll('.live-ist-time').forEach(el => {
+      el.textContent = timeStr + ' IST';
+    });
   }
   tick();
   setInterval(tick, 1000);
 
   // ── command palette + shortcuts ────────────────────────────
   const navButtons = [...nav.querySelectorAll('button[data-view]')];
-  const viewLabel = (b) => b.childNodes[2]?.textContent.trim() || b.textContent.trim();
+  const viewLabel = (b) => {
+    const clone = b.cloneNode(true);
+    clone.querySelectorAll('svg, .kbd').forEach(el => el.remove());
+    return clone.textContent.trim();
+  };
   const COMMANDS = [
     ...navButtons.map((b) => ({ label: viewLabel(b), hint: 'View', run: () => b.click() })),
     { label: 'Refresh current view', hint: 'Action', run: () => {
@@ -2444,18 +2456,41 @@
   function renderCmdk() {
     const q = cmdkInput.value.trim().toLowerCase();
     filtered = COMMANDS.filter((c) => c.label.toLowerCase().includes(q));
+    if (q) {
+      filtered.push({
+        label: `Search devotees for "${cmdkInput.value.trim()}"`,
+        hint: 'Devotee Search',
+        run: () => {
+          nav.querySelector('[data-view="users"]')?.click();
+          setTimeout(() => {
+            const uInput = $('#u-search');
+            if (uInput) {
+              uInput.value = cmdkInput.value.trim();
+              uInput.dispatchEvent(new Event('input'));
+              uInput.focus();
+            }
+          }, 350);
+        }
+      });
+    }
     sel = Math.min(sel, Math.max(0, filtered.length - 1));
     cmdkList.innerHTML = filtered.map((c, i) => `<div class="cmdk-item ${i === sel ? 'sel' : ''}" data-i="${i}">${c.label}<small>${c.hint}</small></div>`).join('')
       || '<div class="empty">Nothing matches</div>';
   }
   function openCmdk() {
     if (!app.classList.contains('ready')) return;
-    cmdk.classList.add('open'); cmdkInput.value = ''; sel = 0; renderCmdk();
-    setTimeout(() => cmdkInput.focus(), 10);
+    cmdk.classList.add('open');
+    cmdkInput.value = '';
+    sel = 0;
+    renderCmdk();
+    setTimeout(() => cmdkInput.focus(), 50);
   }
   function closeCmdk() { cmdk.classList.remove('open'); }
   function runCmd(i) { const c = filtered[i]; if (!c) return; closeCmdk(); c.run(); }
-  $('#cmdk-open').addEventListener('click', openCmdk);
+  
+  const cmdkTrigger = $('#cmdk-open');
+  if (cmdkTrigger) cmdkTrigger.addEventListener('click', openCmdk);
+
   cmdk.addEventListener('click', (e) => {
     const it = e.target.closest('.cmdk-item');
     if (it) runCmd(+it.dataset.i); else if (e.target === cmdk) closeCmdk();
@@ -2473,12 +2508,17 @@
       cmdk.classList.contains('open') ? closeCmdk() : openCmdk();
       return;
     }
-    if (cmdk.classList.contains('open') || isTyping(document.activeElement) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (cmdk.classList.contains('open')) {
+      if (e.key === 'Escape') { closeCmdk(); }
+      return;
+    }
+    if (isTyping(document.activeElement) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (!app.classList.contains('ready') || document.querySelector('.modal-backdrop.open, #drawer.open')) return;
     if (/^[1-9]$/.test(e.key)) navButtons[+e.key - 1]?.click();
     else if (e.key === '/') { e.preventDefault(); openCmdk(); }
   });
 })();
+</script>
 </body>
 </html>
 
