@@ -1,402 +1,561 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BhaktiDhara — Aarti Sangrah | Your Digital Mandir</title>
-    <meta name="description" content="BhaktiDhara: Aarti Sangrah — A beautiful collection of sacred aartis, chalisa & bhajans with in-app video, lyrics, and pooja tools. Available in English, Hindi & Marathi.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --saffron: #E8731A;
-            --maroon: #8B1A1A;
-            --gold: #D4A843;
-            --cream: #FFF9F0;
-            --warm-white: #FFFDF8;
-            --text-dark: #3D2B1F;
-            --text-muted: #8B7355;
-            --card-bg: #FFFFFF;
-            --gradient-hero: linear-gradient(145deg, #8B1A1A 0%, #B82E2E 30%, #E8731A 70%, #D4A843 100%);
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+  <!-- Primary SEO Meta Tags -->
+  <title>BhaktiDhara (भक्तिधारा) — Daily Aarti Sangrah, Hanuman Chalisa, Granth & Panchang</title>
+  <meta name="title" content="BhaktiDhara (भक्तिधारा) — Daily Aarti Sangrah, Hanuman Chalisa, Granth & Panchang" />
+  <meta name="description" content="Your digital mandir: Authentic Hindu Aartis, Hanuman Chalisa with meanings, Vedic Panchang, and Sacred Puranas in Hindi, Marathi & English." />
+  <meta name="theme-color" content="#FFFBF5" />
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--cream);
-            color: var(--text-dark);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <link rel="shortcut icon" href="/favicon.ico" />
 
-        /* ── Hero Section ──────────────────────────────────── */
-        .hero {
-            background: var(--gradient-hero);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 60px 24px;
-            position: relative;
-            overflow: hidden;
-        }
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" />
 
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.08) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.05) 0%, transparent 40%);
-            animation: shimmer 8s ease-in-out infinite alternate;
-        }
+  <style>
+    :root {
+      --bg-page: #FFFBF5;
+      --bg-white: #FFFFFF;
+      --bg-warm: #FFF7ED;
+      --bg-section-alt: #FEF3E2;
 
-        @keyframes shimmer {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(-20px, -20px) rotate(2deg); }
-        }
+      --saffron: #D97706;
+      --saffron-dark: #B45309;
+      --maroon: #7C2D12;
+      --maroon-deep: #5C1A0B;
+      --accent-orange: #EA580C;
 
-        .hero-content {
-            position: relative;
-            z-index: 1;
-            max-width: 680px;
-        }
+      --text-primary: #1C1917;
+      --text-secondary: #57534E;
+      --text-tertiary: #A8A29E;
 
-        .om-symbol {
-            font-size: 64px;
-            margin-bottom: 8px;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
-            animation: float 3s ease-in-out infinite;
-        }
+      --border-light: #E7E5E4;
+      --border-warm: #FED7AA;
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
 
-        .hero h1 {
-            font-family: 'Noto Sans Devanagari', sans-serif;
-            font-size: 56px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 4px;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
 
-        .hero .subtitle {
-            font-size: 22px;
-            font-weight: 600;
-            color: rgba(255,255,255,0.9);
-            margin-bottom: 8px;
-        }
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-hindi: 'Noto Sans Devanagari', 'Inter', sans-serif;
+    }
 
-        .hero .tagline {
-            font-family: 'Noto Sans Devanagari', sans-serif;
-            font-size: 16px;
-            color: rgba(255,255,255,0.75);
-            font-style: italic;
-            margin-bottom: 36px;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
 
-        .hero .description {
-            font-size: 17px;
-            color: rgba(255,255,255,0.85);
-            max-width: 520px;
-            margin: 0 auto 40px;
-            line-height: 1.7;
-        }
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
 
-        .cta-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: #fff;
-            color: var(--maroon);
-            padding: 16px 36px;
-            border-radius: 50px;
-            font-size: 17px;
-            font-weight: 700;
-            text-decoration: none;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
+    .hindi-text { font-family: var(--font-hindi); }
 
-        .cta-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-        }
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
 
-        .cta-button svg {
-            width: 24px;
-            height: 24px;
-        }
+    /* ── Navigation ──────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 251, 245, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-light);
+    }
 
-        .scroll-indicator {
-            position: absolute;
-            bottom: 32px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255,255,255,0.5);
-            font-size: 13px;
-            animation: bounce 2s infinite;
-            z-index: 1;
-        }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
 
-        @keyframes bounce {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(8px); }
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
 
-        /* ── Features Section ──────────────────────────────── */
-        .features {
-            padding: 80px 24px;
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-warm);
+      border: 1px solid var(--border-warm);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
 
-        .section-title {
-            text-align: center;
-            font-size: 36px;
-            font-weight: 800;
-            color: var(--maroon);
-            margin-bottom: 12px;
-        }
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--maroon);
+      letter-spacing: -0.01em;
+      display: block;
+    }
 
-        .section-subtitle {
-            text-align: center;
-            font-size: 16px;
-            color: var(--text-muted);
-            margin-bottom: 48px;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-        }
+    .brand-subtitle {
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 600;
+      display: block;
+    }
 
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-        }
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+      align-items: center;
+    }
 
-        .feature-card {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 32px 28px;
-            border: 1px solid #F0E6D6;
-            box-shadow: 0 4px 20px rgba(139, 26, 26, 0.06);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
 
-        .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 36px rgba(139, 26, 26, 0.1);
-        }
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
 
-        .feature-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-            margin-bottom: 16px;
-        }
+    .nav-cta {
+      background: var(--maroon);
+      color: #fff !important;
+      font-weight: 600 !important;
+      padding: 9px 18px;
+      border-radius: 8px;
+      transition: background 0.15s ease;
+    }
+    .nav-cta:hover { background: var(--maroon-deep); }
 
-        .feature-card h3 {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 8px;
-        }
+    /* ── Hero ────────────────────────────────────────── */
+    .hero {
+      padding: 72px 0 80px;
+      border-bottom: 1px solid var(--border-light);
+    }
 
-        .feature-card p {
-            font-size: 14px;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
+    .hero-content {
+      max-width: 760px;
+      margin: 0 auto;
+      text-align: center;
+    }
 
-        .icon-saffron { background: linear-gradient(135deg, #FFF3E0, #FFE0B2); }
-        .icon-maroon { background: linear-gradient(135deg, #FCE4EC, #F8BBD0); }
-        .icon-gold { background: linear-gradient(135deg, #FFF8E1, #FFECB3); }
-        .icon-green { background: linear-gradient(135deg, #E8F5E9, #C8E6C9); }
-        .icon-blue { background: linear-gradient(135deg, #E3F2FD, #BBDEFB); }
-        .icon-purple { background: linear-gradient(135deg, #F3E5F5, #E1BEE7); }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--bg-section-alt);
+      border: 1px solid var(--border-warm);
+      border-radius: 100px;
+      color: var(--saffron-dark);
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
 
-        /* ── Languages Section ─────────────────────────────── */
-        .languages {
-            background: linear-gradient(135deg, #FFF3E0 0%, #FFF9F0 100%);
-            padding: 64px 24px;
-            text-align: center;
-        }
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--saffron);
+      border-radius: 50%;
+    }
 
-        .lang-pills {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            margin-top: 32px;
-            flex-wrap: wrap;
-        }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text-primary);
+      margin-bottom: 18px;
+      letter-spacing: -0.02em;
+    }
 
-        .lang-pill {
-            background: #fff;
-            border: 2px solid #F0DCC0;
-            border-radius: 50px;
-            padding: 14px 32px;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--maroon);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease;
-        }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
 
-        .lang-pill:hover {
-            transform: scale(1.05);
-            border-color: var(--saffron);
-        }
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
 
-        /* ── Footer ────────────────────────────────────────── */
-        footer {
-            background: var(--maroon);
-            color: rgba(255,255,255,0.8);
-            text-align: center;
-            padding: 40px 24px;
-        }
+    .btn-playstore {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--text-primary);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: opacity 0.15s ease;
+    }
+    .btn-playstore:hover { opacity: 0.9; }
 
-        footer .footer-brand {
-            font-family: 'Noto Sans Devanagari', sans-serif;
-            font-size: 24px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 12px;
-        }
+    .btn-website {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-white);
+      color: var(--text-primary);
+      padding: 12px 22px;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid var(--border-light);
+      transition: border-color 0.15s ease;
+    }
+    .btn-website:hover { border-color: var(--text-tertiary); }
 
-        footer a {
-            color: var(--gold);
-            text-decoration: none;
-            font-weight: 500;
-        }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border-light);
+      padding-top: 32px;
+    }
 
-        footer a:hover { text-decoration: underline; }
+    .stat-item { text-align: center; }
+    .stat-number { font-size: 1.5rem; font-weight: 800; color: var(--maroon); }
+    .stat-label { font-size: 0.8rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 600; }
 
-        .footer-links {
-            margin: 20px 0;
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            flex-wrap: wrap;
-        }
+    /* ── Features ────────────────────────────────────── */
+    .features-section {
+      padding: 80px 0;
+    }
 
-        .footer-links a {
-            font-size: 14px;
-            color: rgba(255,255,255,0.7);
-        }
+    .section-header {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 56px;
+    }
 
-        footer .copyright {
-            font-size: 13px;
-            color: rgba(255,255,255,0.5);
-            margin-top: 20px;
-        }
+    .section-header h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
 
-        @media (max-width: 600px) {
-            .hero h1 { font-size: 36px; }
-            .hero .subtitle { font-size: 18px; }
-            .section-title { font-size: 28px; }
-            .features-grid { grid-template-columns: 1fr; }
-            .om-symbol { font-size: 48px; }
-        }
-    </style>
+    .section-header p {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-white);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .feature-card:hover {
+      border-color: var(--border-warm);
+      box-shadow: var(--shadow-md);
+    }
+
+    .feature-icon-box {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-warm);
+      border: 1px solid var(--border-warm);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .feature-card p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ── Languages Section ───────────────────────────── */
+    .languages-section {
+      background: var(--bg-warm);
+      border-top: 1px solid var(--border-warm);
+      border-bottom: 1px solid var(--border-warm);
+      padding: 64px 0;
+      text-align: center;
+    }
+
+    .lang-pills {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+
+    .lang-pill {
+      background: var(--bg-white);
+      border: 1px solid var(--border-warm);
+      border-radius: 100px;
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--maroon);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ── Footer ──────────────────────────────────────── */
+    footer {
+      background: var(--bg-white);
+      border-top: 1px solid var(--border-light);
+      padding: 56px 0 40px;
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .footer-brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--maroon);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    .copyright {
+      padding-top: 24px;
+      text-align: center;
+      color: var(--text-tertiary);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 900px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero h1 { font-size: 2.3rem; }
+    }
+
+    @media (max-width: 600px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .hero h1 { font-size: 1.9rem; }
+      .hero p { font-size: 1rem; }
+      .footer-inner { flex-direction: column; text-align: center; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- ═══ Hero ═══ -->
-<section class="hero">
-    <div class="hero-content">
-        <div class="om-symbol">🕉️</div>
-        <h1>भक्तिधारा</h1>
-        <div class="subtitle">Aarti Sangrah</div>
-        <div class="tagline">भक्तीचा प्रवाह, प्रत्येक घरी, प्रत्येक दिवशी</div>
-        <p class="description">
-            Your digital mandir — a beautiful collection of sacred aartis, chalisa & bhajans with in-app video, synced lyrics, and pooja tools. Pray anytime, anywhere.
+  <!-- Navigation -->
+  <nav>
+    <div class="container nav-inner">
+      <a href="/" class="brand">
+        <div class="brand-icon">🛕</div>
+        <div>
+          <span class="brand-title hindi-text">भक्तिधारा</span>
+          <span class="brand-subtitle">BhaktiDhara</span>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="https://bhaktidharaapp.in/hanuman-chalisa">हनुमान चालीसा</a></li>
+        <li><a href="https://bhaktidharaapp.in/panchang">दैनिक पंचांग</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="https://bhaktidharaapp.in/" class="nav-cta">Live Site ↗</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          <span>सनातन धर्म व प्रामाणिक ग्रंथ • 100% Ad-Free Digital Mandir</span>
+        </div>
+        <h1 class="hindi-text">भक्तिधारा • शुद्ध नित्य साधना का डिजिटल संगम</h1>
+        <p>
+          BhaktiDhara provides authentic Hindu Aartis, Hanuman Chalisa with word-by-word meaning, high-precision Vedic Panchang, and sacred Puranas in a serene, distraction-free environment.
         </p>
-        <a href="https://play.google.com/store/apps/details?id=com.example.nitya_aarti" class="cta-button">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302-2.302 2.302L15.396 12l2.302-2.492zM5.864 2.658L16.8 8.991l-2.302 2.302L5.864 2.658z"/></svg>
-            Download on Google Play
-        </a>
+        <div class="hero-actions">
+          <a href="https://play.google.com/store/apps/details?id=com.kaldhone.bhaktidhara" target="_blank" rel="noopener" class="btn-playstore">
+            📱 Download on Google Play
+          </a>
+          <a href="https://bhaktidharaapp.in/" target="_blank" class="btn-website">
+            🌐 Open Web Portal ↗
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <div class="stat-number">100+</div>
+            <div class="stat-label">Sacred Aartis & Stotras</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">100%</div>
+            <div class="stat-label">Ad-Free Devotion</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">Vedic</div>
+            <div class="stat-label">Drik Ganitha Panchang</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="scroll-indicator">↓ Scroll to explore</div>
-</section>
+  </section>
 
-<!-- ═══ Features ═══ -->
-<section class="features">
-    <h2 class="section-title">✨ Features</h2>
-    <p class="section-subtitle">Everything you need for a peaceful and immersive pooja experience</p>
-
-    <div class="features-grid">
+  <!-- Features Section -->
+  <section id="features" class="features-section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="hindi-text">पवित्र साधना की सभी विशेषताएं</h2>
+        <p>Everything carefully designed for pure devotion, scriptural authenticity, and daily peace of mind.</p>
+      </div>
+      <div class="features-grid">
         <div class="feature-card">
-            <div class="feature-icon icon-saffron">📿</div>
-            <h3>Complete Aarti Collection</h3>
-            <p>Browse aartis for Lord Ganesha, Lord Hanuman, Lord Shiva, Goddess Durga and more — all in one place.</p>
+          <div class="feature-icon-box">📿</div>
+          <h3 class="hindi-text">सम्पूर्ण आरती व चालीसा संग्रह</h3>
+          <p>Read and listen to traditional Aartis of Lord Ganesha, Hanuman, Shiva, Durga, and more with auto-scrolling lyrics and Devanagari text.</p>
         </div>
 
         <div class="feature-card">
-            <div class="feature-icon icon-maroon">▶️</div>
-            <h3>In-App Video Player</h3>
-            <p>Watch and listen to aarti videos without ever leaving the app. Strictly embedded for a distraction-free experience.</p>
+          <div class="feature-icon-box">📅</div>
+          <h3 class="hindi-text">सटीक वैदिक पंचांग</h3>
+          <p>Drik Ganitha calculation for exact Tithi, Nakshatra, Shubh Abhijit Muhurat, Rahukaal, and sunrise-sunset times for your location.</p>
         </div>
 
         <div class="feature-card">
-            <div class="feature-icon icon-gold">📖</div>
-            <h3>Synced Lyrics</h3>
-            <p>Read along with Devanagari text and transliteration while the aarti plays. Adjustable font sizes for all ages.</p>
+          <div class="feature-icon-box">📜</div>
+          <h3 class="hindi-text">प्रामाणिक धर्मग्रंथ व पुराण</h3>
+          <p>Explore Shrimad Bhagavad Gita, Garuda Purana, and Shiva Purana chapter-by-chapter with authentic Hindi translation.</p>
         </div>
 
         <div class="feature-card">
-            <div class="feature-icon icon-green">🔔</div>
-            <h3>Pooja Tools</h3>
-            <p>Ring the sacred bell (ghanti) and blow the conch (shankh) right from your phone during pooja.</p>
+          <div class="feature-icon-box">🔔</div>
+          <h3 class="hindi-text">नित्य पूजा साधन</h3>
+          <p>In-app sacred temple bell (ghanti), shankh sound, and jaap mala counter to aid your daily morning and evening pooja.</p>
         </div>
 
         <div class="feature-card">
-            <div class="feature-icon icon-blue">📱</div>
-            <h3>Screen Awake Mode</h3>
-            <p>Your screen stays on during pooja — no interruptions, no distractions. Just pure devotion.</p>
+          <div class="feature-icon-box">🚫</div>
+          <h3 class="hindi-text">विज्ञापन-मुक्त वातावरण</h3>
+          <p>Zero popups or disruptive commercial advertisements during prayer and mantra chanting, preserving sacred mindfulness.</p>
         </div>
 
         <div class="feature-card">
-            <div class="feature-icon icon-purple">🔍</div>
-            <h3>Smart Search & Filters</h3>
-            <p>Quickly find any aarti by name, deity, or type. Filter by Ganesha, Hanuman, Shiva, Durga & more.</p>
+          <div class="feature-icon-box">⚡</div>
+          <h3 class="hindi-text">ऑफलाइन एक्सेस</h3>
+          <p>Read all Aartis, Chalisa, and Granth without active internet connection anytime and anywhere.</p>
         </div>
+      </div>
     </div>
-</section>
+  </section>
 
-<!-- ═══ Languages ═══ -->
-<section class="languages">
-    <h2 class="section-title">🌐 Multilingual</h2>
-    <p class="section-subtitle">Available in three languages for a truly inclusive devotional experience</p>
-    <div class="lang-pills">
+  <!-- Languages Section -->
+  <section class="languages-section">
+    <div class="container">
+      <h2 class="hindi-text">त्रिभाषी सुविधा • Multilingual Support</h2>
+      <p style="color: var(--text-secondary); margin-top: 8px;">Available in three languages for an inclusive spiritual experience</p>
+      <div class="lang-pills">
+        <div class="lang-pill">🇮🇳 हिंदी (Hindi)</div>
+        <div class="lang-pill">🇮🇳 मराठी (Marathi)</div>
         <div class="lang-pill">🇬🇧 English</div>
-        <div class="lang-pill">🇮🇳 हिंदी</div>
-        <div class="lang-pill">🇮🇳 मराठी</div>
+      </div>
     </div>
-</section>
+  </section>
 
-<!-- ═══ Footer ═══ -->
-<footer>
-    <div class="footer-brand">🙏 भक्तिधारा</div>
-    <p>Your digital mandir, now in your pocket.</p>
-    <div class="footer-links">
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="mailto:adityakaldhone11@gmail.com">Contact Us</a>
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand hindi-text">भक्तिधारा • BhaktiDhara</div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 4px;">Dedicated to Sanatan Dharma & Authentic Vedic Wisdom.</p>
+        </div>
+        <ul class="footer-links">
+          <li><a href="https://bhaktidharaapp.in/">Main Website</a></li>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="mailto:support@bhaktidharaapp.in">Support</a></li>
+        </ul>
+      </div>
+      <div class="copyright">
+        &copy; 2026 BhaktiDhara. All Sacred Rites Reserved.
+      </div>
     </div>
-    <div class="copyright">&copy; 2026 BhaktiDhara. All rights reserved.</div>
-</footer>
+  </footer>
 
 </body>
 </html>

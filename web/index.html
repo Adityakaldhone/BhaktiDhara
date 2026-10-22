@@ -15,28 +15,22 @@
   <meta name="apple-mobile-web-app-title" content="BhaktiDhara">
   <link rel="apple-touch-icon" href="icons/Icon-192.png?v=3">
 
-  <!-- Favicons with cache-busting -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/app/favicon.png?v=4">
-  <link rel="icon" type="image/x-icon" href="/app/favicon.ico?v=4">
-  <link rel="shortcut icon" href="/app/favicon.ico?v=4">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=4">
-  <link rel="icon" type="image/x-icon" href="favicon.ico?v=4">
+  <!-- Favicons (Google Search & Multi-device compliant) -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="192x192" href="/apple-touch-icon.png">
 
   <title>BhaktiDhara (भक्तिधारा) - Aarti & Chalisa</title>
   <link rel="manifest" href="manifest.json?v=4">
   <meta name="theme-color" content="#0d0814">
 
   <script>
-    // Dynamic Favicon Cache Buster for Chrome & Edge
     (function() {
       try {
-        var link = document.createElement('link');
-        link.type = 'image/png';
-        link.rel = 'icon';
-        link.sizes = '32x32';
-        link.href = '/app/favicon.png?v=' + Date.now();
-        document.head.appendChild(link);
-
         // Update service workers to avoid stale cached builds
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then(function(regs) {

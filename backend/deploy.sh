@@ -3,9 +3,14 @@ set -e
 
 SERVER_IP="46.225.142.210"
 SERVER_PATH="/root/bhaktidhara-backend"
+LANDING_PATH="/var/www/bhaktidhara-landing"
 
 echo "🚀 Syncing backend code to Hetzner ($SERVER_IP)..."
 rsync -avz --exclude '__pycache__' --exclude '*.pyc' --exclude '.env' --exclude 'data/' --exclude 'bhaktidhara.db' "$(dirname "$0")/" "root@$SERVER_IP:$SERVER_PATH/"
+
+echo "🌐 Syncing static landing pages to Nginx web root ($LANDING_PATH)..."
+rsync -avz "$(dirname "$0")/app/static/" "root@$SERVER_IP:$LANDING_PATH/"
+ssh root@$SERVER_IP "chown -R www-data:www-data $LANDING_PATH && chmod -R 755 $LANDING_PATH && systemctl reload nginx"
 
 echo "🐳 Rebuilding and recreating container on server..."
 ssh root@$SERVER_IP "cd $SERVER_PATH && docker compose build && docker compose up -d --force-recreate"

@@ -554,6 +554,6 @@ Numbers: use `intl` `NumberFormat.decimalPattern('en_IN')` and show Lakh/Crore w
 
 - A wrong letter in a mantra is a matter of faith for users and will bring angry reviews, so this is a **release blocker**.
 - Get the 12 preset mantras checked by a **local pandit or Sanskrit teacher** (one-time, low cost), in Devanagari and all transliterations.
-- Cross-check against trusted sources: **Gita Press** texts, **ISKCON** official Hare Krishna Mahamantra.
+- Cross-check against trusted sources: Traditional Vedic & Sanskrit scriptures, **ISKCON** official Hare Krishna Mahamantra.
 - Add a **"Report a correction"** option on the mantra card so users can flag mistakes.
 - Keep mantras in a **data file** (`jaap_mantra_catalog.dart`, later remote JSON) so fixes don't require code changes.
