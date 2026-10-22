@@ -154,28 +154,7 @@ def seed_gita():
             is_active = 1
     """)
 
-    # Also seed placeholders for upcoming scriptures (Garuda Purana & Dasbodh)
-    cur.execute("""
-        INSERT INTO granth_books (
-            slug, title_mr, title_hi, title_en,
-            subtitle_mr, subtitle_hi, subtitle_en,
-            description_mr, description_hi, description_en,
-            total_chapters, total_verses, free_chapters, sort_order, is_active
-        ) VALUES (
-            'garuda-purana',
-            'गरुड पुराण सारोद्धार',
-            'गरुड़ पुराण सारोद्धार',
-            'Garuda Purana Saroddhara',
-            'मृत्यूनंतरचा जीवाचा प्रवास आणि कर्माचे गूढ रहस्य',
-            'मृत्यु के उपरांत जीवात्मा की गति एवं यमलोक का वर्णन',
-            'The Sacred Journey of the Soul, Karma and Moksha',
-            'भगवान विष्णू आणि गरुड यांच्यातील संवादरूप पवित्र ग्रंथ, ज्यामध्ये आत्म्याचा प्रवास, कर्मफळ आणि मुक्तीचे मार्गदर्शन आहे.',
-            'भगवान श्रीहरि विष्णु और पक्षीराज गरुड़ के संवाद रूप में जीवात्मा की यात्रा, कर्मफल और मोक्ष का विस्तृत वर्णन।',
-            'The revered dialogue between Lord Vishnu and Garuda explaining the soul journey, karma, afterlife and ultimate liberation.',
-            16, 0, 1, 2, 0
-        )
-        ON CONFLICT(slug) DO NOTHING
-    """)
+    # Also seed placeholders for upcoming scriptures (Dasbodh)
 
     cur.execute("""
         INSERT INTO granth_books (

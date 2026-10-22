@@ -384,7 +384,7 @@ class GranthChapterListScreen extends ConsumerWidget {
               height: 1.4,
             ),
           ),
-          if (book.slug == 'garuda-purana' || book.slug == 'dasbodh' || (book.pdfUrl != null && book.pdfUrl!.isNotEmpty)) ...[
+          if (book.slug == 'dasbodh' || (book.pdfUrl != null && book.pdfUrl!.isNotEmpty)) ...[
             const SizedBox(height: 14),
             Container(
               decoration: BoxDecoration(
@@ -407,7 +407,7 @@ class GranthChapterListScreen extends ConsumerWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
                   onTap: () async {
-                    if (book.slug == 'garuda-purana' || book.slug == 'dasbodh') {
+                    if (book.slug == 'dasbodh') {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -457,17 +457,11 @@ class GranthChapterListScreen extends ConsumerWidget {
                                         : (langCode == 'en'
                                             ? 'Illustrated Shrimad Dasbodh (467 Pages)'
                                             : 'सचित्र संपूर्ण श्रीमद् दासबोध (४६७ पृष्ठे)'))
-                                    : (book.slug == 'garuda-purana'
-                                        ? (langCode == 'hi'
-                                            ? 'सचित्र संपूर्ण गरुड़ महापुराण (६३८ पृष्ठ)'
-                                            : (langCode == 'en'
-                                                ? 'Illustrated Garuda Mahapurana (638 Pages)'
-                                                : 'सचित्र संपूर्ण गरुड महापुराण (६३८ पृष्ठे)'))
-                                        : (langCode == 'hi'
-                                            ? 'सचित्र सम्पूर्ण ${book.titleFor(langCode)} (${book.totalVerses > 0 ? '${book.totalVerses} पृष्ठ' : 'PDF'})'
-                                            : (langCode == 'en'
-                                                ? 'Illustrated Sacred ${book.titleFor(langCode)} (${book.totalVerses > 0 ? '${book.totalVerses} Pages' : 'PDF'})'
-                                                : 'सचित्र संपूर्ण ${book.titleFor(langCode)} (${book.totalVerses > 0 ? '${book.totalVerses} पृष्ठे' : 'PDF'})'))),
+                                    : (langCode == 'hi'
+                                        ? 'सचित्र सम्पूर्ण ${book.titleFor(langCode)} (${book.totalVerses > 0 ? '${book.totalVerses} पृष्ठ' : 'PDF'})'
+                                        : (langCode == 'en'
+                                            ? 'Illustrated Sacred ${book.titleFor(langCode)} (${book.totalVerses > 0 ? '${book.totalVerses} Pages' : 'PDF'})'
+                                            : 'सचित्र संपूर्ण ${book.titleFor(langCode)} (${book.totalVerses > 0 ? '${book.totalVerses} पृष्ठे' : 'PDF'})')),
                                 style: GoogleFonts.mukta(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -482,17 +476,11 @@ class GranthChapterListScreen extends ConsumerWidget {
                                         : (langCode == 'en'
                                             ? 'Original sacred manuscript • 20 Dashakas & Aarti'
                                             : 'मूळ हस्तलिखित ग्रंथ • २० दशक, २०० समास व आरती'))
-                                    : (book.slug == 'garuda-purana'
-                                        ? (langCode == 'hi'
-                                            ? 'मूल प्राचीन ग्रंथ • ज़ूम एवं पृष्ठ नेविगेशन'
-                                            : (langCode == 'en'
-                                                ? 'Original sacred manuscript • Zoom & pagination'
-                                                : 'मूळ प्राचीन ग्रंथ • झूम व पृष्ठ नेव्हिगेशन'))
-                                        : (langCode == 'hi'
-                                            ? 'मूल पावन महापुराण • एचडी डिजिटल प्रत'
-                                            : (langCode == 'en'
-                                                ? 'Original sacred scripture • HD Digital Edition'
-                                                : 'मूळ पावन महापुराण • एचडी डिजिटल प्रत'))),
+                                    : (langCode == 'hi'
+                                        ? 'मूल पावन महापुराण • एचडी डिजिटल प्रत'
+                                        : (langCode == 'en'
+                                            ? 'Original sacred scripture • HD Digital Edition'
+                                            : 'मूळ पावन महापुराण • एचडी डिजिटल प्रत')),
                                 style: GoogleFonts.mukta(
                                   fontSize: 12,
                                   color: const Color(0xFFFFE082),

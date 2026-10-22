@@ -27,7 +27,7 @@ async def _is_user_premium(device_id: Optional[str]) -> bool:
 async def get_granth_books(
     x_device_id: Optional[str] = Header(None, alias="X-Device-Id"),
 ) -> Dict[str, Any]:
-    """Returns the list of all sacred scriptures (e.g. Bhagavad Gita, Garuda Purana, Dasbodh)."""
+    """Returns the list of all sacred scriptures (e.g. Bhagavad Gita, Dasbodh)."""
     is_vip = await _is_user_premium(x_device_id)
 
     async with aiosqlite.connect(DB_PATH) as db:
@@ -248,36 +248,6 @@ async def get_granth_chapter_verses(
 POTHI_DIR = Path(__file__).resolve().parent.parent / "data" / "pothi"
 
 POTHI_CATALOG = {
-    "garuda-purana": {
-        "title": {
-            "mr": "सचित्र संपूर्ण गरुड महापुराण",
-            "hi": "सचित्र संपूर्ण गरुड़ महापुराण",
-            "en": "Sacred Garuda Mahapuranam (Illustrated)",
-        },
-        "subtitle": {
-            "mr": "६३८ पृष्ठे • आचारकाण्ड, प्रेतकल्प व ब्रह्मकाण्ड",
-            "hi": "६३८ पृष्ठ • आचारकाण्ड, प्रेतकल्प एवं ब्रह्मकाण्ड",
-            "en": "638 Pages • Acharakhanda, Pretakalpa & Brahmakhanda",
-        },
-        "description": {
-            "mr": "मूळ प्राचीन ग्रंथाचे सचित्र ६३८ पृष्ठांचे संपूर्ण वाचन. संस्कृत श्लोक, टीका आणि सविस्तर भावार्थ.",
-            "hi": "मूल प्राचीन ग्रंथ के सचित्र ६३८ पृष्ठों का सम्पूर्ण अध्ययन। संस्कृत श्लोक, व्याख्या और विस्तृत भावार्थ।",
-            "en": "Authentic complete 638-page sacred illustrated manuscript with Sanskrit verses and full commentary.",
-        },
-        "totalPages": 638,
-        "freePages": 638,
-        "attribution": {
-            "mr": "प्राचीन ग्रंथ डिजिटल संकलन: Indic Journals / Internet Archive (CC BY-NC-ND 4.0 परवान्याअंतर्गत सर्व भाविकांसाठी विनामूल्य उपलब्ध).",
-            "hi": "प्राचीन ग्रंथ डिजिटल संकलन: Indic Journals / Internet Archive (CC BY-NC-ND 4.0 लाइसेंस के अंतर्गत समस्त श्रद्धालुओं हेतु निःशुल्क उपलब्ध)।",
-            "en": "Digital preservation courtesy of Indic Journals / Internet Archive under CC BY-NC-ND 4.0. Offered freely for non-commercial devotional study.",
-        },
-        "sections": [
-            {"title": "मंगलाचरण एवं विषय-सूची", "startPage": 1},
-            {"title": "आचारकाण्ड (प्रथम भाग)", "startPage": 15},
-            {"title": "धर्मकाण्ड (प्रेतकल्प - मरणोत्तर यात्रा)", "startPage": 451},
-            {"title": "ब्रह्मकाण्ड (परमज्ञान एवं मोक्ष)", "startPage": 585},
-        ],
-    },
     "dasbodh": {
         "title": {
             "mr": "सचित्र संपूर्ण श्रीमद् दासबोध",

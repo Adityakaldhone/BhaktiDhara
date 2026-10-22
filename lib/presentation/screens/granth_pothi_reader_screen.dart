@@ -326,10 +326,10 @@ class _GranthPothiReaderScreenState
           children: [
             Text(
               langCode == 'hi'
-                  ? 'यह पवित्र गरुड़ महापुराण ग्रंथ लोककल्याण एवं धार्मिक अध्ययन हेतु समस्त श्रद्धालुओं के लिए १००% निःशुल्क उपलब्ध है।'
+                  ? 'यह पवित्र ${widget.book.titleFor(langCode)} ग्रंथ लोककल्याण एवं धार्मिक अध्ययन हेतु समस्त श्रद्धालुओं के लिए उपलब्ध है।'
                   : (langCode == 'en'
-                      ? 'This sacred Garuda Mahapuranam manuscript is provided 100% free for all devotees for spiritual study.'
-                      : 'हा पवित्र गरुड महापुराण ग्रंथ लोककल्याणार्थ व आध्यात्मिक अभ्यासासाठी सर्व भाविकांना १००% विनामूल्य उपलब्ध आहे.'),
+                      ? 'This sacred ${widget.book.titleFor(langCode)} manuscript is provided for spiritual study.'
+                      : 'हा पवित्र ${widget.book.titleFor(langCode)} ग्रंथ लोककल्याणार्थ व आध्यात्मिक अभ्यासासाठी सर्व भाविकांना उपलब्ध आहे.'),
               style: GoogleFonts.mukta(
                   fontSize: 13.5, color: MandirTheme.textDark, height: 1.35),
             ),
@@ -390,11 +390,7 @@ class _GranthPothiReaderScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    langCode == 'hi'
-                        ? 'सचित्र गरुड़ महापुराण'
-                        : (langCode == 'en'
-                            ? 'Sacred Garuda Mahapuranam'
-                            : 'सचित्र गरुड महापुराण'),
+                    widget.book.titleFor(langCode),
                     style: GoogleFonts.mukta(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,

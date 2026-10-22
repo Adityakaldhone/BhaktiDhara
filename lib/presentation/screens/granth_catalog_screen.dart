@@ -371,9 +371,7 @@ class GranthCatalogScreen extends ConsumerWidget {
                               ? book.coverImage!
                               : (book.slug == 'bhagavad-gita'
                                   ? 'ॐ'
-                                  : (book.slug == 'garuda-purana'
-                                      ? '🦅'
-                                      : (book.slug == 'dasbodh' ? '🚩' : '📖'))),
+                                  : (book.slug == 'dasbodh' ? '🚩' : '📖')),
                           style: book.slug == 'bhagavad-gita'
                               ? GoogleFonts.mukta(
                                   fontSize: 24,

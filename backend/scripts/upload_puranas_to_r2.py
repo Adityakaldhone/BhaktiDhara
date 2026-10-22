@@ -441,11 +441,6 @@ def seed_db(db_path: Path, purana_records: list):
         print("  Adding 'pdf_url' column to granth_books...")
         cur.execute("ALTER TABLE granth_books ADD COLUMN pdf_url TEXT")
 
-    # Also update Garuda Purana if pdf_url is known
-    garuda_pdf = DOWNLOADS_DIR / "garuda-puran.pdf"
-    if garuda_pdf.exists():
-        garuda_url = f"{R2_PUBLIC_URL}/puranas/garuda-purana.pdf"
-        cur.execute("UPDATE granth_books SET pdf_url = ? WHERE slug = 'garuda-purana'", (garuda_url,))
 
     for p in purana_records:
         slug = p["slug"]
@@ -509,10 +504,6 @@ def main():
 
     s3 = get_r2_client()
 
-    # Upload Garuda Purana first if present
-    garuda_file = DOWNLOADS_DIR / "garuda-puran.pdf"
-    if garuda_file.exists():
-        upload_file_to_r2(s3, garuda_file, "puranas/garuda-purana.pdf")
 
     processed_records = []
 
