@@ -13,9 +13,6 @@ import 'presentation/providers/premium_provider.dart';
 import 'presentation/providers/remote_config_provider.dart';
 import 'presentation/providers/subscription_provider.dart';
 import 'presentation/providers/horoscope_provider.dart';
-import 'presentation/providers/review_provider.dart';
-import 'data/repositories/recent_deities_repository.dart';
-import 'presentation/providers/bhakti_darshan_providers.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'presentation/widgets/remote_notices.dart';
 import 'services/app_update_service.dart';
@@ -23,31 +20,15 @@ import 'services/backend_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/rewarded_ad_service.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load essential local preferences concurrently in a single batch (sub-50ms)
-  final results = await Future.wait([
-    loadUserLanguageCode(),
-    createReviewServiceOverride(),
-    RecentDeitiesRepository.getInitialRecentDeities(),
-    BackendService.loadCachedRemoteConfig(),
-  ]);
-
-  final userLanguageCode = results[0] as String?;
-  final reviewOverride = results[1] as Override;
-  final cachedRecentDeities = results[2] as List<String>;
-
+  // Instant launch: Render widget tree immediately on frame 0 without blocking on disk/network I/O
   runApp(
     ClarityService.wrapWithClarity(
       projectId: _clarityProjectId,
-      child: ProviderScope(
-        overrides: [
-          reviewOverride,
-          userLanguageCodeProvider.overrideWithValue(userLanguageCode),
-          initialRecentDeitiesProvider.overrideWithValue(cachedRecentDeities),
-        ],
-        child: const NityaAartiApp(),
+      child: const ProviderScope(
+        child: NityaAartiApp(),
       ),
     ),
   );
@@ -68,26 +49,36 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // 1. Initialize AdMob and preload ads quietly in background without delaying frame 0
+      // 1. Asynchronously restore user-selected language if previously saved
+      final savedLang = await loadUserLanguageCode();
+      if (savedLang != null && mounted) {
+        ref.read(localeProvider.notifier).state = Locale(savedLang);
+      }
+
+      // 2. Pre-warm remote config cache in background
+      BackendService.loadCachedRemoteConfig();
+
+      // 3. Initialize AdMob and preload ads quietly in background without delaying frame 0
       if (!kIsWeb) {
         MobileAds.instance.initialize();
         RewardedAdService.instance.preload();
       }
 
-      // 2. Background analytics ping & Clarity session tagging
+      // 4. Background analytics ping & Clarity session tagging
       final userLang = ref.read(userLanguageCodeProvider);
       BackendService.sendAnonymousPing(
         locale: resolveStartupLocale(userLang).languageCode,
       );
       BackendService.getAnonymousDeviceId().then(ClarityService.setUserId);
 
-      // 3. Eagerly initialize subscription & 7-day free trial state
+      // 5. Eagerly initialize subscription & 7-day free trial state
       ref.read(subscriptionProvider);
       await PushNotificationService.init();
       if (!mounted) return;
       _syncPushTopics();
       PushNotificationService.handlePendingTap();
-      // 4. Silently check for background flexible updates via Google Play
+
+      // 6. Silently check for background flexible updates via Google Play
       AppUpdateService.tryPlayStoreFlexibleUpdate();
     });
   }

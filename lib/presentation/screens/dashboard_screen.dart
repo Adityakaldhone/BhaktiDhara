@@ -50,6 +50,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
   _DashTab _tab = _DashTab.home;
+  final Set<_DashTab> _visitedTabs = {_DashTab.home};
 
   // Search and voice recognition controllers
   final TextEditingController _searchController = TextEditingController();
@@ -64,12 +65,13 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   void initState() {
     super.initState();
     _homeScrollController.addListener(_onHomeScroll);
-    _initSpeech();
-    _loadBannerAd();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initSpeech();
+      _loadBannerAd();
       AppPermissionService.checkAndRequestStartupPermissions(ref);
     });
   }
+
 
   void _onHomeScroll() {
     final show = _homeScrollController.hasClients &&
@@ -169,10 +171,18 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       index: currentTab.index,
       children: [
         _buildHomeTab(catalogAsync, l10n, localeCode),
-        tabs.contains(_DashTab.bhajan) ? const BhajanScreen() : const SizedBox.shrink(),
-        tabs.contains(_DashTab.granth) ? const GranthCatalogScreen() : const SizedBox.shrink(),
-        tabs.contains(_DashTab.horoscope) ? const HoroscopeScreen() : const SizedBox.shrink(),
-        tabs.contains(_DashTab.panchang) ? const PanchangScreen() : const SizedBox.shrink(),
+        _visitedTabs.contains(_DashTab.bhajan) && tabs.contains(_DashTab.bhajan)
+            ? const BhajanScreen()
+            : const SizedBox.shrink(),
+        _visitedTabs.contains(_DashTab.granth) && tabs.contains(_DashTab.granth)
+            ? const GranthCatalogScreen()
+            : const SizedBox.shrink(),
+        _visitedTabs.contains(_DashTab.horoscope) && tabs.contains(_DashTab.horoscope)
+            ? const HoroscopeScreen()
+            : const SizedBox.shrink(),
+        _visitedTabs.contains(_DashTab.panchang) && tabs.contains(_DashTab.panchang)
+            ? const PanchangScreen()
+            : const SizedBox.shrink(),
       ],
     );
 
@@ -298,6 +308,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               }
               setState(() {
                 _tab = tapped;
+                _visitedTabs.add(tapped);
                 if (tapped != _DashTab.home) {
                   _showScrollToTop = false;
                 } else if (_homeScrollController.hasClients) {

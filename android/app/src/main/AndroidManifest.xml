@@ -74,6 +74,10 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <meta-data
+              android:name="io.flutter.embedding.android.SplashScreenDrawable"
+              android:resource="@drawable/launch_background"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -84,6 +88,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+
 
     <!-- Required for Flutter text processing plugin, speech recognition, and Play Store redirection -->
     <queries>

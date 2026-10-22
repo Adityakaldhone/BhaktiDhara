@@ -38,8 +38,10 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "bhaktidhara/vibration")
             .setMethodCallHandler { call, result ->
                 val v = vibrator

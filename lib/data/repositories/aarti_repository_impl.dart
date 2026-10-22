@@ -6,9 +6,6 @@ import '../datasources/catalog.dart';
 class AartiRepositoryImpl implements AartiRepository {
   @override
   Future<List<AartiItem>> fetchCatalog() async {
-    // In a real app, this might fetch from a database or API.
-    // For now, it returns the static list with a small simulated delay.
-    await Future.delayed(const Duration(milliseconds: 300));
     return kDevotionalCatalog;
   }
 }
