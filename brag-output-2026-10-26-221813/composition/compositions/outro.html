@@ -1,0 +1,174 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #ou-bg {
+      position: absolute;
+      inset: 0;
+      background: #5c1a0b;
+    }
+    #ou-glow {
+      position: absolute;
+      left: 50%;
+      top: 560px;
+      width: 1500px;
+      height: 1500px;
+      margin: -750px 0 0 -750px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(217, 119, 6, 0.45) 0%, rgba(217, 119, 6, 0.14) 40%, rgba(217, 119, 6, 0) 68%);
+    }
+    #ou-stage {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      padding: 0 80px;
+      text-align: center;
+    }
+    #ou-icon {
+      width: 280px;
+      height: 280px;
+      border-radius: 64px;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(254, 215, 170, 0.35);
+    }
+    #ou-icon img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #ou-en {
+      margin-top: 10px;
+      font-size: 120px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff7ed;
+    }
+    #ou-en span {
+      display: inline-block;
+    }
+    #ou-hi {
+      font-size: 64px;
+      line-height: 1.1;
+      font-weight: 700;
+      color: #fdba74;
+    }
+    #ou-tag {
+      font-size: 44px;
+      line-height: 1.25;
+      color: #fed7aa;
+      max-width: 860px;
+    }
+    #ou-tag .w {
+      display: inline-block;
+      margin: 0 0.12em;
+    }
+    #ou-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 10px;
+      max-width: 900px;
+    }
+    .ou-pill {
+      padding: 14px 28px;
+      border-radius: 999px;
+      border: 2px solid rgba(253, 186, 116, 0.45);
+      background: rgba(255, 247, 237, 0.08);
+      color: #fff7ed;
+      font-size: 32px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    #ou-play {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-top: 26px;
+      padding: 18px 40px 18px 30px;
+      border-radius: 22px;
+      background: #000000;
+      border: 2px solid rgba(255, 255, 255, 0.28);
+      color: #ffffff;
+      text-align: left;
+    }
+    #ou-play svg {
+      width: 56px;
+      height: 56px;
+    }
+    #ou-play small {
+      display: block;
+      font-size: 24px;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+    }
+    #ou-play strong {
+      display: block;
+      font-size: 42px;
+      line-height: 1.05;
+      font-weight: 700;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="outro" data-width="1080" data-height="1920">
+    <div id="ou-bg"></div>
+    <div id="ou-glow" data-layout-ignore></div>
+    <div id="ou-stage">
+      <div id="ou-icon"><img src="assets/img/logo.png" alt="BhaktiDhara app icon" /></div>
+      <div id="ou-en"><span>B</span><span>h</span><span>a</span><span>k</span><span>t</span><span>i</span><span>D</span><span>h</span><span>a</span><span>r</span><span>a</span></div>
+      <div id="ou-hi">भक्तिधारा · Aarti Sangrah</div>
+      <p id="ou-tag"><span class="w">Stream</span><span class="w">of</span><span class="w">devotion,</span><span class="w">every</span><span class="w">home,</span><span class="w">every</span><span class="w">day</span></p>
+      <div id="ou-pills">
+        <div class="ou-pill">हिंदी · मराठी · English</div>
+        <div class="ou-pill">100% Offline Ready</div>
+        <div class="ou-pill">★ 4.9 Rated</div>
+      </div>
+      <div id="ou-play">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3.609 1.814L13.793 12 3.61 22.186C3.242 21.808 3 21.242 3 20.5V3.5c0-.742.242-1.308.609-1.686z" fill="#00E5FF" />
+          <path d="M17.186 8.607L13.793 12l3.393 3.393 3.843-2.18c1.096-.622 1.096-1.804 0-2.426l-3.843-2.18z" fill="#FFD600" />
+          <path d="M3.609 1.814l10.184 10.186 3.393-3.393-11.45-6.5C5.176 1.776 4.31 1.745 3.61 1.814z" fill="#00E676" />
+          <path d="M17.186 15.393L13.793 12 3.61 22.186c.7.07 1.566.038 2.126-.293l11.45-6.5z" fill="#FF3D00" />
+        </svg>
+        <div data-layout-ignore><small>GET IT ON</small><strong>Google Play</strong></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#ou-bg", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 0);
+      tl.fromTo("#ou-glow", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2, ease: "power2.out" }, 0.2);
+      // beat-locked: icon lands at 40.75s (local 0.93).
+      tl.fromTo("#ou-icon", { opacity: 0, scale: 0.86, filter: "blur(8px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "expo.out" }, 0.75);
+      tl.fromTo("#ou-en span", { opacity: 0, filter: "blur(4px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power2.out", stagger: 0.035 }, 1.05);
+      tl.fromTo("#ou-hi", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "expo.out" }, 1.4);
+      tl.fromTo("#ou-tag .w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.16, ease: "power4.out", stagger: 0.07 }, 1.6);
+      tl.fromTo(".ou-pill", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", stagger: 0.1 }, 2.2);
+      tl.fromTo("#ou-play", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 2.75);
+
+      tl.to("#ou-stage", { opacity: 0, duration: 0.35, ease: "power2.in" }, 4.8);
+      tl.to("#ou-glow", { opacity: 0, duration: 0.35, ease: "power2.in" }, 4.8);
+
+      window.__timelines["outro"] = tl;
+    })();
+  </script>
+</template>

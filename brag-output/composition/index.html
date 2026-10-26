@@ -1,0 +1,136 @@
+<!doctype html>
+<html
+  lang="en"
+  data-composition-variables='[
+    {"id":"color-ground","type":"color","label":"Background","default":"#FFFBF5"},
+    {"id":"color-ink","type":"color","label":"Text","default":"#1C1917"},
+    {"id":"color-accent","type":"color","label":"Accent","default":"#B45309"},
+    {"id":"color-deep","type":"color","label":"Outro ground","default":"#5C1A0B"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #fffbf5;
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+      }
+      #petals {
+        z-index: 5;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-3uxp"
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="21"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div data-hf-id="hf-0p9f"
+        id="bell"
+        class="clip"
+        data-composition-id="bell"
+        data-composition-src="compositions/bell.html"
+        data-start="0"
+        data-duration="4"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div data-hf-id="hf-5w7w"
+        id="aarti"
+        class="clip"
+        data-composition-id="aarti"
+        data-composition-src="compositions/aarti.html"
+        data-start="4"
+        data-duration="7"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div data-hf-id="hf-9aa0"
+        id="deities"
+        class="clip"
+        data-composition-id="deities"
+        data-composition-src="compositions/deities.html"
+        data-start="11"
+        data-duration="5.6"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div data-hf-id="hf-73h4"
+        id="outro"
+        class="clip"
+        data-composition-id="outro"
+        data-composition-src="compositions/outro.html"
+        data-start="16.6"
+        data-duration="4.4"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div data-hf-id="hf-1tcy"
+        id="petals"
+        class="clip"
+        data-composition-id="petals"
+        data-composition-src="compositions/petals.html"
+        data-start="9.95"
+        data-duration="2.9"
+        data-track-index="2"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <audio data-hf-id="hf-jv9h"
+        id="music"
+        class="clip"
+        data-start="0"
+        data-duration="21"
+        data-track-index="10"
+        data-volume="0.28"
+        data-fade-out="1.5"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+      ></audio>
+      <!-- hook: bell strike lands at 0.60s; sound one frame after the picture -->
+      <audio data-hf-id="hf-4u6i" id="sfx-ghanti-hook" class="clip" data-start="0.63" data-duration="3" data-track-index="11" data-volume="0.85" data-fade-out="0.6" src="assets/sfx/ghanti.mp3"></audio>
+      <!-- aarti taps: Ring Ghanti 7.90s, Blow Shankh 8.90s, Shower Flowers 9.90s -->
+      <audio data-hf-id="hf-tmbw" id="sfx-tap-ghanti" class="clip" data-start="7.93" data-duration="0.06" data-track-index="12" data-volume="0.35" src="assets/sfx/click2.ogg"></audio>
+      <audio data-hf-id="hf-zqy8" id="sfx-ghanti-tap" class="clip" data-start="7.94" data-duration="2.6" data-track-index="13" data-volume="0.7" data-fade-out="0.6" src="assets/sfx/ghanti.mp3"></audio>
+      <audio data-hf-id="hf-0rlp" id="sfx-tap-shankh" class="clip" data-start="8.93" data-duration="0.06" data-track-index="14" data-volume="0.35" src="assets/sfx/click2.ogg"></audio>
+      <audio data-hf-id="hf-pktv" id="sfx-shankh" class="clip" data-start="8.95" data-duration="2.3" data-media-start="3.3" data-track-index="15" data-volume="0.6" data-fade-in="0.08" data-fade-out="0.8" src="assets/sfx/shankh_dhun.mp3"></audio>
+      <audio data-hf-id="hf-y7bn" id="sfx-tap-flowers" class="clip" data-start="9.93" data-duration="0.06" data-track-index="16" data-volume="0.4" src="assets/sfx/click2.ogg"></audio>
+      <!-- deity row: first card 11.46s, last card 13.37s -->
+      <audio data-hf-id="hf-pe6o" id="sfx-deity-first" class="clip" data-start="11.49" data-duration="0.19" data-track-index="17" data-volume="0.55" src="assets/sfx/drop_002.ogg"></audio>
+      <audio data-hf-id="hf-bjm2" id="sfx-deity-last" class="clip" data-start="13.40" data-duration="0.19" data-track-index="18" data-volume="0.55" src="assets/sfx/drop_002.ogg"></audio>
+      <!-- outro: app icon lands on the 17.47s strong cue -->
+      <audio data-hf-id="hf-moqt" id="sfx-icon" class="clip" data-start="17.47" data-duration="0.18" data-track-index="19" data-volume="0.7" src="assets/sfx/impactSoft_medium_001.ogg"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

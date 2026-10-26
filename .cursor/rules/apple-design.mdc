@@ -1,0 +1,8 @@
+---
+description: Apple Design skill for UI refactoring
+globs: *
+alwaysApply: false
+---
+
+Apply the design methodology and rules defined in:
+@.cursor/skills-repo/skills/apple-design/SKILL.md

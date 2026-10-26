@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Mukta";
+        src: url("assets/fonts/Mukta-Regular.ttf");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Mukta";
+        src: url("assets/fonts/Mukta-Bold.ttf");
+        font-weight: 700;
+      }
+      @font-face {
+        font-family: "Tiro Devanagari Marathi";
+        src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+        font-weight: 400;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #fffbf5;
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+        font-family: "Mukta", sans-serif;
+        color: #1c1917;
+      }
+      #bg-glow {
+        position: absolute;
+        left: 50%;
+        top: 1100px;
+        width: 1500px;
+        height: 1500px;
+        margin-left: -750px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(217, 119, 6, 0.16) 0%, rgba(217, 119, 6, 0) 62%);
+      }
+
+      /* Shared scene layout: caption on top, phone below. */
+      .scene {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        font-family: "Mukta", sans-serif;
+        color: #1c1917;
+      }
+      .cap {
+        position: absolute;
+        left: 90px;
+        right: 90px;
+        top: 150px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .kicker {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #b45309;
+      }
+      .title {
+        font-size: 76px;
+        line-height: 1.04;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .title .w {
+        display: inline-block;
+        margin-right: 0.22em;
+      }
+      .body {
+        font-size: 36px;
+        line-height: 1.32;
+        color: #57534e;
+      }
+      .phone {
+        position: absolute;
+        left: 50%;
+        top: 590px;
+        width: 720px;
+        height: 1300px;
+        margin-left: -360px;
+        border-radius: 96px;
+        background: #1c1917;
+        padding: 18px;
+        box-shadow: 0 40px 90px rgba(124, 45, 18, 0.28), 0 6px 18px rgba(124, 45, 18, 0.12);
+      }
+      .screen {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 80px;
+        overflow: hidden;
+        background: #fffbf5;
+      }
+      .notch {
+        position: absolute;
+        left: 50%;
+        top: 22px;
+        width: 180px;
+        height: 50px;
+        margin-left: -90px;
+        border-radius: 999px;
+        background: #1c1917;
+        z-index: 20;
+      }
+      .appbar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 190px;
+        padding: 104px 40px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 38px;
+        font-weight: 700;
+        color: #7c2d12;
+      }
+      .touch {
+        position: absolute;
+        width: 84px;
+        height: 84px;
+        margin: -42px 0 0 -42px;
+        border-radius: 50%;
+        background: rgba(217, 119, 6, 0.35);
+        border: 3px solid rgba(255, 255, 255, 0.85);
+        opacity: 0;
+        z-index: 30;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="45"
+      data-width="1080"
+      data-height="1920"
+    >
+      <div id="bg-glow" data-layout-ignore></div>
+
+      <div id="s-hook" class="clip" data-composition-id="hook" data-composition-src="compositions/hook.html" data-start="0" data-duration="3.82" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="s-aarti" class="clip" data-composition-id="aarti" data-composition-src="compositions/aarti.html" data-start="3.82" data-duration="7.11" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="s-deities" class="clip" data-composition-id="deities" data-composition-src="compositions/deities.html" data-start="10.93" data-duration="4.91" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="s-bhakti" class="clip" data-composition-id="bhakti" data-composition-src="compositions/bhakti.html" data-start="15.84" data-duration="4.35" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="s-granth" class="clip" data-composition-id="granth" data-composition-src="compositions/granth.html" data-start="20.19" data-duration="4.37" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="s-jaap" class="clip" data-composition-id="jaap" data-composition-src="compositions/jaap.html" data-start="24.56" data-duration="5.45" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="s-panchang" class="clip" data-composition-id="panchang" data-composition-src="compositions/panchang.html" data-start="30.01" data-duration="5.46" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="s-greetings" class="clip" data-composition-id="greetings" data-composition-src="compositions/greetings.html" data-start="35.47" data-duration="4.35" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="s-outro" class="clip" data-composition-id="outro" data-composition-src="compositions/outro.html" data-start="39.82" data-duration="5.18" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+
+      <audio id="music" class="clip" data-start="0" data-duration="45" data-track-index="10" data-volume="0.26" data-fade-out="1.8" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio>
+      <!-- hook: bell strike at 0.60s -->
+      <audio id="sfx-hook-bell" class="clip" data-start="0.63" data-duration="3" data-track-index="11" data-volume="0.8" data-fade-out="0.8" src="assets/sfx/ghanti.mp3"></audio>
+      <!-- aarti taps (local 3.9 / 4.9 / 5.9) -->
+      <audio id="sfx-a-tap1" class="clip" data-start="7.75" data-duration="0.06" data-track-index="12" data-volume="0.35" src="assets/sfx/click2.ogg"></audio>
+      <audio id="sfx-a-bell" class="clip" data-start="7.76" data-duration="2.4" data-track-index="13" data-volume="0.65" data-fade-out="0.6" src="assets/sfx/ghanti.mp3"></audio>
+      <audio id="sfx-a-tap2" class="clip" data-start="8.75" data-duration="0.06" data-track-index="14" data-volume="0.35" src="assets/sfx/click2.ogg"></audio>
+      <audio id="sfx-a-conch" class="clip" data-start="8.77" data-duration="2.1" data-media-start="3.3" data-track-index="15" data-volume="0.55" data-fade-in="0.08" data-fade-out="0.8" src="assets/sfx/shankh_dhun.mp3"></audio>
+      <audio id="sfx-a-tap3" class="clip" data-start="9.75" data-duration="0.06" data-track-index="16" data-volume="0.4" src="assets/sfx/click2.ogg"></audio>
+      <!-- deities: grid lands, voice mic tap -->
+      <audio id="sfx-d-grid" class="clip" data-start="11.55" data-duration="0.19" data-track-index="17" data-volume="0.5" src="assets/sfx/drop_002.ogg"></audio>
+      <audio id="sfx-d-result" class="clip" data-start="14.15" data-duration="0.11" data-track-index="18" data-volume="0.55" src="assets/sfx/drop_001.ogg"></audio>
+      <!-- bhakti: play tap -->
+      <audio id="sfx-b-play" class="clip" data-start="16.83" data-duration="0.06" data-track-index="19" data-volume="0.4" src="assets/sfx/click2.ogg"></audio>
+      <!-- granth: open book -->
+      <audio id="sfx-g-open" class="clip" data-start="22.13" data-duration="0.19" data-track-index="20" data-volume="0.5" src="assets/sfx/drop_002.ogg"></audio>
+      <!-- jaap: mala taps (local 1.3, 1.85, 2.4, 2.95), completion bell -->
+      <audio id="sfx-j-1" class="clip" data-start="25.86" data-duration="0.06" data-track-index="21" data-volume="0.7" src="assets/sfx/jaap_tick.mp3"></audio>
+      <audio id="sfx-j-2" class="clip" data-start="26.41" data-duration="0.06" data-track-index="22" data-volume="0.7" src="assets/sfx/jaap_tick.mp3"></audio>
+      <audio id="sfx-j-3" class="clip" data-start="26.96" data-duration="0.06" data-track-index="23" data-volume="0.7" src="assets/sfx/jaap_tick.mp3"></audio>
+      <audio id="sfx-j-4" class="clip" data-start="27.51" data-duration="0.06" data-track-index="24" data-volume="0.7" src="assets/sfx/jaap_tick.mp3"></audio>
+      <audio id="sfx-j-done" class="clip" data-start="27.56" data-duration="2.3" data-track-index="25" data-volume="0.5" data-fade-out="0.8" src="assets/sfx/ghanti.mp3"></audio>
+      <!-- panchang: rashi tap -->
+      <audio id="sfx-p-rashi" class="clip" data-start="33.31" data-duration="0.06" data-track-index="26" data-volume="0.4" src="assets/sfx/click2.ogg"></audio>
+      <!-- greetings: share tap -->
+      <audio id="sfx-gr-tap" class="clip" data-start="37.47" data-duration="0.06" data-track-index="27" data-volume="0.4" src="assets/sfx/click2.ogg"></audio>
+      <audio id="sfx-gr-share" class="clip" data-start="38.52" data-duration="0.11" data-track-index="28" data-volume="0.5" src="assets/sfx/drop_001.ogg"></audio>
+      <!-- outro: icon lands on a strong beat (40.75s) -->
+      <audio id="sfx-icon" class="clip" data-start="40.75" data-duration="0.18" data-track-index="29" data-volume="0.7" src="assets/sfx/impactSoft_medium_001.ogg"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

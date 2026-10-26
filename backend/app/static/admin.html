@@ -1104,7 +1104,7 @@
             <input type="file" id="gr-file" accept="image/jpeg,image/png,image/webp" multiple hidden>
             <div style="font-size:28px">🖼️</div>
             <div><b>Drop images here</b> or click to choose</div>
-            <small>JPG / PNG / WebP, portrait 9:16 or 4:5 works best · max 2.5 MB each · keep the bottom-left corner plain for the user's photo</small>
+            <small>JPG / PNG / WebP, portrait 9:16 or 4:5 works best · max 3 MB each · keep the bottom-left corner plain for the user's photo</small>
           </label>
           <div id="gr-progress" class="gr-progress"></div>
         </div>
@@ -2067,13 +2067,13 @@
     const log = $('#gr-progress');
     log.innerHTML = '';
     let ok = 0;
-    const MAX_BYTES = 2.5 * 1024 * 1024;
+    const MAX_BYTES = 3 * 1024 * 1024;
     for (const [n, file] of [...files].entries()) {
       const line = document.createElement('div');
       line.textContent = `⏳ ${n + 1}/${files.length} ${file.name}…`;
       log.appendChild(line);
       if (file.size > MAX_BYTES) {
-        line.textContent = `❌ ${file.name}: Image exceeds 2.5 MB limit (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        line.textContent = `❌ ${file.name}: Image exceeds 3 MB limit (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
         line.className = 'err';
         continue;
       }
@@ -2083,8 +2083,14 @@
       try {
         const res = await fetch('/api/v1/admin/greetings/images', { method: 'POST', headers: { 'X-Admin-Secret': secret }, body: form });
         if (res.status === 401) { logout('Session expired or invalid secret'); return; }
+        if (res.status === 409) {
+          let detail = 'Already uploaded';
+          try { detail = (await res.json()).detail || detail; } catch (_) {}
+          line.textContent = `⏭️ ${file.name}: skipped, ${detail}`;
+          continue;
+        }
         if (!res.ok) {
-          let detail = res.status === 413 ? 'Image is larger than 2.5 MB' : res.statusText;
+          let detail = res.status === 413 ? 'Image is larger than 3 MB' : res.statusText;
           try { detail = (await res.json()).detail || detail; } catch (_) {}
           throw new Error(detail);
         }

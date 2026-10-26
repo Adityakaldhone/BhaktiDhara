@@ -1,0 +1,224 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #gt-head {
+      position: absolute;
+      left: 36px;
+      top: 110px;
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    #gt-chips {
+      position: absolute;
+      left: 30px;
+      right: 0;
+      top: 200px;
+      display: flex;
+      gap: 20px;
+    }
+    .gt-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #57534e;
+    }
+    .gt-chip img {
+      width: 104px;
+      height: 104px;
+      border-radius: 30px;
+      object-fit: cover;
+      display: block;
+      border: 4px solid #fffbf5;
+      box-shadow: 0 0 0 3px #fed7aa;
+      background: #fff7ed;
+    }
+    .gt-chip.on img {
+      box-shadow: 0 0 0 4px #ea580c;
+    }
+    #gt-grid {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      top: 380px;
+      display: flex;
+      gap: 14px;
+    }
+    .gt-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .gt-card {
+      position: relative;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #fde6c8;
+    }
+    .gt-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .gt-card span {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 40px 18px 16px;
+      background: linear-gradient(transparent, rgba(28, 25, 23, 0.75));
+      font-family: "Tiro Devanagari Marathi", serif;
+      font-size: 34px;
+      color: #fff7ed;
+      text-align: center;
+    }
+    #gt-viewer {
+      position: absolute;
+      inset: 0;
+      background: #1c1917;
+      z-index: 6;
+    }
+    #gt-vimg {
+      background: url("assets/img/ganesh_darshan_full.webp") center / cover no-repeat;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 140px;
+      height: 880px;
+    }
+    #gt-vtext {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 870px;
+      text-align: center;
+      font-family: "Tiro Devanagari Marathi", serif;
+      font-size: 64px;
+      color: #fff7ed;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    }
+    #gt-share {
+      position: absolute;
+      left: 40px;
+      right: 40px;
+      bottom: 70px;
+      height: 112px;
+      border-radius: 999px;
+      background: #25d366;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 700;
+    }
+    #gt-toast {
+      position: absolute;
+      left: 50%;
+      top: 170px;
+      width: 420px;
+      margin-left: -210px;
+      text-align: center;
+      padding: 16px 0;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: #166534;
+      font-size: 30px;
+      font-weight: 700;
+      opacity: 0;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="greetings" data-width="1080" data-height="1920">
+    <div id="gt-stage" class="scene">
+      <div class="cap">
+        <div class="kicker" id="gt-kicker">07 · Greetings</div>
+        <h2 class="title" id="gt-title"><span class="w">Daily</span><span class="w">greeting</span><span class="w">cards,</span><span class="w">one‑tap</span><span class="w">share</span></h2>
+        <p class="body" id="gt-body">Suvichar and festival wishes, straight to WhatsApp.</p>
+      </div>
+      <div class="phone" id="gt-phone">
+        <div class="screen" data-layout-allow-overlap>
+          <div class="notch"></div>
+          <div id="gt-head">Greetings</div>
+          <div id="gt-chips">
+            <div class="gt-chip on"><img src="assets/img/deities/ganesh.webp" alt="" />Ganesh</div>
+            <div class="gt-chip"><img src="assets/img/deities/shiva.webp" alt="" />Shiva</div>
+            <div class="gt-chip"><img src="assets/img/deities/krishna.webp" alt="" />Krishna</div>
+            <div class="gt-chip"><img src="assets/img/deities/laxmi.webp" alt="" />Laxmi</div>
+            <div class="gt-chip"><img src="assets/img/deities/hanuman.webp" alt="" />Hanuman</div>
+          </div>
+          <div id="gt-grid">
+            <div class="gt-col">
+              <div class="gt-card" id="gt-c1" style="height: 470px"><img src="assets/img/ganesh_darshan_full.webp" alt="" /><span>शुभ सकाळ</span></div>
+              <div class="gt-card" style="height: 330px"><img src="assets/img/deities/krishna.webp" alt="" /><span>जय श्रीकृष्ण</span></div>
+            </div>
+            <div class="gt-col">
+              <div class="gt-card" style="height: 330px"><img src="assets/img/deities/shiva.webp" alt="" /><span>ॐ नमः शिवाय</span></div>
+              <div class="gt-card" style="height: 470px"><img src="assets/img/hanuman_darshan_full.webp" alt="" /><span>जय बजरंगबली</span></div>
+            </div>
+          </div>
+          <div id="gt-viewer">
+            <div id="gt-vimg"></div>
+            <div id="gt-vtext">शुभ सकाळ</div>
+            <div id="gt-toast">✓ Shared on WhatsApp</div>
+            <div id="gt-share">Share on WhatsApp</div>
+          </div>
+          <div class="touch" id="gt-touch" style="left: 0; top: 0"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#gt-kicker", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05);
+      tl.fromTo("#gt-title .w", { opacity: 0, y: 18, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "expo.out", stagger: 0.07 }, 0.12);
+      tl.fromTo("#gt-body", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "expo.out" }, 0.6);
+      tl.fromTo("#gt-phone", { opacity: 0, y: 120 }, { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" }, 0.05);
+
+      tl.fromTo(".gt-chip", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.35, ease: "expo.out", stagger: 0.04 }, 0.35);
+      tl.fromTo(".gt-card", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: "expo.out", stagger: 0.05 }, 0.5);
+      tl.set("#gt-viewer", { opacity: 0 }, 0);
+
+      // Tap the first card at 2.0s, it opens full screen.
+      tl.set("#gt-touch", { x: 180, y: 620 }, 1.8);
+      tl.fromTo("#gt-touch", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.12, ease: "power2.out" }, 1.88);
+      tl.to("#gt-c1", { scale: 0.96, duration: 0.1, ease: "power2.out" }, 2.0);
+      tl.to("#gt-touch", { opacity: 0, duration: 0.2 }, 2.12);
+      tl.fromTo("#gt-viewer", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.4, ease: "expo.out" }, 2.1);
+      tl.set("#gt-grid", { opacity: 0 }, 2.5);
+      tl.fromTo("#gt-share", { y: 160 }, { y: 0, duration: 0.4, ease: "expo.out" }, 2.25);
+
+      // Tap Share at 3.05s.
+      tl.set("#gt-touch", { x: 342, y: 1138 }, 2.85);
+      tl.fromTo("#gt-touch", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.12, ease: "power2.out" }, 2.93);
+      tl.to("#gt-share", { scale: 0.95, duration: 0.1, ease: "power2.out" }, 3.05);
+      tl.to("#gt-share", { scale: 1, duration: 0.3, ease: "expo.out" }, 3.15);
+      tl.to("#gt-touch", { opacity: 0, duration: 0.2 }, 3.17);
+      tl.fromTo("#gt-toast", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.35, ease: "back.out(1.8)" }, 3.2);
+
+      tl.to("#gt-stage", { opacity: 0, filter: "blur(10px)", duration: 0.22, ease: "power3.in" }, 4.12);
+
+      window.__timelines["greetings"] = tl;
+    })();
+  </script>
+</template>

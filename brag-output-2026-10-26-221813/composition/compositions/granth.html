@@ -1,0 +1,166 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #gr-shelf {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 200px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+    .gr-book {
+      height: 470px;
+      border-radius: 32px;
+      padding: 30px 26px;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 14px 30px rgba(28, 25, 23, 0.22);
+    }
+    .gr-book .em {
+      font-size: 84px;
+      line-height: 1;
+    }
+    .gr-book b {
+      display: block;
+      font-size: 38px;
+      line-height: 1.08;
+    }
+    .gr-book small {
+      display: block;
+      margin-top: 8px;
+      font-size: 28px;
+      opacity: 0.9;
+    }
+    #gr-reader {
+      position: absolute;
+      inset: 0;
+      background: #fdf3e1;
+      padding: 120px 44px 0;
+      z-index: 6;
+    }
+    #gr-rhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 30px;
+      font-weight: 700;
+      color: #7c2d12;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #f4d9b0;
+    }
+    #gr-chapter {
+      margin-top: 40px;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #b45309;
+    }
+    #gr-verse {
+      margin-top: 26px;
+      font-family: "Tiro Devanagari Marathi", serif;
+      font-size: 50px;
+      line-height: 1.6;
+      color: #3f1d0b;
+    }
+    #gr-trans {
+      margin-top: 30px;
+      font-size: 31px;
+      line-height: 1.45;
+      color: #57534e;
+    }
+    #gr-pager {
+      position: absolute;
+      left: 44px;
+      right: 44px;
+      bottom: 70px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 28px;
+      font-weight: 700;
+      color: #9a3412;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="granth" data-width="1080" data-height="1920">
+    <div id="gr-stage" class="scene">
+      <div class="cap">
+        <div class="kicker" id="gr-kicker">04 · Holy Granth</div>
+        <h2 class="title" id="gr-title"><span class="w">Sacred</span><span class="w">granths,</span><span class="w">chapter</span><span class="w">by</span><span class="w">chapter</span></h2>
+        <p class="body" id="gr-body">Bhagavad Gita, Dasbodh and the Puranas in a calm Pothi reader.</p>
+      </div>
+      <div class="phone" id="gr-phone">
+        <div class="screen" data-layout-allow-overlap>
+          <div class="notch"></div>
+          <div class="appbar"><span>Granth</span><span>📖</span></div>
+          <div id="gr-shelf">
+            <div class="gr-book" id="gr-gita" style="background: linear-gradient(160deg, #1a237e, #283593 55%, #d84315)">
+              <div class="em">ॐ</div>
+              <div><b>Bhagavad Gita</b><small>Krishna-Arjuna Dialogue</small></div>
+            </div>
+            <div class="gr-book" style="background: linear-gradient(160deg, #8b2500, #d84315 55%, #e65100)">
+              <div class="em">🚩</div>
+              <div><b>Dasbodh</b><small>Samarth Ramdas Swami</small></div>
+            </div>
+            <div class="gr-book" style="background: linear-gradient(160deg, #1c3144, #2e5266 55%, #4a7c59)">
+              <div class="em">🔱</div>
+              <div><b>Shiva Purana</b><small>12 Jyotirlingas</small></div>
+            </div>
+            <div class="gr-book" style="background: linear-gradient(160deg, #004d40, #00796b 55%, #0097a7)">
+              <div class="em">🦚</div>
+              <div><b>Bhagavata Purana</b><small>Krishna Leela &amp; Bhakti</small></div>
+            </div>
+          </div>
+          <div id="gr-reader">
+            <div id="gr-rhead"><span>‹ Bhagavad Gita</span><span>Aa</span></div>
+            <div id="gr-chapter">Chapter 4 · Verse 7</div>
+            <div id="gr-verse">यदा यदा हि धर्मस्य<br />ग्लानिर्भवति भारत।<br />अभ्युत्थानमधर्मस्य<br />तदात्मानं सृजाम्यहम्॥</div>
+            <div id="gr-pager"><span>‹ Prev</span><span>4.7</span><span>Next ›</span></div>
+          </div>
+          <div class="touch" id="gr-touch" style="left: 180px; top: 440px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#gr-kicker", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05);
+      tl.fromTo("#gr-title .w", { opacity: 0, y: 18, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "expo.out", stagger: 0.07 }, 0.12);
+      tl.fromTo("#gr-body", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "expo.out" }, 0.6);
+      tl.fromTo("#gr-phone", { opacity: 0, y: 120 }, { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" }, 0.05);
+
+      tl.fromTo(".gr-book", { opacity: 0, y: 40, rotation: -2 }, { opacity: 1, y: 0, rotation: 0, duration: 0.45, ease: "expo.out", stagger: 0.07 }, 0.3);
+
+      // Tap the Gita, the reader opens.
+      tl.fromTo("#gr-touch", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.12, ease: "power2.out" }, 1.7);
+      tl.to("#gr-gita", { scale: 0.95, duration: 0.1, ease: "power2.out" }, 1.82);
+      tl.to("#gr-touch", { opacity: 0, duration: 0.2 }, 1.95);
+      tl.fromTo("#gr-reader", { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 1.94);
+      tl.set("#gr-shelf", { opacity: 0 }, 2.22);
+      tl.fromTo("#gr-verse", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.5, ease: "power2.out" }, 2.2);
+
+      tl.to("#gr-stage", { opacity: 0, filter: "blur(10px)", duration: 0.22, ease: "power3.in" }, 4.14);
+
+      window.__timelines["granth"] = tl;
+    })();
+  </script>
+</template>

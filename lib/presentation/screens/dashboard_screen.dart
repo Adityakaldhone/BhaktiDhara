@@ -9,6 +9,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../core/analytics/analytics_service.dart';
 import '../../core/theme/theme.dart';
 import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../domain/entities/app_remote_config.dart';
@@ -125,6 +126,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
           ad.dispose();
           _bannerAd = null;
         },
+        onPaidEvent: AnalyticsService.onPaidEvent('banner'),
       ),
     )..load();
   }

@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/analytics/analytics_service.dart';
 import '../domain/entities/app_remote_config.dart';
 import '../domain/entities/horoscope.dart';
 import '../domain/entities/panchang.dart';
@@ -288,6 +289,37 @@ class BackendService {
       return false;
     }
   }();
+
+  static const _syncedAppInstanceKey = 'synced_app_instance_id';
+
+  /// Sends this install's GA4 `app_instance_id` to the backend so the Play RTDN
+  /// webhook can report renewals / trial conversions via Measurement Protocol.
+  /// Skips the request when the same ID was already synced, unless [force].
+  static Future<void> syncAppInstanceId({required String trigger, bool force = false}) async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return;
+    try {
+      final appInstanceId = await AnalyticsService.appInstanceId();
+      if (appInstanceId == null || appInstanceId.isEmpty) return;
+      final prefs = await SharedPreferences.getInstance();
+      if (!force && prefs.getString(_syncedAppInstanceKey) == appInstanceId) return;
+
+      final response = await http
+          .post(
+            Uri.parse('${backendUrl.trim()}/api/v1/analytics/app-instance'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'deviceId': await getAnonymousDeviceId(),
+              'appInstanceId': appInstanceId,
+              'platform': _platformName,
+              'trigger': trigger,
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        await prefs.setString(_syncedAppInstanceKey, appInstanceId);
+      }
+    } catch (_) {}
+  }
 
   static final List<Map<String, dynamic>> _pendingEvents = [];
   static Timer? _flushTimer;

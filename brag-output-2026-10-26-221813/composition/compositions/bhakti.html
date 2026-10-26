@@ -1,0 +1,213 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #bh-video {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 190px;
+      height: 384px;
+      overflow: hidden;
+      background: #1c1917;
+    }
+    #bh-video img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    #bh-play {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 130px;
+      height: 130px;
+      margin: -65px 0 0 -65px;
+      border-radius: 50%;
+      background: rgba(28, 25, 23, 0.6);
+      border: 4px solid rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #bh-play i {
+      display: block;
+      width: 0;
+      height: 0;
+      margin-left: 10px;
+      border-left: 44px solid #ffffff;
+      border-top: 28px solid transparent;
+      border-bottom: 28px solid transparent;
+    }
+    #bh-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.35);
+    }
+    #bh-bar i {
+      position: absolute;
+      inset: 0;
+      display: block;
+      background: #dc2626;
+      transform-origin: 0 50%;
+    }
+    #bh-info {
+      position: absolute;
+      left: 36px;
+      right: 36px;
+      top: 600px;
+    }
+    #bh-info b {
+      display: block;
+      font-size: 38px;
+      line-height: 1.15;
+    }
+    #bh-info small {
+      display: block;
+      margin-top: 6px;
+      font-size: 28px;
+      color: #78716c;
+    }
+    #bh-chips {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 730px;
+      display: flex;
+      gap: 12px;
+    }
+    .bh-chip {
+      padding: 12px 24px;
+      border-radius: 999px;
+      border: 2px solid #fed7aa;
+      background: #ffffff;
+      font-size: 28px;
+      font-weight: 700;
+      color: #7c2d12;
+    }
+    #bh-next-label {
+      position: absolute;
+      left: 36px;
+      top: 838px;
+      font-size: 30px;
+      font-weight: 700;
+      color: #44403c;
+    }
+    #bh-list {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 896px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .bh-row {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .bh-row img {
+      width: 200px;
+      height: 112px;
+      border-radius: 20px;
+      object-fit: cover;
+      display: block;
+      background: #fde6c8;
+    }
+    .bh-row b {
+      display: block;
+      font-size: 30px;
+    }
+    .bh-row small {
+      display: block;
+      font-size: 28px;
+      color: #78716c;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="bhakti" data-width="1080" data-height="1920">
+    <div id="bh-stage" class="scene">
+      <div class="cap">
+        <div class="kicker" id="bh-kicker">03 · Bhakti Sangrah</div>
+        <h2 class="title" id="bh-title"><span class="w">Bhajans,</span><span class="w">Mantras,</span><span class="w">Stotras</span><span class="w">&amp;</span><span class="w">Chants</span></h2>
+        <p class="body" id="bh-body">Watch devotional videos right inside the app.</p>
+      </div>
+      <div class="phone" id="bh-phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="appbar"><span>‹</span><span>Bhakti</span><span>⋮</span></div>
+          <div id="bh-video">
+            <img src="assets/img/shiva_darshan_full.webp" alt="Shiva darshan" />
+            <div id="bh-play"><i></i></div>
+            <div id="bh-bar"><i id="bh-bar-fill"></i></div>
+          </div>
+          <div id="bh-info">
+            <b>Om Namah Shivaya</b>
+            <small>Shiva · Devotional Songs</small>
+          </div>
+          <div id="bh-chips">
+            <div class="bh-chip" id="bh-c1">Bhajan</div>
+            <div class="bh-chip" id="bh-c2">Mantra</div>
+            <div class="bh-chip" id="bh-c3">Stotra</div>
+            <div class="bh-chip" id="bh-c4">Chant</div>
+          </div>
+          <div id="bh-next-label">Up Next</div>
+          <div id="bh-list">
+            <div class="bh-row"><img src="assets/img/deities/krishna.webp" alt="" /><div><b>Krishna Bhajan</b><small>Krishna</small></div></div>
+            <div class="bh-row"><img src="assets/img/deities/hanuman.webp" alt="" /><div><b>Hanuman Stotra</b><small>Hanuman</small></div></div>
+            <div class="bh-row"><img src="assets/img/deities/durga.webp" alt="" /><div><b>Durga Mantra</b><small>Durga</small></div></div>
+          </div>
+          <div class="touch" id="bh-touch" style="left: 342px; top: 382px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#bh-kicker", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05);
+      tl.fromTo("#bh-title .w", { opacity: 0, y: 18, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "expo.out", stagger: 0.07 }, 0.12);
+      tl.fromTo("#bh-body", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "expo.out" }, 0.6);
+      tl.fromTo("#bh-phone", { opacity: 0, y: 120 }, { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" }, 0.05);
+
+      // Tap play at 0.99s; video starts.
+      tl.fromTo("#bh-touch", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.12, ease: "power2.out" }, 0.88);
+      tl.to("#bh-play", { scale: 0.9, duration: 0.1, ease: "power2.out" }, 0.99);
+      tl.to("#bh-play", { opacity: 0, scale: 1.2, duration: 0.3, ease: "power2.out" }, 1.09);
+      tl.to("#bh-touch", { opacity: 0, duration: 0.22 }, 1.14);
+      tl.fromTo("#bh-bar-fill", { scaleX: 0 }, { scaleX: 0.3, duration: 3.2, ease: "none" }, 1.1);
+      tl.fromTo("#bh-video img", { scale: 1 }, { scale: 1.08, duration: 3.2, ease: "none" }, 1.1);
+
+      // Chips light up one by one: the four kinds of bhakti content.
+      ["#bh-c1", "#bh-c2", "#bh-c3", "#bh-c4"].forEach((sel, i) => {
+        const t = 1.4 + i * 0.55;
+        tl.to(sel, { backgroundColor: "#ea580c", color: "#ffffff", borderColor: "#ea580c", duration: 0.18, ease: "power2.out" }, t);
+        if (i < 3) tl.to(sel, { backgroundColor: "#ffffff", color: "#7c2d12", borderColor: "#fed7aa", duration: 0.18, ease: "power2.out" }, t + 0.55);
+      });
+
+      tl.fromTo(".bh-row", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.4, ease: "expo.out", stagger: 0.08 }, 0.5);
+
+      tl.to("#bh-stage", { opacity: 0, filter: "blur(10px)", duration: 0.22, ease: "power3.in" }, 4.12);
+
+      window.__timelines["bhakti"] = tl;
+    })();
+  </script>
+</template>

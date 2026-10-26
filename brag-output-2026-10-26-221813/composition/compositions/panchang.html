@@ -1,0 +1,211 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #pa-view {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 190px;
+      bottom: 0;
+      overflow: hidden;
+    }
+    #pa-scroll {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 0;
+    }
+    #pa-card {
+      border-radius: 36px;
+      background: linear-gradient(160deg, #fff7ed, #ffedd5);
+      border: 2px solid #fed7aa;
+      padding: 30px 32px 14px;
+    }
+    #pa-card h3 {
+      font-size: 38px;
+      color: #7c2d12;
+    }
+    #pa-card .sub {
+      font-size: 28px;
+      color: #78716c;
+      margin-bottom: 14px;
+    }
+    .pa-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 0;
+      border-top: 2px solid rgba(251, 146, 60, 0.2);
+      font-size: 31px;
+    }
+    .pa-row span {
+      color: #78716c;
+    }
+    .pa-row b {
+      color: #1c1917;
+    }
+    #pa-rhead {
+      margin: 40px 6px 18px;
+      font-size: 36px;
+      font-weight: 700;
+      color: #7c2d12;
+    }
+    #pa-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .pa-rashi {
+      height: 150px;
+      border-radius: 28px;
+      background: #ffffff;
+      border: 2px solid #fde6c8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+    .pa-rashi i {
+      font-style: normal;
+      font-size: 46px;
+      line-height: 1;
+      color: #ea580c;
+    }
+    .pa-rashi span {
+      font-family: "Tiro Devanagari Marathi", serif;
+      font-size: 32px;
+      color: #44403c;
+    }
+    #pa-sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 470px;
+      border-radius: 48px 48px 0 0;
+      background: #ffffff;
+      box-shadow: 0 -20px 50px rgba(124, 45, 18, 0.2);
+      padding: 34px 40px;
+      z-index: 6;
+    }
+    #pa-sheet .grab {
+      width: 90px;
+      height: 10px;
+      border-radius: 999px;
+      background: #e7e5e4;
+      margin: 0 auto 26px;
+    }
+    #pa-sheet h4 {
+      font-size: 46px;
+      line-height: 1.1;
+    }
+    #pa-sheet .meta {
+      margin-top: 8px;
+      font-size: 28px;
+      color: #78716c;
+    }
+    .pa-line {
+      height: 22px;
+      border-radius: 999px;
+      background: #f5e9da;
+      margin-top: 22px;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="panchang" data-width="1080" data-height="1920">
+    <div id="pa-stage" class="scene">
+      <div class="cap">
+        <div class="kicker" id="pa-kicker">06 · Panchang &amp; Rashifal</div>
+        <h2 class="title" id="pa-title"><span class="w">Today's</span><span class="w">Panchang</span><span class="w">&amp;</span><span class="w">your</span><span class="w">Rashifal</span></h2>
+        <p class="body" id="pa-body">Tithi, Nakshatra, sunrise, and a daily reading for all 12 rashis.</p>
+      </div>
+      <div class="phone" id="pa-phone">
+        <div class="screen" data-layout-allow-overlap>
+          <div class="notch"></div>
+          <div class="appbar"><span>Panchang</span><span>📅</span></div>
+          <div id="pa-view">
+            <div id="pa-scroll">
+              <div id="pa-card">
+                <h3>Daily Panchang</h3>
+                <div class="sub">Sun &amp; Moon · today</div>
+                <div class="pa-row"><span>Tithi</span><b>Shukla Ekadashi</b></div>
+                <div class="pa-row"><span>Nakshatra</span><b>Rohini</b></div>
+                <div class="pa-row"><span>Yoga</span><b>Siddhi</b></div>
+                <div class="pa-row"><span>Karana</span><b>Bava</b></div>
+                <div class="pa-row"><span>Sunrise</span><b>6:32 AM</b></div>
+              </div>
+              <div id="pa-rhead">Daily Rashifal</div>
+              <div id="pa-grid">
+                <div class="pa-rashi"><i>♈︎</i><span>मेष</span></div>
+                <div class="pa-rashi"><i>♉︎</i><span>वृषभ</span></div>
+                <div class="pa-rashi"><i>♊︎</i><span>मिथुन</span></div>
+                <div class="pa-rashi"><i>♋︎</i><span>कर्क</span></div>
+                <div class="pa-rashi" id="pa-leo"><i>♌︎</i><span>सिंह</span></div>
+                <div class="pa-rashi"><i>♍︎</i><span>कन्या</span></div>
+                <div class="pa-rashi"><i>♎︎</i><span>तुला</span></div>
+                <div class="pa-rashi"><i>♏︎</i><span>वृश्चिक</span></div>
+                <div class="pa-rashi"><i>♐︎</i><span>धनु</span></div>
+                <div class="pa-rashi"><i>♑︎</i><span>मकर</span></div>
+                <div class="pa-rashi"><i>♒︎</i><span>कुंभ</span></div>
+                <div class="pa-rashi"><i>♓︎</i><span>मीन</span></div>
+              </div>
+            </div>
+          </div>
+          <div id="pa-sheet">
+            <div class="grab"></div>
+            <h4>♌︎ सिंह · Leo</h4>
+            <div class="meta">सूर्य (Sun) · अग्नी (Fire)</div>
+            <div class="pa-line" style="width: 96%"></div>
+            <div class="pa-line" style="width: 88%"></div>
+            <div class="pa-line" style="width: 92%"></div>
+            <div class="pa-line" style="width: 64%"></div>
+          </div>
+          <div class="touch" id="pa-touch" style="left: 342px; top: 0"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#pa-kicker", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05);
+      tl.fromTo("#pa-title .w", { opacity: 0, y: 18, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "expo.out", stagger: 0.07 }, 0.12);
+      tl.fromTo("#pa-body", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "expo.out" }, 0.6);
+      tl.fromTo("#pa-phone", { opacity: 0, y: 120 }, { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" }, 0.05);
+
+      tl.fromTo(".pa-row", { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.35, ease: "expo.out", stagger: 0.08 }, 0.45);
+
+      // Scroll down to the rashi grid.
+      tl.to("#pa-scroll", { y: -610, duration: 0.7, ease: "power3.inOut" }, 2.1);
+      tl.fromTo(".pa-rashi", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.3, ease: "expo.out", stagger: 0.03 }, 2.4);
+
+      // Tap Simha (Leo), its reading sheet slides up.
+      tl.set("#pa-touch", { y: 439 }, 3.1);
+      tl.fromTo("#pa-touch", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.12, ease: "power2.out" }, 3.18);
+      tl.to("#pa-leo", { scale: 0.92, backgroundColor: "#fff7ed", borderColor: "#ea580c", duration: 0.1, ease: "power2.out" }, 3.3);
+      tl.to("#pa-leo", { scale: 1, duration: 0.3, ease: "expo.out" }, 3.4);
+      tl.to("#pa-touch", { opacity: 0, duration: 0.2 }, 3.45);
+      tl.fromTo("#pa-sheet", { y: 480 }, { y: 0, duration: 0.5, ease: "expo.out" }, 3.45);
+      tl.fromTo(".pa-line", { opacity: 0.4 }, { opacity: 1, duration: 0.4, ease: "sine.inOut", stagger: 0.08, repeat: 1, yoyo: true }, 3.8);
+
+      tl.to("#pa-stage", { opacity: 0, filter: "blur(10px)", duration: 0.22, ease: "power3.in" }, 5.22);
+
+      window.__timelines["panchang"] = tl;
+    })();
+  </script>
+</template>

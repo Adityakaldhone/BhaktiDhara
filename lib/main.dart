@@ -1,3 +1,4 @@
+import 'core/analytics/analytics_service.dart';
 import 'core/analytics/clarity_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ import 'services/rewarded_ad_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  AnalyticsService.init();
 
   // Instant launch: Render widget tree immediately on frame 0 without blocking on disk/network I/O
   runApp(
@@ -70,6 +72,8 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
         locale: resolveStartupLocale(userLang).languageCode,
       );
       BackendService.getAnonymousDeviceId().then(ClarityService.setUserId);
+      AnalyticsService.logAppLaunch();
+      BackendService.syncAppInstanceId(trigger: 'app_launch');
 
       // 5. Eagerly initialize subscription & 7-day free trial state
       ref.read(subscriptionProvider);

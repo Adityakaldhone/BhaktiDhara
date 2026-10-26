@@ -1,0 +1,197 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #de-search {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 196px;
+      height: 100px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 2px solid #fed7aa;
+      box-shadow: 0 8px 22px rgba(124, 45, 18, 0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 16px 0 32px;
+      gap: 18px;
+      font-size: 32px;
+    }
+    #de-hint {
+      position: absolute;
+      left: 88px;
+      color: #78716c;
+      z-index: 2;
+      white-space: nowrap;
+    }
+    #de-query-wrap {
+      position: relative;
+      flex: 1;
+      height: 50px;
+      overflow: hidden;
+    }
+    #de-query {
+      position: absolute;
+      left: 0;
+      top: 0;
+      white-space: nowrap;
+      font-weight: 700;
+      color: #1c1917;
+      line-height: 50px;
+    }
+    #de-cover {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 420px;
+      height: 50px;
+      background: #ffffff;
+    }
+    #de-mic {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #ea580c;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      flex: none;
+    }
+    #de-mic-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 4px solid rgba(234, 88, 12, 0.55);
+      opacity: 0;
+    }
+    #de-grid {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      top: 330px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px 12px;
+    }
+    .de-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 0 14px;
+      border-radius: 32px;
+      background: #ffffff;
+      border: 2px solid #fde6c8;
+    }
+    .de-tile img {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      background: #fff7ed;
+    }
+    .de-tile span {
+      font-size: 28px;
+      font-weight: 700;
+      color: #44403c;
+      white-space: nowrap;
+    }
+    #de-badge {
+      position: absolute;
+      left: 50%;
+      bottom: 46px;
+      width: 420px;
+      margin-left: -210px;
+      text-align: center;
+      padding: 16px 0;
+      border-radius: 999px;
+      background: #7c2d12;
+      color: #fff7ed;
+      font-size: 30px;
+      font-weight: 700;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="deities" data-width="1080" data-height="1920">
+    <div id="de-stage" class="scene">
+      <div class="cap">
+        <div class="kicker" id="de-kicker">02 · 25+ Deities</div>
+        <h2 class="title" id="de-title"><span class="w">Find</span><span class="w">any</span><span class="w">Aarti</span><span class="w">in</span><span class="w">seconds</span></h2>
+        <p class="body" id="de-body">Search Aarti, Chalisa, Bhajan… or just speak it.</p>
+      </div>
+      <div class="phone" id="de-phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="appbar"><span>Sacred Collection</span><span>🔔</span></div>
+          <div id="de-search" data-layout-allow-overlap>
+            <span>🔍</span>
+            <span id="de-hint">Search Aarti, Chalisa, Bhajan...</span>
+            <div id="de-query-wrap">
+              <div id="de-query">Hanuman Chalisa</div>
+              <div id="de-cover"></div>
+            </div>
+            <div id="de-mic">🎙<i id="de-mic-ring"></i></div>
+          </div>
+          <div id="de-grid">
+            <div class="de-tile"><img src="assets/img/deities/ganesh.webp" alt="" /><span>Ganesh</span></div>
+            <div class="de-tile" id="de-hanuman"><img src="assets/img/deities/hanuman.webp" alt="" /><span>Hanuman</span></div>
+            <div class="de-tile"><img src="assets/img/deities/shiva.webp" alt="" /><span>Shiva</span></div>
+            <div class="de-tile"><img src="assets/img/deities/krishna.webp" alt="" /><span>Krishna</span></div>
+            <div class="de-tile"><img src="assets/img/deities/laxmi.webp" alt="" /><span>Laxmi</span></div>
+            <div class="de-tile"><img src="assets/img/deities/rama.webp" alt="" /><span>Shri Ram</span></div>
+            <div class="de-tile"><img src="assets/img/deities/durga.webp" alt="" /><span>Durga</span></div>
+            <div class="de-tile"><img src="assets/img/deities/saibaba.webp" alt="" /><span>Sai Baba</span></div>
+            <div class="de-tile"><img src="assets/img/deities/gajanan_maharaj.webp" alt="" /><span>Gajanan</span></div>
+          </div>
+          <div id="de-badge">+ Datta, Khandoba, Surya &amp; more</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#de-kicker", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05);
+      tl.fromTo("#de-title .w", { opacity: 0, y: 18, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "expo.out", stagger: 0.07 }, 0.12);
+      tl.fromTo("#de-body", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "expo.out" }, 0.55);
+      tl.fromTo("#de-phone", { opacity: 0, y: 120 }, { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" }, 0.05);
+
+      tl.fromTo(".de-tile", { opacity: 0, y: 30, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "expo.out", stagger: 0.04 }, 0.4);
+      tl.fromTo("#de-badge", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.9);
+
+      // Voice search: mic pulses, then the query writes itself in.
+      tl.to("#de-mic", { scale: 0.9, duration: 0.1, ease: "power2.out" }, 1.1);
+      tl.to("#de-mic", { scale: 1, duration: 0.3, ease: "expo.out" }, 1.2);
+      tl.fromTo("#de-mic-ring", { opacity: 0.9, scale: 1 }, { opacity: 0, scale: 1.7, duration: 0.7, ease: "power2.out", immediateRender: false }, 1.2);
+      tl.fromTo("#de-mic-ring", { opacity: 0.9, scale: 1 }, { opacity: 0, scale: 1.7, duration: 0.7, ease: "power2.out", immediateRender: false }, 1.9);
+      tl.to("#de-hint", { opacity: 0, duration: 0.15 }, 1.6);
+      tl.fromTo("#de-cover", { x: 0 }, { x: 420, duration: 1.0, ease: "steps(15)" }, 1.65);
+
+      // Result: Hanuman lifts, the rest recede.
+      tl.to(".de-tile:not(#de-hanuman)", { opacity: 0.25, duration: 0.3, ease: "power2.out" }, 3.2);
+      tl.to("#de-hanuman", { scale: 1.08, borderColor: "#ea580c", backgroundColor: "#fff7ed", duration: 0.4, ease: "back.out(1.8)" }, 3.2);
+
+      tl.to("#de-stage", { opacity: 0, filter: "blur(10px)", duration: 0.22, ease: "power3.in" }, 4.68);
+
+      window.__timelines["deities"] = tl;
+    })();
+  </script>
+</template>

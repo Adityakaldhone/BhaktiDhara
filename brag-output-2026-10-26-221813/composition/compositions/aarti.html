@@ -1,0 +1,240 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #aa-video {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 190px;
+      height: 360px;
+      overflow: hidden;
+    }
+    #aa-video img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    #aa-progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.4);
+    }
+    #aa-progress i {
+      position: absolute;
+      inset: 0;
+      background: #ea580c;
+      transform-origin: 0 50%;
+      display: block;
+    }
+    #aa-awake {
+      position: absolute;
+      left: 50%;
+      top: 508px;
+      width: 560px;
+      margin-left: -280px;
+      text-align: center;
+      white-space: nowrap;
+      padding: 14px 26px;
+      border-radius: 999px;
+      background: #1c1917;
+      color: #fff7ed;
+      font-size: 28px;
+      font-weight: 700;
+      z-index: 5;
+    }
+    #aa-name {
+      position: absolute;
+      left: 40px;
+      right: 40px;
+      top: 586px;
+      font-size: 40px;
+      font-weight: 700;
+      color: #7c2d12;
+    }
+    #aa-lyrics {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 652px;
+      height: 360px;
+      overflow: hidden;
+      border-radius: 28px;
+      background: #fff7ed;
+      border: 2px solid #fed7aa;
+    }
+    .aa-line {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      padding: 0 26px;
+      font-family: "Tiro Devanagari Marathi", serif;
+      font-size: 33px;
+      color: #a8a29e;
+      white-space: nowrap;
+    }
+    #aa-tools {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 1048px;
+      display: flex;
+      justify-content: space-around;
+    }
+    .aa-tool {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #7c2d12;
+    }
+    .aa-disc {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #fed7aa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 24px rgba(124, 45, 18, 0.12);
+    }
+    .aa-disc img {
+      width: 92px;
+      height: 92px;
+      object-fit: contain;
+    }
+    .aa-petal {
+      position: absolute;
+      top: -60px;
+      width: 34px;
+      height: 22px;
+      border-radius: 50% 50% 50% 0;
+      z-index: 8;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="aarti" data-width="1080" data-height="1920">
+    <div id="aa-stage" class="scene">
+      <div class="cap">
+        <div class="kicker" id="aa-kicker">01 · Aarti</div>
+        <h2 class="title" id="aa-title"><span class="w">Read</span><span class="w">&amp;</span><span class="w">Play</span><span class="w">every</span><span class="w">Aarti</span></h2>
+        <p class="body" id="aa-body">Lyrics auto-scroll as you sing. Screen stays awake automatically.</p>
+      </div>
+      <div class="phone" id="aa-phone">
+        <div class="screen" id="aa-screen" data-layout-allow-overflow>
+          <div class="notch"></div>
+          <div class="appbar"><span>‹</span><span>Read &amp; Play</span><span>⋮</span></div>
+          <div id="aa-video">
+            <img src="assets/img/ganesh_darshan_full.webp" alt="Ganesh darshan" />
+            <div id="aa-progress"><i id="aa-progress-bar"></i></div>
+          </div>
+          <div id="aa-awake">☀️ Screen stays awake automatically</div>
+          <div id="aa-name">Sukhakarta Dukhaharta</div>
+          <div id="aa-lyrics" data-layout-allow-overflow>
+            <div id="aa-lines" data-layout-allow-occlusion>
+              <div class="aa-line" id="aa-l1">सुखकर्ता दुःखहर्ता वार्ता विघ्नाची।</div>
+              <div class="aa-line" id="aa-l2">नुरवी पुरवी प्रेम कृपा जयाची।</div>
+              <div class="aa-line" id="aa-l3">सर्वांगी सुंदर उटी शेंदुराची।</div>
+              <div class="aa-line" id="aa-l4">कंठी झळके माळ मुक्ताफळांची॥</div>
+              <div class="aa-line" id="aa-l5">जय देव जय देव जय मंगलमूर्ती।</div>
+              <div class="aa-line" id="aa-l6">दर्शनमात्रे मनकामना पुरती॥</div>
+            </div>
+          </div>
+          <div id="aa-tools">
+            <div class="aa-tool" id="aa-t1"><div class="aa-disc"><img id="aa-bell-ico" src="assets/img/ui/ghanti.png" alt="Ghanti" /></div>Ghanti</div>
+            <div class="aa-tool" id="aa-t2"><div class="aa-disc"><img src="assets/img/ui/shankh.png" alt="Shankh" /></div>Shankh</div>
+            <div class="aa-tool" id="aa-t3"><div class="aa-disc"><img src="assets/img/ui/pushpa.png" alt="Pushpa" /></div>Pushpa</div>
+          </div>
+          <div class="touch" id="aa-touch" style="left: 0; top: 0"></div>
+          <div id="aa-petals" data-layout-ignore></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#aa-kicker", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05);
+      tl.fromTo("#aa-title .w", { opacity: 0, y: 18, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "expo.out", stagger: 0.07 }, 0.12);
+      tl.fromTo("#aa-body", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "expo.out" }, 0.6);
+      tl.fromTo("#aa-phone", { opacity: 0, y: 120 }, { opacity: 1, y: 0, duration: 0.6, ease: "expo.out" }, 0.1);
+
+      tl.fromTo("#aa-progress-bar", { scaleX: 0.08 }, { scaleX: 0.42, duration: 6.8, ease: "none" }, 0.2);
+      tl.fromTo("#aa-awake", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.35, ease: "back.out(1.6)" }, 1.1);
+      tl.to("#aa-awake", { opacity: 0, y: -20, duration: 0.25, ease: "power2.in" }, 3.4);
+
+      // Active lyric line steps down; the box auto-scrolls.
+      const at = [0.6, 1.3, 2.0, 2.7, 3.4, 4.1];
+      at.forEach((t, i) => {
+        const sel = "#aa-l" + (i + 1);
+        tl.to(sel, { color: "#9a3412", backgroundColor: "#fde8c8", duration: 0.22, ease: "power2.out" }, t);
+        if (i < at.length - 1) tl.to(sel, { color: "#a8a29e", backgroundColor: "rgba(253,232,200,0)", duration: 0.22, ease: "power2.out" }, at[i + 1]);
+      });
+      tl.to("#aa-lines", { y: -72, duration: 0.45, ease: "power2.inOut" }, 2.65);
+      tl.to("#aa-lines", { y: -144, duration: 0.45, ease: "power2.inOut" }, 3.35);
+
+      // Taps on Ghanti / Shankh / Pushpa (screen-space coordinates of each disc centre).
+      const taps = [
+        { el: "#aa-t1", x: 140, y: 1118, at: 3.93 },
+        { el: "#aa-t2", x: 342, y: 1118, at: 4.93 },
+        { el: "#aa-t3", x: 544, y: 1118, at: 5.93 },
+      ];
+      taps.forEach(({ el, x, y, at }) => {
+        tl.set("#aa-touch", { x, y }, at - 0.12);
+        tl.fromTo("#aa-touch", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.12, ease: "power2.out" }, at - 0.1);
+        tl.to(el, { scale: 0.92, duration: 0.1, ease: "power2.out" }, at);
+        tl.to(el, { scale: 1, duration: 0.35, ease: "expo.out" }, at + 0.1);
+        tl.to("#aa-touch", { opacity: 0, duration: 0.22, ease: "power2.out" }, at + 0.16);
+      });
+      [16, -11, 7, -4, 0].forEach((deg, i) => {
+        tl.to("#aa-bell-ico", { rotation: deg, transformOrigin: "50% 10%", duration: 0.16, ease: "sine.inOut" }, 3.98 + i * 0.16);
+      });
+
+      // Petal shower, deterministic.
+      let seed = 7;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const host = document.querySelector("#aa-petals");
+      const colors = ["#f97316", "#fb923c", "#facc15", "#ef4444", "#fdba74"];
+      for (let i = 0; i < 22; i++) {
+        const p = document.createElement("div");
+        p.className = "aa-petal";
+        p.style.left = "0px";
+        p.style.background = colors[i % colors.length];
+        host.appendChild(p);
+        const x = 20 + rnd() * 640;
+        const start = 6.0 + rnd() * 0.5;
+        tl.fromTo(
+          p,
+          { x, y: 0, rotation: rnd() * 180 },
+          { x: x + (rnd() - 0.5) * 160, y: 1360, rotation: 360 + rnd() * 360, duration: 1.0 + rnd() * 0.4, ease: "power1.in" },
+          start,
+        );
+      }
+
+      tl.to("#aa-stage", { opacity: 0, filter: "blur(10px)", duration: 0.22, ease: "power3.in" }, 6.87);
+
+      window.__timelines["aarti"] = tl;
+    })();
+  </script>
+</template>

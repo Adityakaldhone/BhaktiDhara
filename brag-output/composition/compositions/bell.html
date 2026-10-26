@@ -1,0 +1,129 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      background: var(--color-ground, #fffbf5);
+      overflow: hidden;
+      font-family: "Mukta", sans-serif;
+    }
+    #bell-glow {
+      position: absolute;
+      left: 50%;
+      top: 120px;
+      width: 1100px;
+      height: 1100px;
+      margin-left: -550px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(217, 119, 6, 0.24) 0%, rgba(217, 119, 6, 0.1) 38%, rgba(217, 119, 6, 0) 68%);
+    }
+    #bell-stage {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 18px;
+      padding: 0 160px 120px;
+    }
+    #bell-swing {
+      width: 300px;
+      height: 600px;
+      flex: none;
+    }
+    #bell-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    #bell-title {
+      display: flex;
+      gap: 26px;
+      font-size: 124px;
+      line-height: 1.05;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--color-ink, #1c1917);
+    }
+    #bell-title .accent {
+      color: var(--color-accent, #b45309);
+    }
+    #bell-sub {
+      font-size: 46px;
+      line-height: 1.2;
+      font-weight: 400;
+      color: #57534e;
+      letter-spacing: 0.01em;
+    }
+  </style>
+  <div data-hf-id="hf-2i9u" id="root" data-composition-id="bell" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-gfvz" id="bell-glow" data-layout-ignore></div>
+    <div data-hf-id="hf-7by3" id="bell-stage">
+      <div data-hf-id="hf-80ji" id="bell-swing" data-layout-allow-overflow>
+        <img data-hf-id="hf-xhwg" id="bell-img" src="assets/img/bell.png" alt="Brass temple bell" />
+      </div>
+      <h1 data-hf-id="hf-rq01" id="bell-title">
+        <span data-hf-id="hf-civn" class="w">Your</span><span data-hf-id="hf-qguw" class="w">Sacred</span><span data-hf-id="hf-xpzt" class="w">Daily</span><span data-hf-id="hf-cdgj" class="w accent">Temple</span>
+      </h1>
+      <p data-hf-id="hf-jfma" id="bell-sub">Aarti Sangrah &amp; Holy Granths</p>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      // Bell drops in on its chain and strikes at 0.60s (ghanti sound at 0.63s in the root mix).
+      tl.fromTo(
+        "#bell-swing",
+        { y: -620, rotation: -18, transformOrigin: "50% 0%" },
+        { y: 0, rotation: 12, duration: 0.45, ease: "power3.in", transformOrigin: "50% 0%" },
+        0.15,
+      );
+      // Damped swing after the strike, each half-swing smaller.
+      [-7, 4, -2, 0.8, 0].forEach((deg, i) => {
+        tl.to("#bell-swing", { rotation: deg, duration: 0.42 + i * 0.04, ease: "sine.inOut" }, 0.6 + i * 0.44);
+      });
+
+      // Title: word by word, blur 6px -> 0, no translate.
+      tl.fromTo(
+        "#bell-title .w",
+        { opacity: 0, filter: "blur(6px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.16, ease: "power4.out", stagger: 0.09 },
+        0.85,
+      );
+      // Subtitle: whole line blurs in.
+      tl.fromTo(
+        "#bell-sub",
+        { opacity: 0, filter: "blur(8px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "expo.out" },
+        1.55,
+      );
+
+      // Subtle audio-reactive glow from the music bed's RMS (smoothed, 30fps).
+      const rms = [0.41,0.46,0.44,0.45,0.40,0.33,0.31,0.21,0.29,0.25,0.20,0.11,0.33,0.27,0.14,0.09,0.45,0.35,0.30,0.24,0.18,0.09,0.04,0.04,0.21,0.25,0.15,0.14,0.25,0.37,0.28,0.25,0.21,0.12,0.07,0.06,0.06,0.42,0.30,0.25,0.22,0.15,0.09,0.08,0.09,0.38,0.32,0.30,0.32,0.44,0.36,0.28,0.29,0.28,0.26,0.23,0.06,0.26,0.32,0.27,0.24,0.21,0.16,0.08,0.12,0.35,0.28,0.24,0.22,0.28,0.34,0.28,0.24,0.30,0.30,0.27,0.16,0.25,0.31,0.22,0.17,0.31,0.43,0.35,0.28,0.19,0.09,0.09,0.07,0.05,0.45,0.46,0.40,0.31,0.37,0.27,0.25,0.22,0.15,0.07,0.04,0.04,0.29,0.34,0.30,0.25,0.20,0.13,0.09,0.08,0.31,0.36,0.30,0.22,0.40,0.34,0.29,0.26,0.26,0.26];
+      let smooth = rms[0];
+      for (let i = 0; i < 114; i += 2) {
+        smooth = smooth * 0.8 + rms[i] * 0.2;
+        tl.set("#bell-glow", { opacity: 0.78 + smooth * 0.55 }, i / 30);
+      }
+
+      // Blur swap out on the same cream stage; scene 2 blurs in at 4.0s.
+      tl.to("#bell-stage", { opacity: 0, filter: "blur(8px)", duration: 0.18, ease: "power3.in" }, 3.78);
+      tl.to("#bell-glow", { opacity: 0, duration: 0.18, ease: "power3.in" }, 3.78);
+
+      window.__timelines["bell"] = tl;
+    })();
+  </script>
+</template>

@@ -8,6 +8,7 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/analytics/analytics_service.dart';
 import '../domain/entities/subscription_plan.dart';
 import 'backend_service.dart';
 
@@ -27,6 +28,7 @@ class SubscriptionService {
   static const _subTrialStartKey = 'bhaktidhara_sub_trial_start';
   static const _subAutoRenewKey = 'bhaktidhara_sub_auto_renew';
   static const _subTokenKey = 'bhaktidhara_sub_token';
+  static const _loggedOrdersKey = 'bhaktidhara_analytics_logged_orders';
 
   SubscriptionService._();
   static final instance = SubscriptionService._();
@@ -36,6 +38,7 @@ class SubscriptionService {
   bool _isBillingAvailable = false;
   List<ProductDetails> _storeProducts = [];
   Completer<SubscriptionStatus>? _activePurchaseCompleter;
+  _CheckoutValue? _pendingCheckout;
 
   /// Holds the last error message for UI diagnostics.
   String? lastErrorMessage;
@@ -260,9 +263,19 @@ class SubscriptionService {
         productDetails: storeProduct,
         offerToken: selectedOfferToken,
       );
+      _pendingCheckout = _checkoutValue(plan, matchingProducts, selectedOfferToken);
     } else {
       purchaseParam = PurchaseParam(productDetails: storeProduct);
+      _pendingCheckout = _checkoutValue(plan, matchingProducts, null);
     }
+
+    final checkout = _pendingCheckout!;
+    AnalyticsService.logBeginCheckout(
+      itemId: plan.productId,
+      value: checkout.recurringPrice,
+      currency: checkout.currency,
+    );
+    BackendService.syncAppInstanceId(trigger: 'begin_checkout', force: true);
 
     _activePurchaseCompleter = Completer<SubscriptionStatus>();
 
@@ -315,6 +328,7 @@ class SubscriptionService {
         final verifiedStatus = await verifyReceipt(
           purchaseToken: token,
           productId: purchaseDetails.productID,
+          orderId: purchaseDetails.purchaseID,
         );
 
         final plan = _planFromProductId(purchaseDetails.productID);
@@ -332,6 +346,10 @@ class SubscriptionService {
 
         await saveSubscriptionStatus(finalStatus);
 
+        if (purchaseDetails.status == PurchaseStatus.purchased) {
+          await _logPurchaseRevenue(purchaseDetails, verifiedStatus);
+        }
+
         if (purchaseDetails.pendingCompletePurchase) {
           await _iap.completePurchase(purchaseDetails);
         }
@@ -341,6 +359,93 @@ class SubscriptionService {
         }
       }
     }
+  }
+
+  /// Resolves what the user is charged today for the chosen offer and what
+  /// the plan renews at. A free-trial offer has a first pricing phase of 0.
+  _CheckoutValue _checkoutValue(
+    SubscriptionPlan plan,
+    List<ProductDetails> products,
+    String? offerToken,
+  ) {
+    if (offerToken != null) {
+      for (final p in products) {
+        if (p is! GooglePlayProductDetails) continue;
+        for (final offer in p.productDetails.subscriptionOfferDetails ?? const []) {
+          if (offer.offerIdToken != offerToken || offer.pricingPhases.isEmpty) continue;
+          final recurring = offer.pricingPhases.last;
+          return _CheckoutValue(
+            productId: plan.productId,
+            chargedNow: offer.pricingPhases.first.priceAmountMicros / 1000000.0,
+            recurringPrice: recurring.priceAmountMicros / 1000000.0,
+            currency: recurring.priceCurrencyCode,
+          );
+        }
+      }
+    }
+    final p = products.first;
+    return _CheckoutValue(
+      productId: plan.productId,
+      chargedNow: p.rawPrice,
+      recurringPrice: p.rawPrice,
+      currency: p.currencyCode,
+    );
+  }
+
+  /// Sends the purchase (or trial start) to Firebase exactly once per order.
+  /// Restored purchases never reach here, so re-installs don't inflate revenue.
+  Future<void> _logPurchaseRevenue(
+    PurchaseDetails details,
+    SubscriptionStatus? verified,
+  ) async {
+    try {
+      final checkout = _pendingCheckout?.productId == details.productID
+          ? _pendingCheckout
+          : _fallbackCheckout(details.productID, verified);
+      _pendingCheckout = null;
+      if (checkout == null) return;
+
+      final orderId = details.purchaseID;
+      final prefs = await SharedPreferences.getInstance();
+      final logged = prefs.getStringList(_loggedOrdersKey) ?? const <String>[];
+      if (orderId != null && logged.contains(orderId)) return;
+
+      if (checkout.chargedNow == 0 || (verified?.isTrial ?? false)) {
+        AnalyticsService.logTrialStart(
+          itemId: checkout.productId,
+          recurringPrice: checkout.recurringPrice,
+          currency: checkout.currency,
+        );
+      } else {
+        AnalyticsService.logPurchase(
+          itemId: checkout.productId,
+          value: checkout.chargedNow,
+          currency: checkout.currency,
+          transactionId: orderId,
+        );
+      }
+
+      if (orderId != null) {
+        final recent = logged.length >= 50 ? logged.sublist(logged.length - 49) : logged;
+        await prefs.setStringList(_loggedOrdersKey, [...recent, orderId]);
+      }
+    } catch (e) {
+      debugPrint('[SubscriptionService] Revenue logging failed: $e');
+    }
+  }
+
+  /// Used when a purchase arrives without an in-app checkout (e.g. app was
+  /// killed mid-purchase). Falls back to the catalogue INR price.
+  _CheckoutValue? _fallbackCheckout(String productId, SubscriptionStatus? verified) {
+    final plan = _planFromProductId(productId);
+    if (plan == null) return null;
+    final price = plan.priceInr.toDouble();
+    return _CheckoutValue(
+      productId: productId,
+      chargedNow: (verified?.isTrial ?? false) ? 0 : price,
+      recurringPrice: price,
+      currency: 'INR',
+    );
   }
 
   /// Restores previous purchases through Google Play Billing and backend check.
@@ -536,6 +641,7 @@ class SubscriptionService {
   Future<SubscriptionStatus?> verifyReceipt({
     required String purchaseToken,
     required String productId,
+    String? orderId,
   }) async {
     try {
       final deviceId = await BackendService.getAnonymousDeviceId();
@@ -551,6 +657,7 @@ class SubscriptionService {
               'purchaseToken': purchaseToken,
               'productId': productId,
               'platform': _platformName,
+              'orderId': orderId ?? '',
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -709,4 +816,18 @@ class SubscriptionService {
     _subscription?.cancel();
     _subscription = null;
   }
+}
+
+class _CheckoutValue {
+  final String productId;
+  final double chargedNow;
+  final double recurringPrice;
+  final String currency;
+
+  const _CheckoutValue({
+    required this.productId,
+    required this.chargedNow,
+    required this.recurringPrice,
+    required this.currency,
+  });
 }

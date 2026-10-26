@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/analytics/analytics_service.dart';
 import '../../core/theme/theme.dart';
 import '../../domain/entities/app_remote_config.dart';
 import '../../domain/entities/subscription_plan.dart';
@@ -307,6 +308,7 @@ void showPremiumPaywallSheet(
   final isPremium = ref.read(isPremiumProvider);
   if (!isPremium) {
     BackendService.trackEvent('paywall_view', item: 'subscription_sheet');
+    AnalyticsService.logFunnelEvent(FunnelEvent.paywallView, parameters: {'source': 'subscription_sheet'});
   }
 
   // Reset selected plan to the first (recommended annual)

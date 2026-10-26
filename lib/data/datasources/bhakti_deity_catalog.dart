@@ -192,7 +192,7 @@ const List<BhaktiDeity> kBhaktiDeities = [
     nameHi: 'संतोषी माता',
     nameMr: 'संतोषी माता',
     // TODO: replace with a realistic cut-out in assets/bhakti/.
-    imageAsset: 'assets/decorations/santoshi_mata.webp',
+    imageAsset: 'assets/decorations/santoshi_mata.png',
   ),
   BhaktiDeity(
     key: 'Goddess Gayatri',
@@ -201,7 +201,7 @@ const List<BhaktiDeity> kBhaktiDeities = [
     nameHi: 'गायत्री माता',
     nameMr: 'गायत्री माता',
     // TODO: replace with a realistic cut-out in assets/bhakti/.
-    imageAsset: 'assets/decorations/gayatri.webp',
+    imageAsset: 'assets/decorations/gayatri.png',
   ),
   BhaktiDeity(
     key: 'Surya Dev',

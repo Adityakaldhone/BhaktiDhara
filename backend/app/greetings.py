@@ -6,6 +6,7 @@ Each upload is stored twice: a small WebP thumbnail for the grid and a
 premium image's HD URL can't be guessed from its thumbnail.
 """
 import asyncio
+import hashlib
 import io
 import logging
 import os
@@ -43,7 +44,7 @@ if R2_PUBLIC_URL and not R2_PUBLIC_URL.startswith("http"):
 
 HD_WIDTH = 1080
 THUMB_WIDTH = 480
-MAX_UPLOAD_BYTES = int(2.5 * 1024 * 1024)  # 2.5 MB
+MAX_UPLOAD_BYTES = 3 * 1024 * 1024  # 3 MB
 MAX_PIXELS = 40_000_000
 LANGS = {"all", "mr", "hi", "en"}
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
@@ -97,6 +98,13 @@ async def init_greetings_db() -> None:
         """)
         await db.execute(
             "CREATE INDEX IF NOT EXISTS idx_greeting_images_cat ON greeting_images(category_id, active, sort_order)"
+        )
+        try:
+            await db.execute("ALTER TABLE greeting_images ADD COLUMN source_hash TEXT")
+        except Exception:
+            pass
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_greeting_images_hash ON greeting_images(category_id, source_hash)"
         )
         async with db.execute("SELECT COUNT(*) FROM greeting_categories") as cur:
             empty = (await cur.fetchone())[0] == 0
@@ -519,10 +527,18 @@ def build_admin_router(require_admin) -> APIRouter:
     ):
         raw = await file.read(MAX_UPLOAD_BYTES + 1)
         if len(raw) > MAX_UPLOAD_BYTES:
-            raise HTTPException(status_code=413, detail="Image is larger than 2.5 MB")
+            raise HTTPException(status_code=413, detail="Image is larger than 3 MB")
+        source_hash = hashlib.sha256(raw).hexdigest()
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute("SELECT id FROM greeting_categories WHERE slug = ?", (category.lower(),)) as cur:
                 row = await cur.fetchone()
+            if row:
+                async with db.execute(
+                    "SELECT id FROM greeting_images WHERE category_id = ? AND source_hash = ?", (row[0], source_hash)
+                ) as cur:
+                    dup = await cur.fetchone()
+                if dup:
+                    raise HTTPException(status_code=409, detail=f"Already uploaded in this category (#{dup[0]})")
         if not row:
             raise HTTPException(status_code=404, detail="Unknown category")
         try:
@@ -533,10 +549,10 @@ def build_admin_router(require_admin) -> APIRouter:
         async with aiosqlite.connect(DB_PATH) as db:
             cur = await db.execute(
                 """INSERT INTO greeting_images
-                   (category_id, thumb_file, hd_file, width, height, lang, premium, sort_order, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (category_id, thumb_file, hd_file, width, height, lang, premium, sort_order, created_at, source_hash)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (row[0], stored["thumb_file"], stored["hd_file"], stored["width"], stored["height"],
-                 _clean_lang(lang), int(premium), sortOrder, utc_now_iso()),
+                 _clean_lang(lang), int(premium), sortOrder, utc_now_iso(), source_hash),
             )
             await db.commit()
             image_id = cur.lastrowid

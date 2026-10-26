@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../core/analytics/analytics_service.dart';
 import 'backend_service.dart';
 
 /// Singleton service that manages a single preloaded [RewardedAd].
@@ -35,6 +36,7 @@ class RewardedAdService {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
+          ad.onPaidEvent = AnalyticsService.onPaidEvent('rewarded');
           _rewardedAd = ad;
           _isLoading = false;
         },
@@ -79,6 +81,7 @@ class RewardedAdService {
     _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
         BackendService.trackEvent('rewarded_ad_earned', item: '${reward.type}:${reward.amount}');
+        AnalyticsService.logFunnelEvent(FunnelEvent.rewardedAdEarned);
         onRewarded();
       },
     );

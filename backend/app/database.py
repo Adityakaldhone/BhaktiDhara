@@ -106,6 +106,7 @@ async def init_db():
             ("notes", "TEXT DEFAULT ''"),
             ("vip_granted", "INTEGER DEFAULT 0"),
             ("blocked", "INTEGER DEFAULT 0"),
+            ("app_instance_id", "TEXT DEFAULT ''"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE devices ADD COLUMN {col[0]} {col[1]}")
@@ -231,6 +232,14 @@ async def init_db():
         """)
         await db.execute("CREATE INDEX IF NOT EXISTS idx_subs_device ON subscriptions(device_id, expires_at)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_subs_token ON subscriptions(purchase_token)")
+
+        # Pub/Sub delivers RTDN at-least-once; this makes renewal handling idempotent.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS rtdn_processed (
+                message_key TEXT PRIMARY KEY,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS admin_audit (
@@ -475,6 +484,22 @@ async def record_device_ping(
             "vipGranted": vip_active,
             "blocked": bool(row[1]) if row else False,
         }
+
+
+async def save_app_instance_id(device_id: str, app_instance_id: str, platform: str) -> None:
+    """Stores the device's GA4 app_instance_id, used to send Measurement Protocol
+    events (renewals, trial conversions) from the RTDN webhook."""
+    now = utc_now_iso()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO devices (device_id, platform, app_version, app_instance_id, first_seen, last_seen, ping_count)
+            VALUES (?, ?, '', ?, ?, ?, 0)
+            ON CONFLICT(device_id) DO UPDATE SET app_instance_id = excluded.app_instance_id
+            """,
+            (device_id, platform, app_instance_id, now, now),
+        )
+        await db.commit()
 
 
 async def migrate_device_id(old_id: str, new_id: str) -> bool:
@@ -1514,6 +1539,58 @@ async def record_subscription(
         "trialStartedAt": now_iso if is_trial else None,
         "autoRenewing": auto_renewing,
     }
+
+
+async def claim_rtdn_message(message_key: str) -> bool:
+    """Returns True the first time a notification key is seen, False on redelivery."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "INSERT OR IGNORE INTO rtdn_processed (message_key) VALUES (?)", (message_key,)
+        )
+        await db.commit()
+        return cur.rowcount == 1
+
+
+async def get_subscription_by_token(purchase_token: str) -> Optional[Dict[str, Any]]:
+    """Latest subscription row for a Play purchase token, with the device's GA4 app_instance_id."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            """
+            SELECT s.device_id, s.product_id, s.order_id, COALESCE(d.app_instance_id, '')
+            FROM subscriptions s LEFT JOIN devices d ON d.device_id = s.device_id
+            WHERE s.purchase_token = ?
+            ORDER BY s.updated_at DESC LIMIT 1
+            """,
+            (purchase_token,),
+        ) as cur:
+            row = await cur.fetchone()
+    if not row:
+        return None
+    return {"device_id": row[0], "product_id": row[1], "order_id": row[2] or "", "app_instance_id": row[3]}
+
+
+async def renew_subscription_by_token(purchase_token: str, renewed_at: datetime) -> None:
+    """Extends a renewed subscription by one plan period from the renewal time.
+    Idempotent: the same renewal always yields the same expiry."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT product_id FROM subscriptions WHERE purchase_token = ? LIMIT 1", (purchase_token,)
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return
+        expires = renewed_at + timedelta(days=PLAN_DURATION_DAYS.get(row[0], 30))
+        await db.execute(
+            """
+            UPDATE subscriptions
+            SET status = 'active', is_trial = 0, auto_renewing = 1,
+                expires_at = CASE WHEN datetime(expires_at) > datetime(?) THEN expires_at ELSE ? END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE purchase_token = ?
+            """,
+            (expires.isoformat(), expires.isoformat(), purchase_token),
+        )
+        await db.commit()
 
 
 async def get_device_subscription_status(device_id: str) -> Dict[str, Any]:

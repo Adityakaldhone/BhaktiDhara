@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/analytics/analytics_service.dart';
 import '../../data/datasources/jaap_mantra_catalog.dart';
 import '../../data/repositories/jaap_repository.dart';
 import '../../domain/entities/jaap_mantra.dart';
@@ -215,6 +216,7 @@ class JaapNotifier extends StateNotifier<JaapState> {
     }
     if (outcome == JaapTapOutcome.goalComplete) {
       BackendService.trackEvent('jaap_goal_complete', item: state.mantra.id);
+      AnalyticsService.logFunnelEvent(FunnelEvent.jaapGoalComplete, parameters: {'item_id': state.mantra.id});
     }
 
     _emit(p, today: today, sessionCount: newSession);

@@ -2,6 +2,7 @@ import asyncio
 import csv
 import hmac
 import io
+import json
 import os
 import logging
 from contextlib import asynccontextmanager
@@ -18,12 +19,14 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # pyrefly: ignore [missing-import]
 from apscheduler.triggers.cron import CronTrigger
 
+from app.ga4_forwarder import REVENUE_NOTIFICATION_TYPES, handle_subscription_notification
 from app.database import (
     init_db,
     ist_today_str,
     clear_cache,
     increment_api_stat,
     record_device_ping,
+    save_app_instance_id,
     migrate_device_id,
     record_events,
     get_admin_metrics,
@@ -91,6 +94,7 @@ logger = logging.getLogger("bhaktidhara.api")
 
 DEFAULT_ADMIN_SECRET = "mandir_secret_2026"
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", DEFAULT_ADMIN_SECRET)
+RTDN_PUSH_TOKEN = os.getenv("RTDN_PUSH_TOKEN", "")
 STATIC_DIR = Path(__file__).parent / "static"
 STARTED_AT = datetime.now(timezone.utc)
 scheduler = AsyncIOScheduler()
@@ -214,6 +218,13 @@ class DevicePingRequest(BaseModel):
 class DeviceMigrateRequest(BaseModel):
     oldDeviceId: str
     newDeviceId: str
+
+
+class AppInstanceRequest(BaseModel):
+    deviceId: str
+    appInstanceId: str
+    platform: str = "android"
+    trigger: str = ""
 
 
 class SubscriptionVerifyRequest(BaseModel):
@@ -487,6 +498,18 @@ async def device_migrate_endpoint(payload: DeviceMigrateRequest):
     return {"status": "ok", "moved": moved}
 
 
+@app.post("/api/v1/analytics/app-instance")
+async def app_instance_endpoint(payload: AppInstanceRequest):
+    """Links the device to its GA4 app_instance_id (sent on launch and before checkout)
+    so Play RTDN renewals can be reported to GA4 via Measurement Protocol."""
+    device_id = payload.deviceId.strip()[:64]
+    app_instance_id = payload.appInstanceId.strip()[:64]
+    if not device_id or not app_instance_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing deviceId or appInstanceId")
+    await save_app_instance_id(device_id, app_instance_id, payload.platform.lower()[:16])
+    return {"status": "ok"}
+
+
 @app.post("/api/v1/vedic-ai/consult")
 async def consult_vedic_ai_endpoint(payload: VedicAiConsultRequest):
     """
@@ -575,11 +598,16 @@ async def subscription_status_endpoint(deviceId: str = Query(..., description="D
 
 
 @app.post("/api/v1/subscription/webhook")
-async def subscription_webhook_endpoint(payload: Dict[str, Any]):
+async def subscription_webhook_endpoint(payload: Dict[str, Any], auth: str = Query("")):
     """
     Receives Google Cloud Pub/Sub Real-Time Developer Notifications (RTDN).
-    Handles SUBSCRIPTION_RENEWED, SUBSCRIPTION_CANCELED, SUBSCRIPTION_EXPIRED.
+    Handles SUBSCRIPTION_RENEWED / RECOVERED (extend entitlement + forward revenue
+    to GA4), SUBSCRIPTION_CANCELED, REVOKED and EXPIRED.
+
+    If RTDN_PUSH_TOKEN is set, the Pub/Sub push URL must include ?auth=<token>.
     """
+    if RTDN_PUSH_TOKEN and not hmac.compare_digest(auth, RTDN_PUSH_TOKEN):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     try:
         message = payload.get("message", {})
         data_b64 = message.get("data", "")
@@ -598,6 +626,12 @@ async def subscription_webhook_endpoint(payload: Dict[str, Any]):
         if token and notification_type in (3, 12, 13):
             await cancel_subscription_by_token(token)
             logger.info(f"Subscription cancelled via webhook for token: {token[:12]}...")
+
+        if token and notification_type in REVENUE_NOTIFICATION_TYPES:
+            event_time_ms = int(event_data.get("eventTimeMillis") or 0) or None
+            message_key = message.get("messageId") or f"{token}:{notification_type}:{event_time_ms}"
+            result = await handle_subscription_notification(sub_notification, message_key, event_time_ms)
+            logger.info(f"RTDN type {notification_type} for token {token[:12]}...: {result}")
 
         return {"status": "ok"}
     except Exception as e:

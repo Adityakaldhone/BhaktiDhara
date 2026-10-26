@@ -1,0 +1,181 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      background: var(--color-deep, #5c1a0b);
+      overflow: hidden;
+      font-family: "Mukta", sans-serif;
+    }
+    #outro-glow {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 1300px;
+      height: 1300px;
+      margin: -820px 0 0 -650px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(217, 119, 6, 0.42) 0%, rgba(217, 119, 6, 0.14) 40%, rgba(217, 119, 6, 0) 68%);
+    }
+    #outro-stage {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+      padding: 100px 160px;
+    }
+    #outro-icon {
+      width: 230px;
+      height: 230px;
+      border-radius: 52px;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(254, 215, 170, 0.35);
+      flex: none;
+    }
+    #outro-icon img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #outro-name {
+      display: flex;
+      align-items: baseline;
+      gap: 28px;
+      margin-top: 10px;
+    }
+    #outro-en {
+      font-size: 100px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff7ed;
+    }
+    #outro-en span {
+      display: inline-block;
+    }
+    #outro-hi {
+      font-size: 72px;
+      line-height: 1;
+      font-weight: 700;
+      color: #fdba74;
+    }
+    #outro-tag {
+      font-size: 44px;
+      line-height: 1.2;
+      color: #fed7aa;
+    }
+    #outro-tag .w {
+      display: inline-block;
+      margin-right: 0.24em;
+    }
+    #outro-play {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 18px;
+      padding: 14px 34px 14px 26px;
+      border-radius: 18px;
+      background: #000000;
+      border: 2px solid rgba(255, 255, 255, 0.28);
+      color: #ffffff;
+    }
+    #outro-play svg {
+      width: 44px;
+      height: 44px;
+    }
+    #outro-play small {
+      display: block;
+      font-size: 22px;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+    }
+    #outro-play strong {
+      display: block;
+      font-size: 34px;
+      line-height: 1.05;
+      font-weight: 700;
+    }
+  </style>
+  <div data-hf-id="hf-x7nm" id="root" data-composition-id="outro" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-00r5" id="outro-glow" data-layout-ignore></div>
+    <div data-hf-id="hf-tivr" id="outro-stage">
+      <div data-hf-id="hf-098o" id="outro-icon"><img data-hf-id="hf-kv4n" src="assets/img/logo.png" alt="BhaktiDhara app icon" /></div>
+      <div data-hf-id="hf-yhoa" id="outro-name">
+        <div data-hf-id="hf-3lfq" id="outro-en"><span data-hf-id="hf-ll95">B</span><span data-hf-id="hf-vx7v">h</span><span data-hf-id="hf-zhz4">a</span><span data-hf-id="hf-viwu">k</span><span data-hf-id="hf-r5jj">t</span><span data-hf-id="hf-wbiw">i</span><span data-hf-id="hf-ksn3">D</span><span data-hf-id="hf-qpcb">h</span><span data-hf-id="hf-wqew">a</span><span data-hf-id="hf-ry5l">r</span><span data-hf-id="hf-vjht">a</span></div>
+        <div data-hf-id="hf-1r8p" id="outro-hi">भक्तिधारा</div>
+      </div>
+      <p data-hf-id="hf-0v6i" id="outro-tag"><span data-hf-id="hf-zp5w" class="w">Bring</span><span data-hf-id="hf-9o0j" class="w">the</span><span data-hf-id="hf-qguw" class="w">Sacred</span><span data-hf-id="hf-b8cp" class="w">Temple</span><span data-hf-id="hf-eozm" class="w">into</span><span data-hf-id="hf-civn" class="w">Your</span><span data-hf-id="hf-vd4v" class="w">Home</span></p>
+      <div data-hf-id="hf-u5y1" id="outro-play">
+        <svg data-hf-id="hf-3bnz" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path data-hf-id="hf-j1r9" d="M3.609 1.814L13.793 12 3.61 22.186C3.242 21.808 3 21.242 3 20.5V3.5c0-.742.242-1.308.609-1.686z" fill="#00E5FF" />
+          <path data-hf-id="hf-xwm6" d="M17.186 8.607L13.793 12l3.393 3.393 3.843-2.18c1.096-.622 1.096-1.804 0-2.426l-3.843-2.18z" fill="#FFD600" />
+          <path data-hf-id="hf-j85p" d="M3.609 1.814l10.184 10.186 3.393-3.393-11.45-6.5C5.176 1.776 4.31 1.745 3.61 1.814z" fill="#00E676" />
+          <path data-hf-id="hf-5pib" d="M17.186 15.393L13.793 12 3.61 22.186c.7.07 1.566.038 2.126-.293l11.45-6.5z" fill="#FF3D00" />
+        </svg>
+        <div data-hf-id="hf-pfu2" data-layout-ignore><small data-hf-id="hf-vhn6">GET IT ON</small><strong data-hf-id="hf-x18p">Google Play</strong></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      // beat-locked: 17.47s — the app icon lands on the strong cue (local 0.87).
+      tl.fromTo(
+        "#outro-icon",
+        { opacity: 0, scale: 0.86, filter: "blur(8px)" },
+        { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "expo.out" },
+        0.8,
+      );
+      // Name: per letter, opacity 0.3 -> 1 with a slight blur.
+      tl.fromTo(
+        "#outro-en span",
+        { opacity: 0, filter: "blur(4px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power2.out", stagger: 0.035 },
+        1.08,
+      );
+      tl.fromTo(
+        "#outro-hi",
+        { opacity: 0, filter: "blur(8px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "expo.out" },
+        1.42,
+      );
+      // Closing line: per word blur in.
+      tl.fromTo(
+        "#outro-tag .w",
+        { opacity: 0, filter: "blur(6px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.14, ease: "power4.out", stagger: 0.07 },
+        1.55,
+      );
+      // beat-locked: 18.56s — the Play badge (local 1.96).
+      tl.fromTo("#outro-play", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 1.96);
+
+      // Subtle audio-reactive glow from the music bed's RMS (smoothed, 30fps).
+      const rms = [0.47,0.49,0.36,0.36,0.31,0.53,0.50,0.40,0.27,0.65,0.62,0.58,0.56,0.49,0.35,0.27,0.31,0.32,0.37,0.34,0.32,0.32,0.30,0.29,0.27,0.51,0.94,0.88,0.69,0.66,0.69,0.66,0.46,0.14,0.21,0.19,0.18,0.20,0.36,0.22,0.17,0.23,0.94,0.89,0.57,0.34,0.28,0.26,0.17,0.06,0.22,0.20,0.17,0.12,0.39,0.43,0.38,0.34,0.75,0.91,0.63,0.37,0.26,0.29,0.30,0.27,0.34,0.56,0.51,0.52,0.52,0.49,0.51,0.51,0.65,1.00,0.75,0.50,0.26,0.33,0.38,0.37,0.42,0.63,0.61,0.66,0.58,0.52,0.59,0.58,0.56,0.83,0.85,0.65,0.44,0.46,0.52,0.49,0.53,0.51,0.35,0.29,0.25,0.20,0.23,0.23,0.20,0.92,0.96,0.78,0.46,0.37,0.35,0.18,0.06,0.32,0.63,0.66,0.52,0.62,0.60,0.61,0.61,0.59,0.92,0.87,0.50,0.51,0.49,0.32,0.24,0.22];
+      let smooth = rms[0];
+      for (let i = 0; i < 118; i += 2) {
+        smooth = smooth * 0.8 + rms[i] * 0.2;
+        tl.set("#outro-glow", { opacity: 0.7 + smooth * 0.4 }, i / 30);
+      }
+
+      // Final scene: everything fades out after the closing line has held 2s+.
+      tl.to("#outro-stage", { opacity: 0, duration: 0.35, ease: "power2.in" }, 4.0);
+      tl.to("#outro-glow", { opacity: 0, duration: 0.35, ease: "power2.in" }, 4.0);
+
+      window.__timelines["outro"] = tl;
+    })();
+  </script>
+</template>

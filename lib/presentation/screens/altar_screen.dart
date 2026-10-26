@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
@@ -13,6 +14,7 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/analytics/analytics_service.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../../services/audio_service.dart';
 import '../../services/backend_service.dart';
@@ -44,6 +46,13 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
   bool _isDeepakLit = false;
   bool _showUnmuteHint = false;
   int _videoFallbackIndex = 0;
+
+  /// Foreground time on this screen that counts as a completed aarti when the
+  /// video's end isn't observed (user reads lyrics only, or video errors).
+  static const _completionDwell = Duration(minutes: 3);
+  final Stopwatch _dwell = Stopwatch();
+  Timer? _completionTimer;
+  bool _completionLogged = false;
 
   // Accessibility font scaler for 50+ demographic (1.0x, 1.25x, 1.5x)
   static const _fontScales = [1.0, 1.25, 1.5];
@@ -95,6 +104,11 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
       item: widget.aarti.title,
       props: {'id': widget.aarti.id, 'deity': widget.aarti.deity},
     );
+    AnalyticsService.logFunnelEvent(FunnelEvent.aartiOpen, parameters: {
+      'item_id': widget.aarti.id,
+      'deity': widget.aarti.deity,
+    });
+    _resumeCompletionTimer();
     try {
       WakelockPlus.enable();
     } catch (_) {}
@@ -215,8 +229,9 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
               try { player.playVideo(); } catch (e) {}
               reportMuteState();
             },
-            onStateChange: function () {
+            onStateChange: function (event) {
               reportMuteState();
+              if (event && event.data === 0) post('ended');
             },
             onError: function (event) {
               post('error:' + event.data);
@@ -310,6 +325,10 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
       if (_showUnmuteHint) setState(() => _showUnmuteHint = false);
       return;
     }
+    if (data == 'ended') {
+      _logAartiCompleted('video_ended');
+      return;
+    }
     if (data.startsWith('error:')) {
       final code = int.tryParse(data.substring(6)) ?? 0;
       if (code == 100 || code == 101 || code == 150 || code == 153) {
@@ -359,10 +378,42 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
     } catch (_) {}
   }
 
+  void _resumeCompletionTimer() {
+    if (_completionLogged) return;
+    _dwell.start();
+    _completionTimer?.cancel();
+    final remaining = _completionDwell - _dwell.elapsed;
+    _completionTimer = Timer(
+      remaining.isNegative ? Duration.zero : remaining,
+      () => _logAartiCompleted('dwell'),
+    );
+  }
+
+  void _pauseCompletionTimer() {
+    _dwell.stop();
+    _completionTimer?.cancel();
+  }
+
+  void _logAartiCompleted(String trigger) {
+    if (_completionLogged) return;
+    _completionLogged = true;
+    _pauseCompletionTimer();
+    AnalyticsService.logFunnelEvent(FunnelEvent.aartiCompleted, parameters: {
+      'item_id': widget.aarti.id,
+      'deity': widget.aarti.deity,
+      'trigger': trigger,
+      'seconds': _dwell.elapsed.inSeconds,
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _resumeCompletionTimer();
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
+      _pauseCompletionTimer();
       if (!kIsWeb && _webController != null) {
         _webController?.runJavaScript(
           'if(player && player.pauseVideo) player.pauseVideo();',
@@ -374,6 +425,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _completionTimer?.cancel();
     try {
       WakelockPlus.disable();
     } catch (_) {}

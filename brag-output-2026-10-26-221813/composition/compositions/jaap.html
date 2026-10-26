@@ -1,0 +1,210 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #ja-screen {
+      background: radial-gradient(circle at 50% 40%, #4a1f0a 0%, #2a1208 70%);
+      color: #fff7ed;
+    }
+    #ja-screen .appbar {
+      color: #fed7aa;
+    }
+    #ja-mantra {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 220px;
+      text-align: center;
+      font-family: "Tiro Devanagari Marathi", serif;
+      font-size: 60px;
+      color: #fdba74;
+    }
+    #ja-ring {
+      position: absolute;
+      left: 50%;
+      top: 360px;
+      width: 480px;
+      height: 480px;
+      margin-left: -240px;
+    }
+    #ja-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    #ja-count {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 140px;
+      height: 160px;
+      text-align: center;
+    }
+    .ja-n {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      font-size: 150px;
+      line-height: 160px;
+      font-weight: 700;
+      opacity: 0;
+    }
+    #ja-of {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 300px;
+      text-align: center;
+      font-size: 30px;
+      color: #fed7aa;
+      letter-spacing: 0.08em;
+    }
+    #ja-tap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 900px;
+      text-align: center;
+      font-size: 32px;
+      color: rgba(254, 215, 170, 0.75);
+    }
+    #ja-done {
+      position: absolute;
+      left: 50%;
+      top: 880px;
+      width: 460px;
+      margin-left: -230px;
+      text-align: center;
+      padding: 20px 0;
+      border-radius: 999px;
+      background: #ea580c;
+      font-size: 36px;
+      font-weight: 700;
+      opacity: 0;
+    }
+    #ja-stats {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      bottom: 60px;
+      display: flex;
+      gap: 14px;
+    }
+    .ja-stat {
+      flex: 1;
+      padding: 22px 0;
+      border-radius: 28px;
+      background: rgba(255, 247, 237, 0.08);
+      border: 2px solid rgba(253, 186, 116, 0.25);
+      text-align: center;
+    }
+    .ja-stat b {
+      display: block;
+      font-size: 44px;
+      line-height: 1.1;
+    }
+    .ja-stat small {
+      display: block;
+      font-size: 28px;
+      color: #fed7aa;
+    }
+    #ja-ripple {
+      position: absolute;
+      left: 342px;
+      top: 600px;
+      width: 300px;
+      height: 300px;
+      margin: -150px 0 0 -150px;
+      border-radius: 50%;
+      background: rgba(253, 186, 116, 0.25);
+      opacity: 0;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="jaap" data-width="1080" data-height="1920">
+    <div id="ja-stage" class="scene">
+      <div class="cap">
+        <div class="kicker" id="ja-kicker">05 · Naam Jaap</div>
+        <h2 class="title" id="ja-title"><span class="w">A</span><span class="w">digital</span><span class="w">mala</span><span class="w">in</span><span class="w">your</span><span class="w">pocket</span></h2>
+        <p class="body" id="ja-body">Tap anywhere to count. Keep your daily streak going.</p>
+      </div>
+      <div class="phone" id="ja-phone">
+        <div class="screen" id="ja-screen">
+          <div class="notch"></div>
+          <div class="appbar"><span>‹</span><span>Naam Jaap</span><span>⚙︎</span></div>
+          <div id="ja-mantra">ॐ नमः शिवाय</div>
+          <div id="ja-ripple"></div>
+          <div id="ja-ring">
+            <svg viewBox="0 0 480 480">
+              <circle cx="240" cy="240" r="210" fill="none" stroke="rgba(253,186,116,0.18)" stroke-width="22" />
+              <circle id="ja-arc" cx="240" cy="240" r="210" fill="none" stroke="#f97316" stroke-width="22" stroke-linecap="round" stroke-dasharray="1319.47" stroke-dashoffset="48.87" />
+            </svg>
+            <div id="ja-count" data-layout-allow-overlap>
+              <div class="ja-n" id="ja-104">104</div>
+              <div class="ja-n" id="ja-105">105</div>
+              <div class="ja-n" id="ja-106">106</div>
+              <div class="ja-n" id="ja-107">107</div>
+              <div class="ja-n" id="ja-108">108</div>
+            </div>
+            <div id="ja-of">OF 108 · MALA</div>
+          </div>
+          <div id="ja-tap">Tap anywhere</div>
+          <div id="ja-done">Mala complete 🙏</div>
+          <div id="ja-stats">
+            <div class="ja-stat"><b>🔥 12</b><small>Streak</small></div>
+            <div class="ja-stat"><b>3</b><small>Today</small></div>
+            <div class="ja-stat"><b>1,296</b><small>Lifetime</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#ja-kicker", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05);
+      tl.fromTo("#ja-title .w", { opacity: 0, y: 18, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28, ease: "expo.out", stagger: 0.07 }, 0.12);
+      tl.fromTo("#ja-body", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "expo.out" }, 0.6);
+      tl.fromTo("#ja-phone", { opacity: 0, y: 120 }, { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" }, 0.05);
+
+      const C = 1319.47;
+      tl.set("#ja-104", { opacity: 1 }, 0);
+      tl.set("#ja-arc", { attr: { "stroke-dashoffset": C * (1 - 104 / 108) } }, 0);
+
+      // Four taps, one bead each: 104 -> 108.
+      const taps = [1.3, 1.85, 2.4, 2.95];
+      taps.forEach((t, i) => {
+        const from = "#ja-" + (104 + i);
+        const to = "#ja-" + (105 + i);
+        tl.fromTo("#ja-ripple", { opacity: 0.9, scale: 0.4 }, { opacity: 0, scale: 1.3, duration: 0.45, ease: "power2.out", immediateRender: false }, t);
+        tl.set(from, { opacity: 0 }, t);
+        tl.set(to, { opacity: 1 }, t);
+        tl.fromTo(to, { scale: 1.12 }, { scale: 1, duration: 0.25, ease: "expo.out" }, t);
+        tl.to("#ja-arc", { attr: { "stroke-dashoffset": C * (1 - (105 + i) / 108) }, duration: 0.25, ease: "power2.out" }, t);
+      });
+
+      tl.to("#ja-tap", { opacity: 0, duration: 0.2 }, 2.95);
+      tl.fromTo("#ja-done", { opacity: 0, y: 20, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "back.out(1.8)" }, 3.05);
+      tl.to("#ja-arc", { attr: { stroke: "#facc15" }, duration: 0.3 }, 3.0);
+      tl.fromTo(".ja-stat", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: "expo.out", stagger: 0.06 }, 0.6);
+
+      tl.to("#ja-stage", { opacity: 0, filter: "blur(10px)", duration: 0.22, ease: "power3.in" }, 5.22);
+
+      window.__timelines["jaap"] = tl;
+    })();
+  </script>
+</template>

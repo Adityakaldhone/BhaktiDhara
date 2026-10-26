@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/analytics/analytics_service.dart';
+import '../../core/theme/motion.dart';
 import '../../core/theme/theme.dart';
 import '../../domain/entities/greeting_image.dart';
 import '../../services/backend_service.dart';
@@ -14,15 +16,11 @@ import '../providers/remote_config_provider.dart';
 import '../widgets/greeting/greeting_tile.dart';
 import 'greeting_viewer_screen.dart';
 
-const _bandColors = [
-  Color(0xFFE65100),
-  Color(0xFF2E7D32),
-  Color(0xFFD81B60),
-  Color(0xFF7B1FA2),
-  Color(0xFF1565C0),
-  Color(0xFF00897B),
-  Color(0xFF6D4C41),
-];
+const _gutter = 16.0;
+const _gridSpacing = 12.0;
+const _chipSize = 68.0;
+const _chipRadius = 20.0;
+const _ringGap = 3.0;
 
 /// Category chips on top, HD greeting images of the selected category below.
 class GreetingsScreen extends ConsumerStatefulWidget {
@@ -59,8 +57,21 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
       appBar: AppBar(
         backgroundColor: MandirTheme.backgroundCream,
         foregroundColor: MandirTheme.secondaryMaroon,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: Text(s.title, style: GoogleFonts.mukta(fontSize: 22, fontWeight: FontWeight.w800)),
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleSpacing: 4,
+        title: Text(
+          s.title,
+          style: GoogleFonts.mukta(
+            fontSize: 30,
+            height: 1.1,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.6,
+            color: MandirTheme.textDark,
+          ),
+        ),
       ),
       body: SafeArea(
         top: false,
@@ -68,26 +79,28 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(_gutter, 4, _gutter, 10),
               child: Text(
                 s.popularCategories,
                 style: GoogleFonts.mukta(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 19,
+                  height: 1.2,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
                   color: MandirTheme.textDark,
                 ),
               ),
             ),
             SizedBox(
-              height: 116,
+              height: _chipSize + _ringGap * 2 + 30,
               child: categoriesAsync.isLoading && all.isEmpty
                   ? const _CategoryStripSkeleton()
                   : _CategoryStrip(categories: visible, selected: effective, s: s),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Expanded(
               child: effective == kFavoritesCategory
-                  ? _FavoritesGrid(s: s)
+                  ? _FavoritesGrid(key: const ValueKey(kFavoritesCategory), s: s)
                   : _CategoryGrid(key: ValueKey(effective), category: effective, s: s),
             ),
           ],
@@ -113,20 +126,19 @@ class _CategoryStrip extends ConsumerWidget {
 
     return ListView.separated(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: _gutter - _ringGap),
       itemCount: categories.length + 1,
-      separatorBuilder: (_, _) => const SizedBox(width: 10),
+      separatorBuilder: (_, _) => const SizedBox(width: 8),
       itemBuilder: (context, i) {
         if (i == categories.length) {
           return _CategoryChip(
             key: const Key('greeting-category-favorites'),
             label: s.favorites,
-            color: const Color(0xFFC62828),
             selected: selected == kFavoritesCategory,
             onTap: () => select(kFavoritesCategory),
             child: const ColoredBox(
-              color: Color(0xFFFFEBEE),
-              child: Center(child: Icon(Icons.favorite_rounded, color: Color(0xFFE53935), size: 34)),
+              color: Color(0xFFFFE9E7),
+              child: Center(child: Icon(Icons.favorite_rounded, color: Color(0xFFFF453A), size: 30)),
             ),
           );
         }
@@ -134,22 +146,21 @@ class _CategoryStrip extends ConsumerWidget {
         return _CategoryChip(
           key: Key('greeting-category-${c.slug}'),
           label: c.name,
-          color: _bandColors[i % _bandColors.length],
           selected: c.slug == selected,
           onTap: () => select(c.slug),
           child: c.coverUrl == null
               ? ColoredBox(
                   color: kGreetingPlaceholder,
-                  child: Center(child: Text(c.emoji.isEmpty ? '🖼️' : c.emoji, style: const TextStyle(fontSize: 30))),
+                  child: Center(child: Text(c.emoji.isEmpty ? '🖼️' : c.emoji, style: const TextStyle(fontSize: 28))),
                 )
               : CachedNetworkImage(
                   imageUrl: c.coverUrl!,
                   fit: BoxFit.cover,
-                  memCacheWidth: 260,
+                  memCacheWidth: 220,
                   placeholder: (_, _) => const ColoredBox(color: kGreetingPlaceholder),
                   errorWidget: (_, _, _) => ColoredBox(
                     color: kGreetingPlaceholder,
-                    child: Center(child: Text(c.emoji, style: const TextStyle(fontSize: 30))),
+                    child: Center(child: Text(c.emoji, style: const TextStyle(fontSize: 28))),
                   ),
                 ),
         );
@@ -162,66 +173,61 @@ class _CategoryChip extends StatelessWidget {
   const _CategoryChip({
     super.key,
     required this.label,
-    required this.color,
     required this.selected,
     required this.onTap,
     required this.child,
   });
 
   final String label;
-  final Color color;
   final bool selected;
   final VoidCallback onTap;
   final Widget child;
 
+  static const _ringRadius = _chipRadius + _ringGap;
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: selected ? 1.0 : 0.94,
-      duration: const Duration(milliseconds: 180),
-      child: GestureDetector(
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GreetingPressable(
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 86,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? const Color(0xFFD4AF37) : Colors.transparent,
-              width: 2.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: selected ? 0.35 : 0.12),
-                blurRadius: selected ? 10 : 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(13.5),
-            child: Column(
-              children: [
-                Expanded(child: SizedBox(width: double.infinity, child: child)),
-                Container(
-                  width: double.infinity,
-                  color: color,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.mukta(
-                      fontSize: 13.5,
-                      height: 1.25,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
+        child: SizedBox(
+          width: _chipSize + _ringGap * 2,
+          child: Column(
+            children: [
+              AnimatedContainer(
+                duration: AppMotion.state,
+                curve: AppMotion.ease,
+                padding: const EdgeInsets.all(_ringGap),
+                decoration: ShapeDecoration(
+                  shape: RoundedSuperellipseBorder(
+                    borderRadius: const BorderRadius.all(Radius.circular(_ringRadius)),
+                    side: BorderSide(
+                      color: selected ? MandirTheme.primarySaffron : Colors.transparent,
+                      width: 2,
                     ),
                   ),
                 ),
-              ],
-            ),
+                child: ClipRSuperellipse(
+                  borderRadius: const BorderRadius.all(Radius.circular(_chipRadius)),
+                  child: SizedBox.square(dimension: _chipSize, child: child),
+                ),
+              ),
+              const SizedBox(height: 6),
+              AnimatedDefaultTextStyle(
+                duration: AppMotion.state,
+                curve: AppMotion.ease,
+                style: GoogleFonts.mukta(
+                  fontSize: 13,
+                  height: 1.2,
+                  letterSpacing: 0.1,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? MandirTheme.primarySaffron : MandirTheme.textMuted,
+                ),
+                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+              ),
+            ],
           ),
         ),
       ),
@@ -236,14 +242,33 @@ class _CategoryStripSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: _gutter - _ringGap),
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 5,
-      separatorBuilder: (_, _) => const SizedBox(width: 10),
-      itemBuilder: (_, _) => Container(
-        width: 86,
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        decoration: BoxDecoration(color: kGreetingPlaceholder, borderRadius: BorderRadius.circular(16)),
+      separatorBuilder: (_, _) => const SizedBox(width: 8),
+      itemBuilder: (_, _) => SizedBox(
+        width: _chipSize + _ringGap * 2,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(_ringGap),
+              child: Container(
+                width: _chipSize,
+                height: _chipSize,
+                decoration: const ShapeDecoration(
+                  color: kGreetingPlaceholder,
+                  shape: RoundedSuperellipseBorder(borderRadius: BorderRadius.all(Radius.circular(_chipRadius))),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: 44,
+              height: 10,
+              decoration: const ShapeDecoration(color: kGreetingPlaceholder, shape: StadiumBorder()),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -286,7 +311,7 @@ class _CategoryGrid extends ConsumerWidget {
 }
 
 class _FavoritesGrid extends ConsumerWidget {
-  const _FavoritesGrid({required this.s});
+  const _FavoritesGrid({super.key, required this.s});
 
   final GreetingStrings s;
 
@@ -299,7 +324,7 @@ class _FavoritesGrid extends ConsumerWidget {
   }
 }
 
-class _GreetingGrid extends ConsumerWidget {
+class _GreetingGrid extends ConsumerStatefulWidget {
   const _GreetingGrid({
     required this.images,
     required this.empty,
@@ -315,7 +340,20 @@ class _GreetingGrid extends ConsumerWidget {
   final Future<void> Function()? onRefresh;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_GreetingGrid> createState() => _GreetingGridState();
+}
+
+class _GreetingGridState extends ConsumerState<_GreetingGrid> {
+  static const _staggerCount = 6;
+  static const _entranceWindow = Duration(milliseconds: 300);
+
+  final _mountedAt = DateTime.now();
+
+  bool get _entranceOpen => DateTime.now().difference(_mountedAt) < _entranceWindow;
+
+  @override
+  Widget build(BuildContext context) {
+    final _GreetingGrid(:images, :empty, :loadingMore, :onLoadMore, :onRefresh) = widget;
     final premiumAccess = ref.watch(premiumAccessProvider);
     final unlockedIds = ref.watch(unlockedGreetingsProvider);
 
@@ -323,6 +361,7 @@ class _GreetingGrid extends ConsumerWidget {
       final image = images[index];
       if (greetingLocked(image, premiumAccess: premiumAccess, unlockedIds: unlockedIds)) {
         BackendService.trackEvent('paywall_view', item: 'greeting_image');
+        AnalyticsService.logFunnelEvent(FunnelEvent.paywallView, parameters: {'source': 'greeting_image'});
       }
       Navigator.push(
         context,
@@ -337,36 +376,51 @@ class _GreetingGrid extends ConsumerWidget {
           SliverFillRemaining(hasScrollBody: false, child: empty)
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+            padding: const EdgeInsets.fromLTRB(_gutter, 8, _gutter, _gutter),
             sliver: SliverMasonryGrid.count(
               crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
+              mainAxisSpacing: _gridSpacing,
+              crossAxisSpacing: _gridSpacing,
               childCount: images.length,
-              itemBuilder: (_, i) => GreetingTile(
-                key: ValueKey(images[i].id),
-                image: images[i],
-                onTap: () => open(i),
-              ),
+              itemBuilder: (_, i) {
+                final tile = GreetingTile(key: ValueKey(images[i].id), image: images[i], onTap: () => open(i));
+                if (i >= _staggerCount || !_entranceOpen) return tile;
+                return GreetingEntrance(index: i, child: tile);
+              },
             ),
           ),
         if (loadingMore)
           const SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
+              padding: EdgeInsets.all(_gutter),
+              child: Center(
+                child: SizedBox.square(
+                  dimension: 22,
+                  child: CircularProgressIndicator.adaptive(
+                    strokeWidth: 2.2,
+                    valueColor: AlwaysStoppedAnimation(MandirTheme.textMuted),
+                  ),
+                ),
+              ),
             ),
           ),
-        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
     );
 
     return NotificationListener<ScrollNotification>(
       onNotification: (n) {
-        if (onLoadMore != null && n.metrics.extentAfter < 900) onLoadMore!();
+        if (onLoadMore != null && n.metrics.extentAfter < 900) onLoadMore();
         return false;
       },
-      child: onRefresh == null ? scroll : RefreshIndicator(onRefresh: onRefresh!, child: scroll),
+      child: onRefresh == null
+          ? scroll
+          : RefreshIndicator(
+              onRefresh: onRefresh,
+              color: MandirTheme.primarySaffron,
+              backgroundColor: Colors.white,
+              child: scroll,
+            ),
     );
   }
 }
@@ -378,16 +432,19 @@ class _GridSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     const ratios = [0.62, 0.78, 0.7, 0.58, 0.8, 0.66];
     return MasonryGridView.count(
-      padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+      padding: const EdgeInsets.fromLTRB(_gutter, 8, _gutter, _gutter),
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
+      mainAxisSpacing: _gridSpacing,
+      crossAxisSpacing: _gridSpacing,
       itemCount: ratios.length,
       itemBuilder: (_, i) => AspectRatio(
         aspectRatio: ratios[i],
-        child: DecoratedBox(
-          decoration: BoxDecoration(color: kGreetingPlaceholder, borderRadius: BorderRadius.circular(16)),
+        child: const DecoratedBox(
+          decoration: ShapeDecoration(
+            color: kGreetingPlaceholder,
+            shape: RoundedSuperellipseBorder(borderRadius: BorderRadius.all(Radius.circular(kGreetingTileRadius))),
+          ),
         ),
       ),
     );
@@ -406,23 +463,39 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: const Color(0xFFBDAB8E)),
-            const SizedBox(height: 12),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(color: MandirTheme.chipBackground, shape: BoxShape.circle),
+              child: Icon(icon, size: 32, color: MandirTheme.goldenAccent),
+            ),
+            const SizedBox(height: 16),
             Text(
               text,
               textAlign: TextAlign.center,
-              style: GoogleFonts.mukta(fontSize: 17, color: MandirTheme.textDark, height: 1.3),
+              style: GoogleFonts.mukta(
+                fontSize: 16,
+                height: 1.45,
+                fontWeight: FontWeight.w500,
+                color: MandirTheme.textMuted,
+              ),
             ),
             if (action != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 20),
               FilledButton(
                 onPressed: onAction,
-                style: FilledButton.styleFrom(backgroundColor: MandirTheme.secondaryMaroon),
-                child: Text(action!, style: GoogleFonts.mukta(fontSize: 16, fontWeight: FontWeight.w700)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: MandirTheme.primarySaffron,
+                  foregroundColor: Colors.white,
+                  shape: const StadiumBorder(),
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                  elevation: 0,
+                ),
+                child: Text(action!, style: GoogleFonts.mukta(fontSize: 16, height: 1.2, fontWeight: FontWeight.w700)),
               ),
             ],
           ],

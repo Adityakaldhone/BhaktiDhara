@@ -1,0 +1,126 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Mukta";
+      src: url("assets/fonts/Mukta-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Tiro Devanagari Marathi";
+      src: url("assets/fonts/TiroDevanagariMarathi-Regular.ttf");
+      font-weight: 400;
+    }
+    #hk-bell {
+      position: absolute;
+      left: 50%;
+      top: 200px;
+      width: 240px;
+      margin-left: -120px;
+    }
+    #hk-ring {
+      position: absolute;
+      left: 50%;
+      top: 600px;
+      width: 520px;
+      height: 520px;
+      margin: -260px 0 0 -260px;
+      border-radius: 50%;
+      border: 6px solid rgba(217, 119, 6, 0.45);
+      opacity: 0;
+    }
+    #hk-copy {
+      position: absolute;
+      left: 80px;
+      right: 80px;
+      top: 880px;
+      text-align: center;
+    }
+    #hk-title {
+      font-size: 104px;
+      line-height: 1.02;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    #hk-title .w {
+      display: inline-block;
+      margin: 0 0.12em;
+    }
+    #hk-title .acc {
+      color: #b45309;
+    }
+    #hk-brand {
+      margin-top: 70px;
+      display: inline-flex;
+      align-items: center;
+      gap: 22px;
+      padding: 16px 34px 16px 16px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 2px solid #fed7aa;
+      box-shadow: 0 16px 40px rgba(124, 45, 18, 0.12);
+    }
+    #hk-brand img {
+      width: 84px;
+      height: 84px;
+      border-radius: 22px;
+      display: block;
+    }
+    #hk-brand b {
+      display: block;
+      font-size: 40px;
+      line-height: 1.05;
+      text-align: left;
+    }
+    #hk-brand small {
+      display: block;
+      font-size: 30px;
+      color: #78716c;
+      text-align: left;
+    }
+  </style>
+  <div id="root" class="scene" data-composition-id="hook" data-width="1080" data-height="1920">
+    <div id="hk-stage" class="scene">
+    <div id="hk-ring" data-layout-ignore></div>
+    <img id="hk-bell" src="assets/img/bell.png" alt="Temple bell" />
+    <div id="hk-copy">
+      <h1 id="hk-title">
+        <span class="w">Your</span><span class="w">whole</span><span class="w acc">puja,</span><br />
+        <span class="w">in</span><span class="w">one</span><span class="w">app.</span>
+      </h1>
+      <div id="hk-brand">
+        <img src="assets/img/logo.png" alt="BhaktiDhara logo" />
+        <div><b>BhaktiDhara</b><small>Aarti Sangrah</small></div>
+      </div>
+    </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#hk-bell", { y: -40 }, { y: 0, duration: 0.45, ease: "expo.out" }, 0);
+      // Strike at 0.60s: swing, ring pulse.
+      [18, -14, 9, -5, 2, 0].forEach((deg, i) => {
+        tl.to("#hk-bell", { rotation: deg, transformOrigin: "50% 8%", duration: 0.18, ease: "sine.inOut" }, 0.5 + i * 0.18);
+      });
+      tl.fromTo("#hk-ring", { opacity: 0.9, scale: 0.5 }, { opacity: 0, scale: 1.35, duration: 1.1, ease: "power2.out", immediateRender: false }, 0.6);
+
+      tl.fromTo(
+        "#hk-title .w",
+        { opacity: 0, y: 24, filter: "blur(8px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.32, ease: "expo.out", stagger: 0.1 },
+        0.75,
+      );
+      tl.fromTo("#hk-brand", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 1.75);
+
+      tl.to("#hk-stage", { opacity: 0, filter: "blur(10px)", duration: 0.22, ease: "power3.in" }, 3.58);
+
+      window.__timelines["hook"] = tl;
+    })();
+  </script>
+</template>
