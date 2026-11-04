@@ -7,12 +7,19 @@ import '../../domain/entities/greeting_image.dart';
 import '../../services/backend_service.dart';
 import '../../services/card_share_service.dart';
 import '../../services/greeting_image_composer.dart';
+import '../../services/interstitial_ad_service.dart';
+import '../providers/ads_provider.dart';
 import '../providers/greeting_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/review_provider.dart';
 import 'greeting_strings.dart';
 
 bool _busy = false;
+
+/// Full-screen ad once the user is back from sharing or saving, never for VIPs.
+void _maybeShowInterstitial(WidgetRef ref) {
+  if (ref.read(showAdsProvider)) InterstitialAdService.instance.maybeShow();
+}
 
 /// The image exactly as it will be sent: HD plus the user's photo circle.
 Future<GreetingExport> _export(WidgetRef ref, GreetingImage image) async {
@@ -51,6 +58,7 @@ Future<void> shareGreetingImage(
       'photo': export.mimeType == 'image/png',
     });
     ref.read(reviewServiceProvider).trackCardShared();
+    _maybeShowInterstitial(ref);
   } catch (_) {
     messenger?.hideCurrentSnackBar();
     messenger?.showSnackBar(SnackBar(content: Text(s.shareFailed)));
@@ -76,6 +84,7 @@ Future<void> saveGreetingImage(BuildContext context, WidgetRef ref, GreetingImag
     );
     messenger?.showSnackBar(SnackBar(content: Text(s.saved)));
     BackendService.trackEvent('greeting_save', item: '${image.id}', props: {'category': image.category});
+    _maybeShowInterstitial(ref);
   } catch (_) {
     messenger?.showSnackBar(SnackBar(content: Text(s.saveFailed)));
   } finally {

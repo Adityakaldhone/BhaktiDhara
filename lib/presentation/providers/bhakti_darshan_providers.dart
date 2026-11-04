@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/bhajan_catalog.dart';
 import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../data/datasources/catalog.dart';
+import '../../data/datasources/khatushyam_stotras_catalog.dart';
+import '../../data/datasources/mahakal_stotras_catalog.dart';
 import '../../data/repositories/recent_deities_repository.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/bhakti_deity.dart';
@@ -11,7 +13,12 @@ import '../../domain/entities/bhakti_deity.dart';
 final bhaktiContentProvider = Provider<List<AartiItem>>((ref) {
   final seen = <String>{};
   return [
-    for (final item in [...kDevotionalCatalog, ...kBhajanCatalog])
+    for (final item in [
+      ...kDevotionalCatalog,
+      ...kBhajanCatalog,
+      ...kKhatuShyamStotrasCatalog,
+      ...kMahakalStotrasCatalog,
+    ])
       if (seen.add(item.id)) item,
   ];
 });
@@ -300,6 +307,30 @@ final deityCategoriesProvider =
       deityKey == 'Shri Datta' ||
       deityKey == 'Dattatreya' ||
       deityKey == 'Shri Dattatreya') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Mahakal' ||
+      deityKey == 'Lord Mahakal' ||
+      deityKey == 'Mahakaleshwar' ||
+      deityKey == 'Shri Mahakal') {
+    return const [
+      BhaktiCategory.aarti,
+      BhaktiCategory.chalisa,
+      BhaktiCategory.mantra,
+      BhaktiCategory.stotra,
+      BhaktiCategory.song,
+    ];
+  }
+  if (deityKey == 'Khatu Shyam' ||
+      deityKey == 'Lord Khatu Shyam' ||
+      deityKey == 'Shyam Baba' ||
+      deityKey == 'Shri Khatu Shyam') {
     return const [
       BhaktiCategory.aarti,
       BhaktiCategory.chalisa,

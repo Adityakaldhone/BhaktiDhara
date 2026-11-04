@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="ad.size" content="__AD_SIZE__">
+<meta name="ad.orientation" content="__AD_ORIENTATION__">
+<title>BhaktiDhara</title>
+<script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"></script>
+<link rel="preload" href="ganesh.jpg" as="image">
+<link rel="preload" href="logo.png" as="image">
+<link rel="preload" href="mukta800-deva.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="mukta500-deva.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  @font-face { font-family: 'Mukta'; font-weight: 500; font-display: swap;
+    src: url("mukta500-deva.woff2") format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+  @font-face { font-family: 'Mukta'; font-weight: 500; font-display: swap;
+    src: url("mukta500-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: 'Mukta'; font-weight: 700; font-display: swap;
+    src: url("mukta700-deva.woff2") format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+  @font-face { font-family: 'Mukta'; font-weight: 700; font-display: swap;
+    src: url("mukta700-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: 'Mukta'; font-weight: 800; font-display: swap;
+    src: url("mukta800-deva.woff2") format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
+  @font-face { font-family: 'Mukta'; font-weight: 800; font-display: swap;
+    src: url("mukta800-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #3a0a05; }
+  body {
+    font-family: 'Mukta', 'Noto Sans Devanagari', sans-serif;
+    color: #fff4d6;
+    -webkit-font-smoothing: antialiased;
+  }
+  #ad { position: relative; width: 100%; height: 100%; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 30%, #8e1f0b 0%, #4a0d06 60%, #2a0603 100%); }
+
+  /* ---------- Scenes ---------- */
+  .scene { position: absolute; inset: 0; bottom: 16%; opacity: 0; display: flex;
+    flex-direction: column; align-items: center; justify-content: flex-end;
+    padding: 0 6% 4%; text-align: center; }
+  .s1 { animation: show 4.2s ease 0s 1 both; }
+  .s2 { animation: show 4.2s ease 4s 1 both; }
+  .s3 { animation: show 4.2s ease 8s 1 both; }
+  .s4 { animation: show 4.2s ease 12s 1 both; }
+  .s5 { animation: showStay 1s ease 16s 1 both; justify-content: center; }
+
+  @keyframes show {
+    0% { opacity: 0; transform: scale(1.04); }
+    12% { opacity: 1; transform: scale(1); }
+    88% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes showStay { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes kenburns { from { transform: scale(1.12); } to { transform: scale(1); } }
+  @keyframes glow { 0%,100% { filter: drop-shadow(0 0 6px #ffb52e); } 50% { filter: drop-shadow(0 0 18px #ffcf5a); } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(90deg); } }
+  @keyframes lineOn { from { opacity: .35; color: #fff4d6; } to { opacity: 1; color: #ffd36b; } }
+
+  .bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; }
+  .bg::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(42,6,3,0) 35%, rgba(42,6,3,.85) 72%, #2a0603 100%); }
+  .s1 .bg { background-image: url("ganesh.jpg"); animation: kenburns 4.2s ease-out 0s 1 both; }
+  .s2 .bg { background-image: url("ganesh.jpg"); filter: blur(3px) brightness(.45); transform: scale(1.1); }
+
+  h1 { position: relative; font-weight: 800; line-height: 1.15; color: #ffd36b;
+    text-shadow: 0 2px 8px rgba(0,0,0,.6); font-size: min(9vw, 13vh); }
+  .sub { position: relative; font-weight: 500; margin-top: 1.5vh; font-size: min(4.6vw, 6.4vh);
+    color: #fff4d6; opacity: .95; }
+  .scene h1 { animation: rise .6s ease both; }
+  .s1 h1 { animation-delay: .3s; } .s1 .sub { animation: rise .6s ease .6s both; }
+  .s2 h1 { animation-delay: 4.3s; } .s3 h1 { animation-delay: 8.3s; } .s4 h1 { animation-delay: 12.3s; }
+
+  /* Lyrics card */
+  .lyrics { position: relative; width: 100%; max-width: 92vw; margin-bottom: 3vh; padding: 3vh 4vw;
+    border: 1px solid rgba(255,211,107,.6); border-radius: 14px;
+    background: rgba(42,6,3,.72); font-weight: 700; font-size: min(5.2vw, 7.4vh); line-height: 1.55; }
+  .lyrics p { opacity: .35; }
+  .lyrics p:nth-child(1) { animation: lineOn .5s ease 4.6s 1 forwards; }
+  .lyrics p:nth-child(2) { animation: lineOn .5s ease 5.6s 1 forwards; }
+  .lyrics p:nth-child(3) { animation: lineOn .5s ease 6.6s 1 forwards; }
+
+  /* Rashi wheel */
+  .wheel { position: relative; width: min(62vw, 46vh); height: min(62vw, 46vh); margin-bottom: 3vh;
+    border-radius: 50%; border: 2px solid rgba(255,211,107,.7);
+    background: radial-gradient(circle, #a8320f 0%, #5a1207 70%);
+    box-shadow: 0 0 30px rgba(255,180,60,.35); animation: spin 4.2s linear 8s 1 both; }
+  .wheel span { position: absolute; left: 50%; top: 50%; width: 2em; height: 2em; margin: -1em;
+    display: flex; align-items: center; justify-content: center; color: #ffd36b;
+    font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', sans-serif; font-size: min(5.6vw, 4.4vh); }
+  .wheel .om { width: auto; height: auto; margin: 0; transform: translate(-50%, -50%);
+    font-family: 'Mukta', sans-serif; font-size: min(15vw, 11vh); font-weight: 800; }
+  .chips { position: relative; display: flex; gap: 2vw; justify-content: center; flex-wrap: wrap; margin-top: 1.5vh; }
+  .chips b { font-weight: 700; font-size: min(4vw, 5.6vh); padding: .3em .8em; border-radius: 99px;
+    background: rgba(255,211,107,.16); border: 1px solid rgba(255,211,107,.5); }
+
+  /* Greeting card */
+  .card { position: relative; width: min(58vw, 40vh); aspect-ratio: 3 / 4; margin-bottom: 3vh;
+    border-radius: 12px; overflow: hidden; border: 3px solid #ffd36b;
+    background: linear-gradient(160deg, #ff9a2e, #c2260e 70%, #6b0f06);
+    box-shadow: 0 8px 26px rgba(0,0,0,.5); display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between; padding: 5% 4%; }
+  .card .photo { width: 34%; aspect-ratio: 1; border-radius: 50%; border: 2px solid #fff4d6;
+    background: rgba(255,244,214,.25); display: flex; align-items: center; justify-content: center;
+    font-size: min(2.8vw, 2.2vh); font-weight: 700; line-height: 1.1; }
+  .card img { width: 38%; animation: glow 1.4s ease-in-out 12s 3; }
+  .card .wish { font-weight: 800; color: #fff4d6; font-size: min(5vw, 3.8vh); line-height: 1.15;
+    text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+
+  /* End card */
+  .s5 .logo { width: min(34vw, 28vh); border-radius: 22%; box-shadow: 0 0 28px rgba(255,180,60,.55);
+    animation: glow 1.6s ease-in-out 16.5s 3; }
+  .s5 h1 { margin-top: 2.5vh; animation-delay: 16.3s; }
+  .s5 .sub { animation: rise .6s ease 16.6s both; }
+
+  /* Persistent install bar */
+  #bar { position: absolute; left: 0; right: 0; bottom: 0; height: 16%; display: flex; align-items: center;
+    gap: 3vw; padding: 0 4vw; background: linear-gradient(to top, #1e0402, rgba(30,4,2,.92));
+    border-top: 1px solid rgba(255,211,107,.35); }
+  #bar img { height: 70%; aspect-ratio: 1; border-radius: 22%; }
+  #bar .name { flex: 1; min-width: 0; line-height: 1.1; }
+  #bar .name b { display: block; font-size: min(5vw, 4.4vh); color: #ffd36b; }
+  #bar .name small { font-size: min(3.4vw, 3vh); opacity: .85; }
+  #cta { border: 0; cursor: pointer; font-family: inherit; font-weight: 800; color: #3a0a05;
+    font-size: min(4.6vw, 4.4vh); padding: .55em 1.1em; border-radius: 99px;
+    background: linear-gradient(180deg, #ffe08a, #f5a623); box-shadow: 0 3px 10px rgba(245,166,35,.45);
+    animation: pulse 1.2s ease-in-out 16s 4; white-space: nowrap; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+  /* Landscape: picture left, text right */
+  @media (orientation: landscape) {
+    .scene { flex-direction: row; justify-content: center; gap: 4vw; padding: 3vh 5vw; text-align: left; }
+    .scene .txt { flex: 1; }
+    .s1, .s2 { justify-content: flex-end; }
+    .s1 .bg, .s2 .bg { right: 45%; background-position: center 25%; }
+    .s1 .bg::after, .s2 .bg::after {
+      background: linear-gradient(to right, rgba(42,6,3,0) 55%, #4a0d06 100%); }
+    .s1 .txt, .s2 .txt { flex: 0 0 52%; }
+    .s2 .lyrics { max-width: none; margin: 1.5vh 0 0; font-size: min(3.4vw, 6vh); }
+    h1 { font-size: min(6vw, 10vh); }
+    .sub { font-size: min(3vw, 5.4vh); }
+    .wheel, .card { margin: 0; flex: 0 0 auto; }
+    .wheel { width: min(36vw, 64vh); height: min(36vw, 64vh); }
+    .wheel span { font-size: min(3.4vw, 6vh); }
+    .card { width: min(30vw, 48vh); }
+    .chips { justify-content: flex-start; }
+    .chips b { font-size: min(2.8vw, 5vh); }
+    .s5 { flex-direction: row; gap: 5vw; }
+    .s5 .logo { width: min(22vw, 40vh); }
+    .s5 h1 { margin-top: 0; }
+    #bar img { height: 66%; }
+    #bar .name b { font-size: min(3.4vw, 6vh); }
+    #bar .name small { font-size: min(2.4vw, 4.2vh); }
+    #cta { font-size: min(3.2vw, 5.6vh); }
+  }
+</style>
+</head>
+<body>
+<div id="ad">
+
+  <div class="scene s1">
+    <div class="bg"></div>
+    <div class="txt">
+      <h1>संपूर्ण मराठी आरती संग्रह</h1>
+      <p class="sub">गणपती • स्वामी समर्थ • विठ्ठल • खंडोबा</p>
+    </div>
+  </div>
+
+  <div class="scene s2">
+    <div class="bg"></div>
+    <div class="txt">
+      <h1>रोजची आरती, शब्दांसह</h1>
+      <div class="lyrics">
+        <p>सुखकर्ता दुःखहर्ता वार्ता विघ्नाची</p>
+        <p>नुरवी पुरवी प्रेम कृपा जयाची</p>
+        <p>जय देव जय देव जय मंगलमूर्ती</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene s3">
+    <div class="wheel" id="wheel"><span class="om">ॐ</span></div>
+    <div class="txt">
+      <h1>रोजचे राशीभविष्य व पंचांग</h1>
+      <div class="chips"><b>शुभ मुहूर्त</b><b>तिथी</b><b>उपाय</b></div>
+    </div>
+  </div>
+
+  <div class="scene s4">
+    <div class="card">
+      <div class="photo">तुमचा<br>फोटो</div>
+      <img src="diya.png" alt="">
+      <div class="wish">दिवाळीच्या<br>हार्दिक शुभेच्छा</div>
+    </div>
+    <div class="txt">
+      <h1>सणांच्या HD शुभेच्छा</h1>
+      <p class="sub">तुमच्या फोटोसह, एका टॅपमध्ये शेअर करा</p>
+    </div>
+  </div>
+
+  <div class="scene s5">
+    <img class="logo" src="logo.png" alt="BhaktiDhara">
+    <div class="txt">
+      <h1>दैनिक पूजा आणि नामजप माळ</h1>
+      <p class="sub">आरती • राशीभविष्य • पंचांग • शुभेच्छा</p>
+    </div>
+  </div>
+
+  <div id="bar">
+    <img src="logo.png" alt="">
+    <div class="name"><b>BhaktiDhara</b><small>भक्तीधारा • मराठी आरती</small></div>
+    <button id="cta" type="button" onclick="ExitApi.exit()">इंस्टॉल करा</button>
+  </div>
+
+</div>
+<script type="text/javascript">
+  (function () {
+    var signs = ['\u2648', '\u2649', '\u264A', '\u264B', '\u264C', '\u264D',
+                 '\u264E', '\u264F', '\u2650', '\u2651', '\u2652', '\u2653'];
+    var wheel = document.getElementById('wheel');
+    for (var i = 0; i < signs.length; i++) {
+      var s = document.createElement('span');
+      s.textContent = signs[i] + '\uFE0E';
+      s.dataset.angle = i * 30;
+      wheel.appendChild(s);
+    }
+    function place() {
+      var r = wheel.clientWidth * 0.39;
+      var spans = wheel.querySelectorAll('span[data-angle]');
+      for (var j = 0; j < spans.length; j++) {
+        var ang = +spans[j].dataset.angle;
+        spans[j].style.transform = 'rotate(' + ang + 'deg) translateY(' + (-r) + 'px) rotate(' + (-ang) + 'deg)';
+      }
+    }
+    place();
+    window.addEventListener('resize', place);
+  })();
+</script>
+</body>
+</html>

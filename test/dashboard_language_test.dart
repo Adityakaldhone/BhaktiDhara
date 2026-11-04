@@ -14,7 +14,7 @@ void main() {
   });
 
   group('Dashboard Navbar & Language Dropdown Tests', () {
-    testWidgets('Dashboard navbar has 4 tabs (Home, Bhajan, Horoscope, Panchang)',
+    testWidgets('Dashboard navbar has 5 tabs (Home, Bhajan, Horoscope, Panchang, More)',
         (WidgetTester tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -43,7 +43,7 @@ void main() {
 
       // Check BottomNavigationBar items
       final navBar = tester.widget<BottomNavigationBar>(find.byType(BottomNavigationBar));
-      expect(navBar.items.length, 4);
+      expect(navBar.items.length, 5);
       expect(navBar.items[0].icon, isA<Icon>());
       expect((navBar.items[0].icon as Icon).icon, Icons.home_filled);
       expect(navBar.items[1].icon, isA<Icon>());
@@ -52,6 +52,7 @@ void main() {
       expect((navBar.items[2].icon as Icon).icon, Icons.auto_awesome);
       expect(navBar.items[3].icon, isA<Icon>());
       expect((navBar.items[3].icon as Icon).icon, Icons.calendar_month_rounded);
+      expect((navBar.items[4].icon as Icon).icon, Icons.grid_view_rounded);
 
       // Verify "See All" button is gone
       expect(find.text('सर्व पहा'), findsNothing);

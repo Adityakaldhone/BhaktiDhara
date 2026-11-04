@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,22 +24,25 @@ import '../providers/premium_provider.dart';
 import '../providers/remote_config_provider.dart';
 import '../providers/review_provider.dart';
 import '../providers/subscription_provider.dart';
+import '../widgets/app_banner_ad.dart';
+import '../widgets/festive_offer_popup.dart';
 import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/remote_notices.dart';
 import 'bhajan_screen.dart';
 import 'deity_aarti_list_screen.dart';
-import 'granth_catalog_screen.dart';
 import 'horoscope_screen.dart';
+import 'more_screen.dart';
 import 'panchang_screen.dart';
+import '../../services/ad_units.dart';
 import '../../services/app_permission_service.dart';
 import '../providers/granth_providers.dart';
 import '../widgets/nitya_aarti_shelf.dart';
 import 'granth_chapter_list_screen.dart';
 
 /// Order must match the [IndexedStack] children in the dashboard.
-enum _DashTab { home, bhajan, granth, horoscope, panchang }
+enum _DashTab { home, bhajan, horoscope, panchang, more }
 
 /// Screen 1 — BhaktiDhara Dashboard (pixel-perfect match to UI mockup)
 class MandirDashboardScreen extends ConsumerStatefulWidget {
@@ -62,15 +68,37 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   bool _showScrollToTop = false;
   DateTime? _lastBackPressTime;
 
+  /// Held back briefly so it doesn't stack on the startup permission prompts.
+  bool _festivePopupReady = false;
+  Timer? _festivePopupTimer;
+
   @override
   void initState() {
     super.initState();
     _homeScrollController.addListener(_onHomeScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initSpeech();
+      // Speech is initialized on the first mic tap: initializing here shows the
+      // microphone prompt at launch, and Android then drops the notification prompt.
       _loadBannerAd();
       AppPermissionService.checkAndRequestStartupPermissions(ref);
     });
+    if (kIsWeb || !Platform.environment.containsKey('FLUTTER_TEST')) {
+      _festivePopupTimer = Timer(const Duration(seconds: 4), () {
+        _festivePopupReady = true;
+        _maybeShowFestivePopup();
+      });
+    }
+    ref.listenManual(remoteConfigProvider, (_, _) => _maybeShowFestivePopup());
+  }
+
+  void _maybeShowFestivePopup() {
+    if (!_festivePopupReady || _tab != _DashTab.home) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    FestiveOfferPopup.maybeShow(
+      context,
+      ref,
+      ref.read(localeProvider).languageCode,
+    );
   }
 
 
@@ -90,26 +118,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         curve: Curves.easeOutCubic,
       );
     }
-  }
-
-  Future<void> _initSpeech() async {
-    try {
-      final available = await _speechToText.initialize(
-        onError: (_) {
-          if (mounted) setState(() => _isListening = false);
-        },
-        onStatus: (status) {
-          if (status == 'done' || status == 'notListening') {
-            if (mounted) setState(() => _isListening = false);
-          }
-        },
-      );
-      if (mounted) {
-        setState(() {
-          _speechEnabled = available;
-        });
-      }
-    } catch (_) {}
   }
 
   void _loadBannerAd() {
@@ -133,6 +141,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
   @override
   void dispose() {
+    _festivePopupTimer?.cancel();
     _homeScrollController.removeListener(_onHomeScroll);
     _searchController.dispose();
     _homeScrollController.dispose();
@@ -162,9 +171,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     final tabs = [
       _DashTab.home,
       if (on(AppRemoteConfig.bhajan)) _DashTab.bhajan,
-      if (on(AppRemoteConfig.granth)) _DashTab.granth,
       if (on(AppRemoteConfig.horoscope)) _DashTab.horoscope,
       if (on(AppRemoteConfig.panchang)) _DashTab.panchang,
+      _DashTab.more,
     ];
     final currentTab = tabs.contains(_tab) ? _tab : _DashTab.home;
     final navIndex = tabs.indexOf(currentTab);
@@ -176,15 +185,25 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         _visitedTabs.contains(_DashTab.bhajan) && tabs.contains(_DashTab.bhajan)
             ? const BhajanScreen()
             : const SizedBox.shrink(),
-        _visitedTabs.contains(_DashTab.granth) && tabs.contains(_DashTab.granth)
-            ? const GranthCatalogScreen()
-            : const SizedBox.shrink(),
         _visitedTabs.contains(_DashTab.horoscope) && tabs.contains(_DashTab.horoscope)
             ? const HoroscopeScreen()
             : const SizedBox.shrink(),
         _visitedTabs.contains(_DashTab.panchang) && tabs.contains(_DashTab.panchang)
             ? const PanchangScreen()
             : const SizedBox.shrink(),
+        _visitedTabs.contains(_DashTab.more)
+            ? const MoreScreen()
+            : const SizedBox.shrink(),
+      ],
+    );
+
+    // Hidden tabs stay alive in the IndexedStack, so their banner lives here
+    // and only exists while the tab is on screen.
+    final showTabBanner = currentTab == _DashTab.panchang || currentTab == _DashTab.bhajan;
+    final tabBody = Column(
+      children: [
+        Expanded(child: tabStack),
+        if (showTabBanner) AppBannerAd(key: ValueKey(currentTab), adUnitId: AdUnits.tabBanner),
       ],
     );
 
@@ -259,12 +278,12 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     child: MediaQuery.removePadding(
                       context: context,
                       removeTop: true,
-                      child: tabStack,
+                      child: tabBody,
                     ),
                   ),
                 ],
               )
-            : tabStack,
+            : tabBody,
 
         // ── Scroll-to-Top Floating Action Button ───────────────────────────
         floatingActionButton: (currentTab == _DashTab.home && _showScrollToTop)
@@ -317,6 +336,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   _showScrollToTop = _homeScrollController.offset > 320;
                 }
               });
+              if (tapped == _DashTab.home) _maybeShowFestivePopup();
             },
             type: BottomNavigationBarType.fixed,
             backgroundColor: MandirTheme.surfaceWhite,
@@ -346,10 +366,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                       icon: const Icon(Icons.library_music_rounded),
                       label: l10n.navBhajan,
                     ),
-                  _DashTab.granth => BottomNavigationBarItem(
-                      icon: const Icon(Icons.menu_book_rounded),
-                      label: l10n.navGranth,
-                    ),
                   _DashTab.horoscope => BottomNavigationBarItem(
                       icon: const Icon(Icons.auto_awesome),
                       label: l10n.navHoroscope,
@@ -357,6 +373,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   _DashTab.panchang => BottomNavigationBarItem(
                       icon: const Icon(Icons.calendar_month_rounded),
                       label: l10n.navPanchang,
+                    ),
+                  _DashTab.more => BottomNavigationBarItem(
+                      icon: const Icon(Icons.grid_view_rounded),
+                      label: l10n.navMore,
                     ),
                 },
             ],

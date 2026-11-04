@@ -24,7 +24,7 @@ from app.database import (
     save_cached_panchang,
     increment_api_stat,
 )
-from app.gemini_service import generate_horoscope, generate_panchang
+from app.gemini_service import generate_horoscope, generate_panchang, reading_matches_language
 
 logger = logging.getLogger("bhaktidhara.vedic_cache")
 
@@ -168,13 +168,19 @@ def _queue_background(key, generate, save, stat):
 
 # ── Public helpers ───────────────────────────────────────────────────────────
 
+async def lookup_horoscope(date_str: str, rashi_id: str, period: str, lang: str) -> Optional[Dict[str, Any]]:
+    cached = await get_cached_horoscope(date_str, rashi_id, period, lang)
+    # Readings cached before the language check may be in the wrong language.
+    return cached if cached and reading_matches_language(cached, lang) else None
+
+
 async def get_or_create_horoscope(
     date_str: str, rashi_id: str, rashi_name: str, period: str, lang: str, force_refresh: bool = False,
 ) -> Tuple[Dict[str, Any], str]:
     key = ("horoscope", date_str, rashi_id, period, lang)
     return await _resolve(
         key,
-        lookup=lambda: get_cached_horoscope(date_str, rashi_id, period, lang),
+        lookup=lambda: lookup_horoscope(date_str, rashi_id, period, lang),
         generate=lambda: generate_horoscope(
             rashi_name=rashi_name, period=period, lang_code=lang, date_text=date_str, rashi_id=rashi_id
         ),

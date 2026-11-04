@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'dart:math';
 import 'package:android_id/android_id.dart';
 import 'package:crypto/crypto.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -46,6 +47,35 @@ class BackendService {
         } catch (_) {
           return '1.0.0';
         }
+      }();
+
+  static Future<({String model, String osVersion})>? _deviceDetailsFuture;
+
+  /// Phone model (e.g. "Samsung SM-A525F") and OS version (e.g. "Android 14 (SDK 34)").
+  static Future<({String model, String osVersion})> getDeviceDetails() =>
+      _deviceDetailsFuture ??= () async {
+        try {
+          if (kIsWeb) return (model: '', osVersion: '');
+          final plugin = DeviceInfoPlugin();
+          if (Platform.isAndroid) {
+            final a = await plugin.androidInfo;
+            final brand = a.manufacturer.isEmpty
+                ? ''
+                : '${a.manufacturer[0].toUpperCase()}${a.manufacturer.substring(1)}';
+            final model = a.model.toLowerCase().startsWith(brand.toLowerCase())
+                ? a.model
+                : '$brand ${a.model}'.trim();
+            return (
+              model: model,
+              osVersion: 'Android ${a.version.release} (SDK ${a.version.sdkInt})',
+            );
+          }
+          if (Platform.isIOS) {
+            final i = await plugin.iosInfo;
+            return (model: i.utsname.machine, osVersion: 'iOS ${i.systemVersion}');
+          }
+        } catch (_) {}
+        return (model: '', osVersion: '');
       }();
 
   static const _anonIdKey = 'anon_device_id';
@@ -218,6 +248,7 @@ class BackendService {
       final storedPremium = prefs.getBool(_premiumKey) ?? false;
       // Only report paid VIP; admin-granted VIP is tracked separately on the server.
       final effectiveVip = isVip ?? (storedPremium && !adminGranted);
+      final device = await getDeviceDetails();
 
       final url = Uri.parse('${backendUrl.trim()}/api/v1/telemetry/ping');
       final response = await http
@@ -230,6 +261,8 @@ class BackendService {
               'appVersion': await getAppVersion(),
               'locale': locale,
               'isVip': effectiveVip,
+              if (device.model.isNotEmpty) 'deviceModel': device.model,
+              if (device.osVersion.isNotEmpty) 'osVersion': device.osVersion,
               if (effectiveName.isNotEmpty) 'userName': effectiveName,
               if (effectiveCity.isNotEmpty) 'city': effectiveCity,
             }),

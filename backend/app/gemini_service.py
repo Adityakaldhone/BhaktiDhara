@@ -37,6 +37,26 @@ def _generate_with_fallback(prompt: str) -> str:
         raise e
 
 
+LANG_NAMES = {"mr": "Marathi (मराठी)", "hi": "Hindi (हिन्दी)", "en": "English"}
+
+# Common in Marathi, rare or absent in Hindi.
+_MARATHI_MARKERS = ("ळ", " आहे", " आणि ", "च्या ", "साठी", "ण्याची", " करा", " टाळा", "दुपारी", "संध्याकाळी", " वेळा")
+_DEVANAGARI = re.compile(r"[\u0900-\u097F]")
+
+
+def reading_matches_language(data: Dict[str, Any], lang_code: str) -> bool:
+    """False when Gemini answered (or the cache holds) a reading in the wrong language."""
+    text = " ".join(str(data.get(k, "")) for k in ("summary", "career", "health", "love", "cautionTitle"))
+    if not text.strip():
+        return True
+    if lang_code == "hi":
+        return sum(text.count(m) for m in _MARATHI_MARKERS) < 2
+    if lang_code == "en":
+        letters = [c for c in text if c.isalpha()]
+        return not letters or len(_DEVANAGARI.findall(text)) / len(letters) < 0.3
+    return True
+
+
 # ── Authentic Vedic Planetary Profiles for 12 Rashis ─────────────────────────
 RASHI_VEDIC_PROFILES: Dict[str, Dict[str, Any]] = {
     "aries": {
@@ -195,6 +215,7 @@ async def generate_horoscope(
         "hi": "Strictly respond in pure, dignified Hindi (हिन्दी) with authentic Vedic Devanagari terminology.",
         "en": "Respond in English with authentic Vedic astrology principles and terminology."
     }.get(lang_code, "Strictly respond in Marathi.")
+    lang_name = LANG_NAMES.get(lang_code, LANG_NAMES["mr"])
 
     prompt = f"""
 You are an authentic, honest Vedic Astrologer (ज्येष्ठ ज्योतिषाचार्य) writing daily rashibhavishya (राशीभविष्य).
@@ -229,7 +250,7 @@ STRICT ASTROLOGICAL RULES - AVOID TOXIC POSITIVITY & REPETITION:
 7. VEDIC REMEDY (उपाय):
    - A specific sacred mantra, stotra, or deed honoring {profile['lord']}.
 8. CAUTION & AVOIDANCE (सावधगिरीचा इशारा - काय टाळावे?):
-   - cautionTitle: 1 punchy, attention-grabbing headline in {lang_code} (e.g. "दुपारी २:३० ते ५:०० दरम्यान वादाचे प्रसंग व मोठी खरेदी टाळा")
+   - cautionTitle: 1 punchy, attention-grabbing headline in {lang_name} (e.g. "दुपारी २:३० ते ५:०० दरम्यान वादाचे प्रसंग व मोठी खरेदी टाळा")
    - cautionDetail: 1-2 practical sentences explaining planetary risk and specific trap/pitfall to avoid today.
    - cautionWindow: Specific sensitive time window (e.g. "दुपारी १२:०० - ०३:३०" or "सकाळी १०:३० - १२:००")
 9. HOURLY TIME-SLOTS (वेळेनुसार ३-काळ):
@@ -238,11 +259,11 @@ STRICT ASTROLOGICAL RULES - AVOID TOXIC POSITIVITY & REPETITION:
      - afternoon: 1-2 sentences on career decisions, trade, negotiation, and alertness (12:00 PM - 05:00 PM)
      - evening: 1-2 sentences on relationships, health unwinding, and peaceful reflection (05:00 PM - 10:00 PM)
 10. DAILY COMPATIBILITY & DEITY (अनुकूल मैत्री रास व इष्टदेवता मंत्र):
-   - compatibleRashi: 1-2 signs favoring collaboration today in {lang_code} (e.g. "सिंह व धनु")
-   - cautionRashi: 1 sign where caution in communication is needed in {lang_code} (e.g. "वृश्चिक")
+   - compatibleRashi: 1-2 signs favoring collaboration today in {lang_name} (e.g. "सिंह व धनु")
+   - cautionRashi: 1 sign where caution in communication is needed in {lang_name} (e.g. "वृश्चिक")
    - compatibilityTip: 1-2 sentences on handling partnership and avoiding debate today
-   - rulingDeity: Divine deity for today's planetary transit in {lang_code}
-   - deityMantra: Sacred Beej Mantra with count in {lang_code} (e.g. "ॐ गं गणपतये नमः (२१ वेळा जप)")
+   - rulingDeity: Divine deity for today's planetary transit in {lang_name}
+   - deityMantra: Sacred Beej Mantra with count in {lang_name} (e.g. "ॐ गं गणपतये नमः (२१ वेळा जप)")
    - mantraBenefit: 1 sentence on the spiritual benefit of this mantra today
 
 Respond ONLY with a valid, raw JSON object (no markdown, no ```json tags, no explanations).
@@ -256,31 +277,45 @@ JSON Schema:
   "cautionDetail": "1-2 sentences on specific planetary transit risk and avoidance advice",
   "cautionWindow": "Specific hours of the day where caution is most required",
   "timeSlots": {{
-    "morning": "Morning guidance in {lang_code}",
-    "afternoon": "Afternoon guidance in {lang_code}",
-    "evening": "Evening guidance in {lang_code}"
+    "morning": "Morning guidance in {lang_name}",
+    "afternoon": "Afternoon guidance in {lang_name}",
+    "evening": "Evening guidance in {lang_name}"
   }},
-  "compatibleRashi": "1-2 compatible signs today in {lang_code}",
-  "cautionRashi": "1 sign to avoid conflict with today in {lang_code}",
-  "compatibilityTip": "Practical guidance on synergy and handling debate in {lang_code}",
-  "rulingDeity": "Sacred deity for today in {lang_code}",
-  "deityMantra": "Beej mantra with count in {lang_code}",
-  "mantraBenefit": "Spiritual benefit in {lang_code}",
+  "compatibleRashi": "1-2 compatible signs today in {lang_name}",
+  "cautionRashi": "1 sign to avoid conflict with today in {lang_name}",
+  "compatibilityTip": "Practical guidance on synergy and handling debate in {lang_name}",
+  "rulingDeity": "Sacred deity for today in {lang_name}",
+  "deityMantra": "Beej mantra with count in {lang_name}",
+  "mantraBenefit": "Spiritual benefit in {lang_name}",
   "luckyNumber": "Auspicious numeral from {profile['numbers']}",
   "luckyColor": "Auspicious color from {profile['colors']}",
   "remedy": "Vedic remedy linked to {profile['lord']}",
   "auspiciousPercentage": 65
 }}
+
+FINAL LANGUAGE RULE (overrides everything above):
+The Devanagari examples above are Marathi and only illustrate tone. Write EVERY string value
+(except the numeral in luckyNumber) entirely in {lang_name}. Do not mix in any other language.
 """
 
-    # The Gemini SDK call is blocking; run it off the event loop.
-    raw_text = await asyncio.to_thread(_generate_with_fallback, prompt)
-    cleaned = _clean_json_markdown(raw_text)
+    data = None
+    for _attempt in range(2):
+        # The Gemini SDK call is blocking; run it off the event loop.
+        raw_text = await asyncio.to_thread(_generate_with_fallback, prompt)
+        try:
+            parsed = json.loads(_clean_json_markdown(raw_text))
+        except Exception:
+            continue
+        if reading_matches_language(parsed, lang_code):
+            data = parsed
+            data["isAiGenerated"] = True
+            break
 
-    try:
-        data = json.loads(cleaned)
-        data["isAiGenerated"] = True
-    except Exception:
+    if data is None and lang_code != "mr":
+        # The app has its own localized fallback; never hand Hindi/English users Marathi text.
+        raise ValueError(f"Gemini did not return a usable {lang_name} horoscope")
+
+    if data is None:
         # Fallback dictionary if JSON parsing fails
         data = {
             "summary": f"{rashi_name} राशीच्या जातकांसाठी आज संयम आणि सावधगिरी बाळगण्याचा दिवस आहे. ग्रहांच्या स्थितीनुसार कामात नियोजित वेळेपेक्षा अधिक वेळ लागू शकतो.",

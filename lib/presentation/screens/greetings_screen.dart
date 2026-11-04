@@ -46,11 +46,11 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
     final all = categoriesAsync.valueOrNull ?? const <GreetingCategory>[];
     final withImages = all.where((c) => c.count > 0).toList();
     final visible = withImages.isEmpty ? all : withImages;
-    final effective = selected == kFavoritesCategory ||
-            visible.isEmpty ||
-            visible.any((c) => c.slug == selected)
+    final effective = selected == kFavoritesCategory || visible.any((c) => c.slug == selected)
         ? selected
-        : visible.first.slug;
+        : visible.isEmpty
+            ? kFallbackGreetingCategory
+            : visible.first.slug;
 
     return Scaffold(
       backgroundColor: MandirTheme.backgroundCream,

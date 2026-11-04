@@ -113,6 +113,34 @@ class AppLocalizationsHi extends AppLocalizations {
   String get navGranth => 'ग्रंथ';
 
   @override
+  String get navMore => 'अधिक';
+
+  @override
+  String get moreGranthSubtitle =>
+      '१८ महापुराण, श्रीमद्भगवद्गीता एवं पवित्र ग्रंथ';
+
+  @override
+  String get moreKundaliTitle => 'कुंडली';
+
+  @override
+  String get moreKundaliSubtitle =>
+      'जन्म तिथि, समय और स्थान से आपकी वैदिक जन्म कुंडली';
+
+  @override
+  String get moreGrahanTitle => 'ग्रहण';
+
+  @override
+  String get moreGrahanSubtitle =>
+      'आगामी सूर्य व चंद्र ग्रहण, सूतक समय व रिमाइंडर';
+
+  @override
+  String get moreMilanTitle => 'कुंडली मिलान';
+
+  @override
+  String get moreMilanSubtitle =>
+      'विवाह के लिए ३६ गुणों का अष्टकूट मिलान व मांगलिक दोष';
+
+  @override
   String get bhajanSangrah => 'भक्ति संग्रह';
 
   @override

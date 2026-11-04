@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart' show BillingResponse;
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -30,11 +31,16 @@ class SubscriptionService {
   static const _subTokenKey = 'bhaktidhara_sub_token';
   static const _loggedOrdersKey = 'bhaktidhara_analytics_logged_orders';
 
+  /// Offer ID configured on every base plan in Play Console for the current
+  /// festival sale. Play only returns it to accounts eligible for it.
+  static const festiveOfferId = 'diwali-2026';
+
   SubscriptionService._();
   static final instance = SubscriptionService._();
 
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
+  Future<void>? _initFuture;
   bool _isBillingAvailable = false;
   List<ProductDetails> _storeProducts = [];
   Completer<SubscriptionStatus>? _activePurchaseCompleter;
@@ -46,8 +52,57 @@ class SubscriptionService {
   bool get isBillingAvailable => _isBillingAvailable;
   List<ProductDetails> get storeProducts => _storeProducts;
 
+  /// First-period price in rupees of the festive offer for [productId], or
+  /// null when the offer is inactive or this account isn't eligible.
+  int? festiveOfferPrice(String productId) {
+    for (final p in _storeProducts) {
+      if (p.id != productId || p is! GooglePlayProductDetails) continue;
+      for (final offer in p.productDetails.subscriptionOfferDetails ?? const []) {
+        if (offer.offerId != festiveOfferId || offer.pricingPhases.isEmpty) continue;
+        return (offer.pricingPhases.first.priceAmountMicros / 1000000).round();
+      }
+    }
+    return null;
+  }
+
+  /// Length in days of the free trial Play offers this account for
+  /// [productId], or null when the account isn't eligible (e.g. it already
+  /// used the trial) or products haven't loaded yet.
+  int? freeTrialDays(String productId) {
+    for (final p in _storeProducts) {
+      if (p.id != productId || p is! GooglePlayProductDetails) continue;
+      for (final offer in p.productDetails.subscriptionOfferDetails ?? const []) {
+        for (final phase in offer.pricingPhases) {
+          if (phase.priceAmountMicros == 0) return _periodDays(phase.billingPeriod);
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Days in an ISO-8601 period such as "P7D" or "P1W".
+  static int _periodDays(String period) {
+    final m = RegExp(r'^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$').firstMatch(period);
+    if (m == null) return 7;
+    int part(int i) => int.tryParse(m.group(i) ?? '') ?? 0;
+    final days = part(1) * 365 + part(2) * 30 + part(3) * 7 + part(4);
+    return days > 0 ? days : 7;
+  }
+
+  static bool _isStoreToken(String? token) =>
+      token != null && token.isNotEmpty && !token.startsWith('dev_token_');
+
   /// Initializes Google Play Billing and starts listening to the purchase stream.
-  Future<void> initialize() async {
+  /// Safe to call repeatedly; concurrent callers share one connection attempt,
+  /// and a failed attempt is retried on the next call.
+  Future<void> initialize() {
+    if (_subscription != null && _isBillingAvailable) return Future.value();
+    return _initFuture ??= _initialize().whenComplete(() => _initFuture = null);
+  }
+
+  /// Building the native BillingClient makes a blocking Binder call on the
+  /// Android main thread, so this must not run during app startup.
+  Future<void> _initialize() async {
     if (kIsWeb) {
       debugPrint('[SubscriptionService] Store billing disabled on Web');
       return;
@@ -95,6 +150,13 @@ class SubscriptionService {
           '[SubscriptionService] Loaded ${_storeProducts.length} store products: '
           '${_storeProducts.map((p) => p.id).toList()}',
         );
+        for (final p in _storeProducts.whereType<GooglePlayProductDetails>()) {
+          final offers = p.productDetails.subscriptionOfferDetails ?? const [];
+          debugPrint(
+            '[SubscriptionService] ${p.id} offers: '
+            '${offers.map((o) => '${o.basePlanId}/${o.offerId ?? 'base'}').toList()}',
+          );
+        }
         if (response.notFoundIDs.isNotEmpty) {
           debugPrint(
             '[SubscriptionService] WARNING: Google Play did NOT find product IDs: '
@@ -126,10 +188,8 @@ class SubscriptionService {
       return simulatePurchase(plan);
     }
 
-    // 1. Ensure Google Play Billing is connected
-    if (!_isBillingAvailable) {
-      _isBillingAvailable = await _iap.isAvailable();
-    }
+    // 1. Ensure Google Play Billing is connected and purchase stream is attached
+    await initialize();
 
     // 2. Fetch products if not yet loaded
     if (_isBillingAvailable && _storeProducts.isEmpty) {
@@ -185,7 +245,8 @@ class SubscriptionService {
       String? selectedOfferToken;
       String? selectedOfferId;
 
-      // Check all matching products & offer wrappers for a Free Trial (priceAmountMicros == 0)
+      // The free trial wins; Play only returns it to accounts that haven't
+      // used it, and those accounts get the festive offer instead.
       for (final p in matchingProducts) {
         if (p is GooglePlayProductDetails) {
           final offers = p.productDetails.subscriptionOfferDetails ?? [];
@@ -202,6 +263,25 @@ class SubscriptionService {
             }
           }
           if (selectedOfferToken != null) break;
+        }
+      }
+
+      if (selectedOfferToken == null) {
+        for (final p in matchingProducts) {
+          if (p is GooglePlayProductDetails) {
+            final offers = p.productDetails.subscriptionOfferDetails ?? [];
+            for (final offer in offers) {
+              if (offer.offerId == festiveOfferId) {
+                selectedOfferToken = offer.offerIdToken;
+                selectedOfferId = offer.offerId;
+                debugPrint(
+                  '[SubscriptionService] Selected festive offer "$selectedOfferId" for ${plan.productId}',
+                );
+                break;
+              }
+            }
+            if (selectedOfferToken != null) break;
+          }
         }
       }
 
@@ -300,9 +380,56 @@ class SubscriptionService {
     } catch (e) {
       debugPrint('[SubscriptionService] buyPlan error: $e');
       _activePurchaseCompleter = null;
+      if (e is IAPError && e.message == BillingResponse.itemAlreadyOwned.toString()) {
+        final restored = await _restoreOwnedPurchase();
+        if (restored.isActive) {
+          lastErrorMessage = null;
+          return restored;
+        }
+      }
+      if (e is IAPError) lastErrorMessage ??= _describeBillingError(e);
       lastErrorMessage ??= e.toString();
       rethrow;
     }
+  }
+
+  /// Play says the user already owns the plan, so re-activate it locally
+  /// through the restored purchase instead of showing an error.
+  Future<SubscriptionStatus> _restoreOwnedPurchase() async {
+    final completer = Completer<SubscriptionStatus>();
+    _activePurchaseCompleter = completer;
+    try {
+      await _iap.restorePurchases();
+      return await completer.future.timeout(const Duration(seconds: 15));
+    } catch (e) {
+      debugPrint('[SubscriptionService] Restore after itemAlreadyOwned failed: $e');
+      return loadSubscriptionStatus();
+    } finally {
+      if (identical(_activePurchaseCompleter, completer)) _activePurchaseCompleter = null;
+    }
+  }
+
+  /// Turns raw Play Billing errors into something a devotee can act on.
+  static String _describeBillingError(IAPError error) {
+    final message = error.message;
+    if (message == BillingResponse.itemUnavailable.toString()) {
+      return 'This plan is not available for your Google Play account right now. '
+          'Make sure the Play Store is signed in with the account you installed the app from, '
+          'update the Play Store, and try again.';
+    }
+    if (message == BillingResponse.itemAlreadyOwned.toString()) {
+      return 'You already have this subscription. Tap "Restore Purchase" to activate it.';
+    }
+    if (message == BillingResponse.billingUnavailable.toString() ||
+        message == BillingResponse.serviceUnavailable.toString() ||
+        message == BillingResponse.serviceDisconnected.toString() ||
+        message == BillingResponse.networkError.toString()) {
+      return 'Could not reach Google Play. Check your internet connection and try again.';
+    }
+    if (message == BillingResponse.developerError.toString()) {
+      return 'Google Play could not start this purchase. Please try again later.';
+    }
+    return 'Purchase could not be completed. Please try again.';
   }
 
   /// Handles incoming purchase updates from Google Play stream.
@@ -311,7 +438,26 @@ class SubscriptionService {
       if (purchaseDetails.status == PurchaseStatus.pending) {
         debugPrint('[SubscriptionService] Purchase pending: ${purchaseDetails.productID}');
       } else if (purchaseDetails.status == PurchaseStatus.error) {
-        debugPrint('[SubscriptionService] Purchase error: ${purchaseDetails.error}');
+        final error = purchaseDetails.error;
+        debugPrint('[SubscriptionService] Purchase error: $error');
+        BackendService.trackEvent(
+          'subscription_purchase_error',
+          item: purchaseDetails.productID,
+          props: {
+            'code': error?.code ?? '',
+            'message': error?.message ?? '',
+            'details': '${error?.details ?? ''}',
+          },
+        );
+        if (error?.message == BillingResponse.itemUnavailable.toString()) {
+          // Offer tokens fetched at launch can go stale; re-query so the
+          // next attempt uses what Play currently offers this account.
+          _storeProducts = [];
+          unawaited(refreshProducts());
+        }
+        if (purchaseDetails.pendingCompletePurchase) {
+          await _iap.completePurchase(purchaseDetails);
+        }
         if (_activePurchaseCompleter != null && !_activePurchaseCompleter!.isCompleted) {
           _activePurchaseCompleter!.completeError(purchaseDetails.error ?? 'Unknown error');
         }
@@ -332,17 +478,30 @@ class SubscriptionService {
         );
 
         final plan = _planFromProductId(purchaseDetails.productID);
-        final durationDays = plan != null ? plan.durationMonths * 30 : 30;
+        final checkout = _pendingCheckout;
+        final startedTrial = purchaseDetails.status == PurchaseStatus.purchased &&
+            checkout?.productId == purchaseDetails.productID &&
+            checkout!.chargedNow == 0;
+        final trialDays = freeTrialDays(purchaseDetails.productID) ?? 7;
+        final durationDays = startedTrial
+            ? trialDays
+            : (plan != null ? plan.durationMonths * 30 : 30);
 
-        final finalStatus = verifiedStatus ??
+        var finalStatus = verifiedStatus ??
             SubscriptionStatus(
               isActive: true,
               tier: plan?.tier ?? _tierFromProductId(purchaseDetails.productID),
               expiresAt: DateTime.now().add(Duration(days: durationDays)),
-              isTrial: verifiedStatus?.isTrial ?? false,
+              isTrial: startedTrial,
               autoRenewing: true,
               purchaseToken: token,
             );
+        if (startedTrial || finalStatus.isTrial) {
+          finalStatus = finalStatus.copyWith(
+            isTrial: true,
+            trialStartedAt: finalStatus.trialStartedAt ?? DateTime.now(),
+          );
+        }
 
         await saveSubscriptionStatus(finalStatus);
 
@@ -450,6 +609,7 @@ class SubscriptionService {
 
   /// Restores previous purchases through Google Play Billing and backend check.
   Future<SubscriptionStatus> restorePurchases() async {
+    await initialize();
     if (_isBillingAvailable) {
       try {
         await _iap.restorePurchases();
@@ -464,6 +624,61 @@ class SubscriptionService {
       return backendStatus;
     }
     return loadSubscriptionStatus();
+  }
+
+  /// Reconciles local state with the subscriptions Google Play says this
+  /// account owns right now: picks up trial conversions and renewals, and
+  /// revokes plans that were cancelled, refunded or lapsed. Returns null when
+  /// Play couldn't be asked or nothing changed, so callers keep what they have.
+  Future<SubscriptionStatus?> syncWithStore() async {
+    if (kIsWeb) return null;
+    await initialize();
+    if (!Platform.isAndroid || !_isBillingAvailable) return null;
+    try {
+      final response = await _iap
+          .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>()
+          .queryPastPurchases();
+      if (response.error != null) return null;
+
+      final owned = response.pastPurchases
+          .where((p) =>
+              p.status == PurchaseStatus.purchased &&
+              _planFromProductId(p.productID) != null)
+          .toList();
+      final local = await loadSubscriptionStatus();
+
+      if (owned.isEmpty) {
+        if (!local.isActive || !_isStoreToken(local.purchaseToken)) return null;
+        await _clearLocalState(await SharedPreferences.getInstance());
+        return SubscriptionStatus.free;
+      }
+
+      final purchase = owned.first;
+      if (purchase.pendingCompletePurchase) {
+        await _iap.completePurchase(purchase);
+      }
+      final plan = _planFromProductId(purchase.productID)!;
+      final token = purchase.verificationData.serverVerificationData;
+      final now = DateTime.now();
+      final localExpiry = local.expiresAt;
+      final samePurchase = local.purchaseToken == token;
+      final status = SubscriptionStatus(
+        isActive: true,
+        tier: plan.tier,
+        expiresAt: localExpiry != null && localExpiry.isAfter(now)
+            ? localExpiry
+            : now.add(Duration(days: plan.durationMonths * 30)),
+        isTrial: samePurchase && local.isTrial,
+        trialStartedAt: samePurchase ? local.trialStartedAt : null,
+        autoRenewing: purchase.billingClientPurchase.isAutoRenewing,
+        purchaseToken: token,
+      );
+      await saveSubscriptionStatus(status);
+      return status;
+    } catch (e) {
+      debugPrint('[SubscriptionService] Store sync failed: $e');
+      return null;
+    }
   }
 
   /// Opens the native Google Play or Apple App Store subscription management page.
@@ -541,40 +756,30 @@ class SubscriptionService {
       }
       */
 
-      // Auto-cleanup for previous fake auto-trials:
-      // Only clear if the device has a mock/unverified trial without a real Google Play token.
-      // Real Google Play purchases/trials have real tokens and are NEVER cleared.
-      if (isTrial && (token == null || token.isEmpty || token.startsWith('dev_token_'))) {
+      final storeBacked = _isStoreToken(token);
+
+      // Trials that never went through Google Play were local simulations.
+      if (isTrial && !storeBacked) {
         await _clearLocalState(prefs);
         return SubscriptionStatus.free;
       }
 
-      // 2. Check if active trial has expired
-      if (isTrial && trialStartMs != null) {
-        final trialStart = DateTime.fromMillisecondsSinceEpoch(trialStartMs);
-        if (DateTime.now().isAfter(trialStart.add(const Duration(days: 7)))) {
-          // Trial ended! Revert to free tier
-          await prefs.setBool(_subStatusKey, false);
-          await prefs.setBool(_subTrialKey, false);
-          await prefs.setBool('is_bhaktidhara_premium_member', false);
-          return SubscriptionStatus(
-            isActive: false,
-            isTrial: false,
-            trialStartedAt: trialStart,
-            expiresAt: trialStart.add(const Duration(days: 7)),
-          );
-        }
-      }
-
-      // 3. Check if paid subscription has expired
-      if (isActive && tierIndex != null && expiryMs != null) {
+      // Play turns a trial into a paid plan and renews paid plans by itself,
+      // so an auto-renewing store plan only ends when syncWithStore says so.
+      if (isActive && expiryMs != null && !(storeBacked && autoRenew)) {
         final expiry = DateTime.fromMillisecondsSinceEpoch(expiryMs);
         if (DateTime.now().isAfter(expiry)) {
-          // Subscription expired — clear local state
           await _clearLocalState(prefs);
           return SubscriptionStatus.free;
         }
       }
+
+      final trialStart = trialStartMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(trialStartMs)
+          : null;
+      final stillInTrial = isTrial &&
+          trialStart != null &&
+          DateTime.now().isBefore(trialStart.add(const Duration(days: 7)));
 
       return SubscriptionStatus(
         isActive: isActive,
@@ -582,10 +787,8 @@ class SubscriptionService {
         expiresAt: expiryMs != null
             ? DateTime.fromMillisecondsSinceEpoch(expiryMs)
             : null,
-        isTrial: isTrial,
-        trialStartedAt: trialStartMs != null
-            ? DateTime.fromMillisecondsSinceEpoch(trialStartMs)
-            : null,
+        isTrial: stillInTrial,
+        trialStartedAt: trialStart,
         autoRenewing: autoRenew,
         purchaseToken: token,
       );

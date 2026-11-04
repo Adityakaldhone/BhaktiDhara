@@ -3,9 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/repositories/granth_repository.dart';
 import '../../domain/entities/granth.dart';
+import '../../services/backend_service.dart';
 
 final granthBooksProvider = FutureProvider.autoDispose<List<GranthBook>>((ref) async {
-  return GranthRepository.instance.getBooks();
+  try {
+    return await GranthRepository.instance.getBooks();
+  } catch (e) {
+    final message = e.toString();
+    BackendService.trackEvent(
+      'granth_load_error',
+      item: 'provider',
+      props: {'error': message.length > 200 ? message.substring(0, 200) : message},
+    );
+    rethrow;
+  }
 });
 
 final granthChaptersProvider =

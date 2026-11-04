@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/entities/aarti_item.dart';
+import '../../services/ad_units.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/bhakti_darshan_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/review_provider.dart';
+import '../widgets/app_banner_ad.dart';
 import 'altar_screen.dart';
 
 /// Configuration metadata for deity header presentation.
@@ -295,6 +297,24 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           shloka: 'वक्रतुण्ड महाकाय सूर्यकोटि समप्रभ । निर्विघ्नं कुरु मे देव सर्वकार्येषु सर्वदा ॥',
           imagePath: 'assets/bhakti/ganesh.webp',
         );
+      case 'Mahakal':
+        return const _DeityHeaderInfo(
+          title: 'श्री महाकाल',
+          subtitle: 'आरती संग्रह',
+          shloka: '''अवन्तिकायां विहितावतारं
+मुक्तिप्रदानाय च सज्जनानाम् ।
+अकालमृत्योः परिरक्षणार्थं
+वन्दे महाकालमहासुरेशम् ॥''',
+          imagePath: 'assets/bhakti/shiva.webp',
+        );
+      case 'Khatu Shyam':
+        return const _DeityHeaderInfo(
+          title: 'श्री खाटू श्याम',
+          subtitle: 'आरती संग्रह',
+          shloka: '''हारे का सहारा, बाबा श्याम हमारा ।
+तीन बाण धारी, कलयुग अवतारी ॥''',
+          imagePath: 'assets/bhakti/krishna.webp',
+        );
       default:
         return _DeityHeaderInfo(
           title: deity,
@@ -322,6 +342,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F4E8),
+      bottomNavigationBar: const AppBannerAd(adUnitId: AdUnits.contentBanner),
       body: Stack(
         children: [
           // ── 1. Sacred Temple Background ────────────────────────────────

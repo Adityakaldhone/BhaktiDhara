@@ -174,7 +174,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
         period: period,
         dateText: dateText,
         summary:
-            '${rashi.nameHi} राशि के लिए आज का दिन सकारात्मक और शुभ ऊर्जा से भरा रहेगा। आपके स्वामी ग्रह ${rashi.rulingPlanet} की कृपा से महत्वपूर्ण कार्यों में सफलता के योग हैं।',
+            '${rashi.nameHi} राशि के लिए आज का दिन सकारात्मक और शुभ ऊर्जा से भरा रहेगा। आपके स्वामी ग्रह ${rashi.planetShortName('hi')} की कृपा से महत्वपूर्ण कार्यों में सफलता के योग हैं।',
         career:
             'कार्यक्षेत्र में नई जिम्मेदारियां मिल सकती हैं। व्यापार में धन लाभ के योग बन रहे हैं। सहकर्मियों का पूरा सहयोग मिलेगा।',
         health:
@@ -187,7 +187,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
         cautionTitle:
             'दोपहर १२:०० से ०३:३० के बीच जल्दबाजी में धन निवेश और व्यर्थ विवाद से बचें।',
         cautionDetail:
-            '${rashi.rulingPlanet} के प्रभाव से वाणी में उग्रता आ सकती है। वरिष्ठों या साझेदारों के साथ धैर्य बनाए रखें और किसी भी नए अनुबंध पर हस्ताक्षर करने से पहले विचार करें।',
+            '${rashi.planetShortName('hi')} के प्रभाव से वाणी में उग्रता आ सकती है। वरिष्ठों या साझेदारों के साथ धैर्य बनाए रखें और किसी भी नए अनुबंध पर हस्ताक्षर करने से पहले विचार करें।',
         cautionWindow: 'दोपहर १२:०० - ०३:३०',
         timeSlots: const TimeSlotForecast(
           morning:
@@ -257,7 +257,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
       period: period,
       dateText: dateText,
       summary:
-          'Today brings auspicious planetary alignments for ${rashi.nameEn}. Ruled by ${rashi.rulingPlanet}, you will experience clarity, positive energy, and spiritual focus.',
+          'Today brings auspicious planetary alignments for ${rashi.nameEn}. Ruled by ${rashi.planetShortName('en')}, you will experience clarity, positive energy, and spiritual focus.',
       career:
           'Promising developments in career and professional pursuits. Financial gains are favored with thoughtful planning.',
       health:
@@ -270,7 +270,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
       cautionTitle:
           'Avoid hasty financial commitments and heated arguments between 12:00 PM and 03:30 PM.',
       cautionDetail:
-          'Due to intense planetary transit of ${rashi.rulingPlanet}, impulsive reactions may lead to misunderstandings or financial leaks. Double-check all documents before signing.',
+          'Due to intense planetary transit of ${rashi.planetShortName('en')}, impulsive reactions may lead to misunderstandings or financial leaks. Double-check all documents before signing.',
       cautionWindow: '12:00 PM - 03:30 PM',
       timeSlots: const TimeSlotForecast(
         morning:
@@ -444,7 +444,7 @@ Respond ONLY with a valid raw JSON object matching this schema:
       if (qLower.contains('नौकरी') || qLower.contains('व्यवसाय') || qLower.contains('job')) {
         return VedicAiConsultation(
           headline: 'कर्म भाव में ग्रहों की स्थिति अनुकूल; धैर्य से लिया निर्णय फलदायी होगा।',
-          astrologicalAspect: '${rashi.rulingPlanet} के प्रभाव से कार्यक्षेत्र में नए अवसर और मान-सम्मान के योग बन रहे हैं।',
+          astrologicalAspect: '${rashi.planetShortName('hi')} के प्रभाव से कार्यक्षेत्र में नए अवसर और मान-सम्मान के योग बन रहे हैं।',
           guidance: 'हड़बड़ी में कोई नया अनुबंध न करें। वरिष्ठजनों की सलाह से कार्य में गति आएगी और रुका हुआ काम बनेगा।',
           remedy: 'रोज सुबह सूर्य नमस्कार करें और "ॐ घृणि सूर्याय नमः" का जप करें।',
           favorableTiming: 'सुबह ०९:०० से ११:३० का समय महत्वपूर्ण निर्णय के लिए उत्तम है।',
@@ -453,7 +453,7 @@ Respond ONLY with a valid raw JSON object matching this schema:
       } else if (qLower.contains('विवाह') || qLower.contains('शादी') || qLower.contains('marriage')) {
         return VedicAiConsultation(
           headline: 'सप्तम भाव में शुभ ग्रहों की दृष्टि; विवाह संबंधी बातचीत में प्रगति के योग।',
-          astrologicalAspect: 'गुरु व ${rashi.rulingPlanet} के गोचर से रिश्ते तय होने के अनुकूल संकेत मिल रहे हैं।',
+          astrologicalAspect: 'गुरु व ${rashi.planetShortName('hi')} के गोचर से रिश्ते तय होने के अनुकूल संकेत मिल रहे हैं।',
           guidance: 'संवाद में पारदर्शिता रखें। पारिवारिक समन्वय से लिए गए निर्णय दीर्घकालिक सुख देंगे।',
           remedy: 'गुरुवार को भगवान विष्णु या कुलदेवता को पीले पुष्प अर्पित कर प्रार्थना करें।',
           favorableTiming: 'आगामी २ से ४ सप्ताह में शुभ समाचार मिलने की प्रबल संभावना है।',
@@ -471,7 +471,7 @@ Respond ONLY with a valid raw JSON object matching this schema:
       }
       return VedicAiConsultation(
         headline: 'ग्रह स्थिति सकारात्मक दृष्टिकोण और एकाग्रता बनाए रखने का संकेत दे रही है।',
-        astrologicalAspect: '${rashi.rulingPlanet} की कृपा से आपके प्रयासों को उचित दिशा व सफलता मिलेगी।',
+        astrologicalAspect: '${rashi.planetShortName('hi')} की कृपा से आपके प्रयासों को उचित दिशा व सफलता मिलेगी।',
         guidance: 'सकारात्मक सोच के साथ आगे बढ़ें। स्वास्थ्य का ध्यान रखें और मन को शांत रखने के लिए ध्यान करें।',
         remedy: 'हनुमान चालीसा का पाठ करें और घर में सुगंधित धूप जलाएं।',
         favorableTiming: 'प्रातःकाल ०७:३० से १०:०० का समय अत्यंत शुभ व फलदायी है।',
@@ -483,7 +483,7 @@ Respond ONLY with a valid raw JSON object matching this schema:
       if (qLower.contains('job') || qLower.contains('career') || qLower.contains('business')) {
         return VedicAiConsultation(
           headline: 'Planetary alignments favor steady progress in your professional sphere.',
-          astrologicalAspect: 'The transit of ${rashi.rulingPlanet} indicates upcoming recognition and opportunities for advancement.',
+          astrologicalAspect: 'The transit of ${rashi.planetShortName('en')} indicates upcoming recognition and opportunities for advancement.',
           guidance: 'Avoid impulsive career changes. Seek counsel from mentors and maintain diplomatic relations with colleagues.',
           remedy: 'Offer water to the rising Sun daily and chant "Om Suryaya Namaha" 11 times.',
           favorableTiming: '09:00 AM to 11:30 AM is an auspicious window for major discussions.',
@@ -510,7 +510,7 @@ Respond ONLY with a valid raw JSON object matching this schema:
       }
       return VedicAiConsultation(
         headline: 'Celestial currents encourage patience and focused devotion toward your goals.',
-        astrologicalAspect: 'The strength of ${rashi.rulingPlanet} protects your endeavors from adverse planetary vibrations.',
+        astrologicalAspect: 'The strength of ${rashi.planetShortName('en')} protects your endeavors from adverse planetary vibrations.',
         guidance: 'Maintain clarity of thought. Balance your physical wellbeing with daily mindful meditation.',
         remedy: 'Chant sacred Gayatri Mantra 11 times every morning.',
         favorableTiming: 'Early mornings (07:00 AM - 09:30 AM) radiate maximum auspicious energy.',

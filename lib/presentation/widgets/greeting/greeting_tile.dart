@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -117,7 +115,9 @@ class _GreetingEntranceState extends State<GreetingEntrance> with SingleTickerPr
   }
 }
 
-/// Small frosted-glass capsule for overlays that sit on top of photos.
+/// Small dark capsule for overlays that sit on top of photos. Deliberately
+/// not a BackdropFilter: a live blur per tile makes the grid stutter on
+/// budget phones.
 class _Glass extends StatelessWidget {
   const _Glass({required this.child, this.circle = false, this.padding = EdgeInsets.zero});
 
@@ -130,18 +130,12 @@ class _Glass extends StatelessWidget {
     final solid = MediaQuery.highContrastOf(context);
     final edge = BorderSide(color: Colors.white.withValues(alpha: 0.22), width: 0.5);
     final ShapeBorder shape = circle ? CircleBorder(side: edge) : StadiumBorder(side: edge);
-    return ClipPath(
-      clipper: ShapeBorderClipper(shape: shape),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: solid ? 0 : 14, sigmaY: solid ? 0 : 14),
-        child: DecoratedBox(
-          decoration: ShapeDecoration(
-            color: Colors.black.withValues(alpha: solid ? 0.75 : 0.32),
-            shape: shape,
-          ),
-          child: Padding(padding: padding, child: child),
-        ),
+    return DecoratedBox(
+      decoration: ShapeDecoration(
+        color: Colors.black.withValues(alpha: solid ? 0.75 : 0.45),
+        shape: shape,
       ),
+      child: Padding(padding: padding, child: child),
     );
   }
 }
@@ -203,7 +197,15 @@ class GreetingTile extends ConsumerWidget {
               fit: StackFit.expand,
               children: [
                 if (locked)
-                  ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 9, sigmaY: 9), child: thumb)
+                  // A tiny decode scaled up reads as blurred without a per-frame blur filter.
+                  CachedNetworkImage(
+                    imageUrl: image.thumbUrl,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 32,
+                    filterQuality: FilterQuality.medium,
+                    placeholder: (_, _) => const ColoredBox(color: kGreetingPlaceholder),
+                    errorWidget: (_, _, _) => const ColoredBox(color: kGreetingPlaceholder),
+                  )
                 else
                   thumb,
                 const IgnorePointer(

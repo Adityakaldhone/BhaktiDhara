@@ -8,6 +8,7 @@ class AppRemoteConfig {
     this.maintenanceMode = false,
     this.maintenanceMessage = '',
     this.featureFlags = const {},
+    this.festivePopupCampaign = '',
   });
 
   static const horoscope = 'horoscope';
@@ -20,6 +21,9 @@ class AppRemoteConfig {
   static const statusCardPhoto = 'status_card_photo';
   static const granth = 'granth';
 
+  /// Off unless the server sends it explicitly (see [showFestivePopup]).
+  static const festiveOfferPopup = 'festive_offer_popup';
+
   final String minSupportedVersion;
   final String latestVersion;
   final String updateUrl;
@@ -28,9 +32,15 @@ class AppRemoteConfig {
   final String maintenanceMessage;
   final Map<String, bool> featureFlags;
 
+  /// Changes each time the admin switches the festive popup on.
+  final String festivePopupCampaign;
+
   /// A flag the server hasn't sent counts as enabled, so features keep
   /// working offline or against an older backend.
   bool isEnabled(String flag) => featureFlags[flag] ?? true;
+
+  bool get showFestivePopup =>
+      featureFlags[festiveOfferPopup] == true && festivePopupCampaign.isNotEmpty;
 
   /// Returns true if the user must update immediately before using the app.
   /// Triggers only when [forceUpdate] is enabled AND the current version is below
@@ -69,6 +79,7 @@ class AppRemoteConfig {
                 if (e.value is bool) e.key.toString(): e.value as bool,
             }
           : const {},
+      festivePopupCampaign: _str(json['festive_popup_campaign']),
     );
   }
 
@@ -80,6 +91,7 @@ class AppRemoteConfig {
         'maintenance_mode': maintenanceMode,
         'maintenance_message': maintenanceMessage,
         'feature_flags': featureFlags,
+        'festive_popup_campaign': festivePopupCampaign,
       };
 
   static String _str(Object? v) => v?.toString().trim() ?? '';

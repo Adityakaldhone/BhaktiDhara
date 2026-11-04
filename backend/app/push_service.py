@@ -156,6 +156,26 @@ async def _post_message(client: httpx.AsyncClient, message: Dict[str, Any]) -> D
     }
 
 
+async def subscribe_token_to_topics(token: str, topics: List[str]) -> None:
+    """Server-side topic subscription so a device can't silently miss broadcast topics,
+    e.g. when an older app build skipped subscribing. Never raises."""
+    try:
+        _load_credentials()
+        access = await _access_token()
+        async with httpx.AsyncClient() as client:
+            for topic in topics:
+                resp = await client.post(
+                    "https://iid.googleapis.com/iid/v1:batchAdd",
+                    headers={"Authorization": f"Bearer {access}", "access_token_auth": "true"},
+                    json={"to": f"/topics/{topic}", "registration_tokens": [token]},
+                    timeout=10,
+                )
+                if resp.status_code != 200:
+                    logger.warning("Topic subscribe %s failed: %s %s", topic, resp.status_code, resp.text[:200])
+    except Exception as e:
+        logger.warning("Topic subscribe failed: %s", e)
+
+
 async def send_to_topic_target(campaign: Dict[str, Any], target: Dict[str, str]) -> Dict[str, Any]:
     _load_credentials()
     async with httpx.AsyncClient() as client:

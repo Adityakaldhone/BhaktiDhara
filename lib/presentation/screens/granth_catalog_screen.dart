@@ -14,6 +14,7 @@ import '../providers/remote_config_provider.dart';
 import '../widgets/granth_meta.dart';
 import '../widgets/premium_blurred_gate.dart';
 import 'granth_chapter_list_screen.dart';
+import 'granth_page_reader_screen.dart';
 import 'granth_pothi_reader_screen.dart';
 
 /// Layout tokens for the catalog. Radii step down concentrically:
@@ -400,6 +401,19 @@ class _GranthCatalogScreenState extends ConsumerState<GranthCatalogScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (Navigator.canPop(context))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: IconButton(
+                onPressed: () => Navigator.maybePop(context),
+                icon: const Icon(Icons.arrow_back_rounded),
+                color: MandirTheme.textDark,
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                padding: EdgeInsets.zero,
+                alignment: Alignment.centerLeft,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              ),
+            ),
           Text(
             titleText,
             style: GoogleFonts.mukta(
@@ -518,8 +532,13 @@ class _GranthCatalogScreenState extends ConsumerState<GranthCatalogScreen> {
   ) {
     final style = getGranthStyle(record.bookSlug);
 
+    final isPdf = !record.isPothi &&
+        record.pdfUrl != null &&
+        record.pdfUrl!.isNotEmpty &&
+        record.chapterNumber == null;
     String detailText = '';
-    if (record.isPothi && record.pageNumber != null) {
+    if ((record.isPothi && record.pageNumber != null) ||
+        (isPdf && (record.pageNumber ?? 1) > 1)) {
       detailText = langCode == 'hi'
           ? 'पृष्ठ ${record.pageNumber} वरून वाचन चालू ठेवा'
           : (langCode == 'en'
@@ -571,6 +590,13 @@ class _GranthCatalogScreenState extends ConsumerState<GranthCatalogScreen> {
                   initialPage: record.pageNumber ?? 1,
                 ),
               ),
+            );
+          } else if (isPdf && (record.pageNumber ?? 1) > 1) {
+            openGranthBookReader(
+              context,
+              book,
+              langCode: langCode,
+              page: record.pageNumber!,
             );
           } else {
             Navigator.push(
@@ -1026,14 +1052,16 @@ class _GranthCatalogScreenState extends ConsumerState<GranthCatalogScreen> {
 
     return _Pressable(
       onTap: () {
-        // Save last read record
-        ref.read(granthLastReadProvider.notifier).save(
-          bookSlug: purana.slug,
-          bookTitle: title,
-          bookSubtitle: subtitle,
-          pdfUrl: purana.pdfUrl,
-          pageNumber: 1,
-        );
+        // Keep the saved page when reopening the book being read.
+        if (ref.read(granthLastReadProvider)?.bookSlug != purana.slug) {
+          ref.read(granthLastReadProvider.notifier).save(
+            bookSlug: purana.slug,
+            bookTitle: title,
+            bookSubtitle: subtitle,
+            pdfUrl: purana.pdfUrl,
+            pageNumber: 1,
+          );
+        }
 
         Navigator.push(
           context,

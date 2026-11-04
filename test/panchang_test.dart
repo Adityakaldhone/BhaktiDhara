@@ -9,6 +9,12 @@ import 'package:nitya_aarti/presentation/providers/panchang_provider.dart';
 import 'package:nitya_aarti/presentation/screens/dashboard_screen.dart';
 import 'package:nitya_aarti/presentation/screens/panchang_screen.dart';
 import 'package:nitya_aarti/services/gemini_panchang_service.dart';
+import 'package:nitya_aarti/services/tithi_engine_service.dart';
+
+/// Widget tests run in fake async, which never sees a background isolate end.
+final _inlineTithiEngine = tithiEngineServiceProvider.overrideWithValue(
+  TithiEngineService(backgroundPreload: false),
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -85,6 +91,7 @@ void main() {
           overrides: [
             localeProvider.overrideWith((ref) => const Locale('mr')),
             selectedPanchangCityProvider.overrideWith((ref) => kDefaultCity),
+            _inlineTithiEngine,
           ],
           child: const MaterialApp(
             localizationsDelegates: [
@@ -220,6 +227,7 @@ void main() {
             overrides: [
               localeProvider.overrideWith((ref) => Locale(lang)),
               selectedPanchangCityProvider.overrideWith((ref) => kDefaultCity),
+              _inlineTithiEngine,
             ],
             child: MaterialApp(
               localizationsDelegates: const [
@@ -260,6 +268,7 @@ void main() {
         ProviderScope(
           overrides: [
             localeProvider.overrideWith((ref) => const Locale('mr')),
+            _inlineTithiEngine,
           ],
           child: const MaterialApp(
             localizationsDelegates: [

@@ -44,7 +44,7 @@ class AppPermissionService {
       final notifGranted = await PushNotificationService.checkPermissionGranted();
       final notifPromptCount = prefs.getInt(_keyNotificationPromptCount) ?? 0;
 
-      if (!notifGranted && notifPromptCount < maxPromptAttempts) {
+      if (!notifGranted && _mayPrompt(notifPromptCount)) {
         debugPrint(
           '[AppPermissionService] Prompting notification permission '
           '(Attempt ${notifPromptCount + 1}/$maxPromptAttempts)...',
@@ -65,7 +65,7 @@ class AppPermissionService {
 
         if (!isLocGranted &&
             locPermission != LocationPermission.deniedForever &&
-            locPromptCount < maxPromptAttempts) {
+            _mayPrompt(locPromptCount)) {
           debugPrint(
             '[AppPermissionService] Prompting location permission '
             '(Attempt ${locPromptCount + 1}/$maxPromptAttempts)...',
@@ -89,6 +89,12 @@ class AppPermissionService {
       debugPrint('[AppPermissionService] Error during permission sequence: $e');
     }
   }
+
+  /// Android itself stops showing a permission dialog after the user denies it twice,
+  /// and Auto Backup restores this app's prefs on reinstall, so a stored count would
+  /// block the prompt on a fresh install. The count is only enforced on iOS.
+  static bool _mayPrompt(int promptCount) =>
+      Platform.isAndroid || promptCount < maxPromptAttempts;
 
   /// Resets prompt counts (useful for testing or debugging).
   static Future<void> resetPromptCounts() async {

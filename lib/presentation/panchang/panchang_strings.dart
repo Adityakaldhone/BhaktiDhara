@@ -210,4 +210,48 @@ class PanchangStrings {
       );
   String citySelected(String city) =>
       _t('📍 शहर: $city निवडले!', '📍 शहर: $city चुना गया!', '📍 City: $city selected!');
+
+  // Tithi engine
+  String liveTithi(String tithi) =>
+      _t('आत्ता चालू तिथी: $tithi', 'अभी चल रही तिथि: $tithi', 'Tithi right now: $tithi');
+  String get upcomingTitle =>
+      _t('आगामी सण व व्रत', 'आगामी त्योहार व व्रत', 'Upcoming festivals & vrats');
+  String get upcomingHint => _t(
+        'तारखेवर टॅप करून त्या दिवसाचे पंचांग पहा',
+        'तारीख पर टैप कर उस दिन का पंचांग देखें',
+        'Tap a date to open that day\'s Panchang',
+      );
+  String get monthly => _t('मासिक', 'मासिक', 'Monthly');
+  String inDays(int days) => days == 0
+      ? _t('आज', 'आज', 'Today')
+      : days == 1
+          ? _t('उद्या', 'कल', 'Tomorrow')
+          : _t('$days दिवसांनी', '$days दिन बाद', 'In $days days');
+  String get tithiFinder =>
+      _t('तिथीवरून तारीख शोधा', 'तिथि से तारीख खोजें', 'Find date from tithi');
+  String get finderHint => _t(
+        'मास, पक्ष व तिथी निवडा — वाढदिवस, श्राद्ध किंवा व्रताची तारीख मिळवा',
+        'मास, पक्ष व तिथि चुनें — जन्मदिन, श्राद्ध या व्रत की तारीख पाएँ',
+        'Pick month, paksha & tithi — get the date of a birthday, shraddha or vrat',
+      );
+  String get finderMonth => _t('मास', 'मास', 'Month');
+  String get finderPaksha => _t('पक्ष', 'पक्ष', 'Paksha');
+  String get finderTithi => _t('तिथी', 'तिथि', 'Tithi');
+  String get finderYear => _t('वर्ष', 'वर्ष', 'Year');
+  String get finderDates =>
+      _t('या वर्षीची तारीख', 'इस वर्ष की तारीख', 'Date this year');
+  String get finderAdhika =>
+      _t('अधिक मासातील तारीख', 'अधिक मास की तारीख', 'Date in Adhika month');
+  String get finderNext =>
+      _t('पुढील येणारी तारीख', 'अगली आने वाली तारीख', 'Next occurrence');
+  String get finderNone => _t(
+        'या वर्षी ही तिथी सूर्योदयाला येत नाही (क्षय तिथी)',
+        'इस वर्ष यह तिथि सूर्योदय पर नहीं आती (क्षय तिथि)',
+        'This tithi never touches sunrise this year (kshaya tithi)',
+      );
+  String monthSystemNote(String system) => _t(
+        'मास $system पद्धतीने',
+        'मास $system पद्धति से',
+        'Months in $system system',
+      );
 }

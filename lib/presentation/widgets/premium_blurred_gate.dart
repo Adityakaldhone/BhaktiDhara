@@ -324,6 +324,12 @@ void showPremiumPaywallSheet(
   );
 }
 
+String _mrDigits(int n) => n
+    .toString()
+    .split('')
+    .map((c) => '०१२३४५६७८९'[int.parse(c)])
+    .join();
+
 class _SubscriptionPaywallSheet extends ConsumerStatefulWidget {
   final String langCode;
 
@@ -340,6 +346,24 @@ class _SubscriptionPaywallSheetState
   late AnimationController _shimmerController;
   bool _isPurchasing = false;
 
+  /// Festive offer price per product ID, filled once Play returns products.
+  /// Plans with a free trial for this account are left out, since checkout
+  /// picks the trial for them.
+  Map<String, int> _festivePrices = const {};
+
+  /// Free-trial length per product ID for this account.
+  Map<String, int> _trialDays = const {};
+
+  /// Until Play answers, plans are presented with the trial.
+  bool _offersLoaded = false;
+
+  bool get _hasFestiveOffer => _festivePrices.isNotEmpty;
+
+  bool _hasTrial(SubscriptionPlan plan) =>
+      !_offersLoaded || _trialDays.containsKey(plan.productId);
+
+  int _trialDaysFor(SubscriptionPlan plan) => _trialDays[plan.productId] ?? 7;
+
   @override
   void initState() {
     super.initState();
@@ -351,6 +375,75 @@ class _SubscriptionPaywallSheetState
       _shimmerController.value = 0.5;
     } else {
       _shimmerController.repeat();
+      _loadOffers();
+    }
+  }
+
+  Future<void> _loadOffers() async {
+    if (kIsWeb) return;
+    final service = SubscriptionService.instance;
+    await service.initialize();
+    if (service.isBillingAvailable && service.storeProducts.isEmpty) {
+      await service.refreshProducts();
+    }
+    if (service.storeProducts.isEmpty) return;
+    final prices = <String, int>{};
+    final trials = <String, int>{};
+    for (final plan in kSubscriptionPlans) {
+      final days = service.freeTrialDays(plan.productId);
+      if (days != null) {
+        trials[plan.productId] = days;
+        continue;
+      }
+      final price = service.festiveOfferPrice(plan.productId);
+      if (price != null) prices[plan.productId] = price;
+    }
+    if (!mounted) return;
+    setState(() {
+      _festivePrices = prices;
+      _trialDays = trials;
+      _offersLoaded = true;
+    });
+  }
+
+  String _trialTerms(String lang, SubscriptionPlan plan) {
+    final d = _trialDaysFor(plan);
+    final m = plan.durationMonths;
+    final p = plan.priceInr;
+    switch (lang) {
+      case 'hi':
+        if (m == 1) return '$d दिन मुफ्त, फिर ₹$p/महीना';
+        if (m == 12) return '$d दिन मुफ्त, फिर ₹$p/साल';
+        return '$d दिन मुफ्त, फिर हर $m महीने ₹$p';
+      case 'en':
+        if (m == 1) return '$d days free, then ₹$p/month';
+        if (m == 12) return '$d days free, then ₹$p/year';
+        return '$d days free, then ₹$p every $m months';
+      case 'mr':
+      default:
+        if (m == 1) return '${_mrDigits(d)} दिवस मोफत, नंतर ₹${_mrDigits(p)}/महिना';
+        if (m == 12) return '${_mrDigits(d)} दिवस मोफत, नंतर ₹${_mrDigits(p)}/वर्ष';
+        return '${_mrDigits(d)} दिवस मोफत, नंतर दर ${_mrDigits(m)} महिन्यांनी ₹${_mrDigits(p)}';
+    }
+  }
+
+  String _festiveTerms(String lang, SubscriptionPlan plan, int offerPrice) {
+    final m = plan.durationMonths;
+    final regular = plan.priceInr;
+    switch (lang) {
+      case 'hi':
+        if (m == 1) return 'पहला महीना ₹$offerPrice, फिर ₹$regular/महीना';
+        if (m == 12) return 'पहला साल ₹$offerPrice, फिर ₹$regular/साल';
+        return 'पहले $m महीने ₹$offerPrice, फिर ₹$regular';
+      case 'en':
+        if (m == 1) return '₹$offerPrice for 1st month, then ₹$regular/month';
+        if (m == 12) return '₹$offerPrice for 1st year, then ₹$regular/year';
+        return '₹$offerPrice for first $m months, then ₹$regular';
+      case 'mr':
+      default:
+        if (m == 1) return 'पहिला महिना ₹$offerPrice, नंतर ₹$regular/महिना';
+        if (m == 12) return 'पहिले वर्ष ₹$offerPrice, नंतर ₹$regular/वर्ष';
+        return 'पहिले $m महिने ₹$offerPrice, नंतर ₹$regular';
     }
   }
 
@@ -487,6 +580,26 @@ class _SubscriptionPaywallSheetState
   }
 
   Widget _buildTrialBanner(String lang) {
+    final trial = !_offersLoaded || _trialDays.isNotEmpty;
+    final festive = !trial && _hasFestiveOffer;
+    if (!trial && !festive) return const SizedBox.shrink();
+    final base = festive ? const Color(0xFFE65100) : const Color(0xFF2E7D32);
+    final glow = festive ? const Color(0xFFFFA000) : const Color(0xFF43A047);
+    final String text;
+    if (festive) {
+      text = lang == 'en'
+          ? '🪔 Diwali Offer — Limited time only!'
+          : (lang == 'hi'
+                ? '🪔 दिवाली ऑफर — सीमित समय के लिए!'
+                : '🪔 दिवाळी ऑफर — मर्यादित काळासाठी!');
+    } else {
+      final d = _trialDays.values.isEmpty ? 7 : _trialDays.values.first;
+      text = lang == 'en'
+          ? '🎉 $d Days FREE Trial — cancel anytime'
+          : (lang == 'hi'
+                ? '🎉 $d दिन मुफ्त ट्रायल — कभी भी रद्द करें'
+                : '🎉 ${_mrDigits(d)} दिवस मोफत ट्रायल — कधीही रद्द करा');
+    }
     return AnimatedBuilder(
       animation: _shimmerController,
       builder: (context, child) {
@@ -496,19 +609,15 @@ class _SubscriptionPaywallSheetState
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF2E7D32),
-                Color.lerp(
-                  const Color(0xFF2E7D32),
-                  const Color(0xFF43A047),
-                  _shimmerController.value,
-                )!,
-                const Color(0xFF2E7D32),
+                base,
+                Color.lerp(base, glow, _shimmerController.value)!,
+                base,
               ],
             ),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+                color: base.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -523,11 +632,7 @@ class _SubscriptionPaywallSheetState
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    lang == 'en'
-                        ? '🎉 7 Days FREE Trial on all plans!'
-                        : (lang == 'hi'
-                              ? '🎉 सभी प्लान्स पर 7 दिन मुफ्त ट्रायल!'
-                              : '🎉 सर्व योजनांवर ७ दिवस मोफत ट्रायल!'),
+                    text,
                     style: GoogleFonts.mukta(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -550,6 +655,12 @@ class _SubscriptionPaywallSheetState
     required int index,
     required String lang,
   }) {
+    final offerPrice = _festivePrices[plan.productId];
+    final strikePrice = offerPrice != null ? plan.priceInr : plan.mrpInr;
+    final shownPrice = offerPrice ?? plan.priceInr;
+    final discount = offerPrice != null
+        ? (((plan.priceInr - offerPrice) / plan.priceInr) * 100).round()
+        : plan.discountPercent;
     return GestureDetector(
       onTap: () {
         ref.read(selectedPlanIndexProvider.notifier).state = index;
@@ -649,7 +760,27 @@ class _SubscriptionPaywallSheetState
                       ],
                     ],
                   ),
-                  if (plan.durationMonths > 1)
+                  if (_hasTrial(plan))
+                    Text(
+                      _trialTerms(lang, plan),
+                      style: GoogleFonts.mukta(
+                        fontSize: 12,
+                        color: const Color(0xFF2E7D32),
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                    )
+                  else if (offerPrice != null)
+                    Text(
+                      _festiveTerms(lang, plan, offerPrice),
+                      style: GoogleFonts.mukta(
+                        fontSize: 12,
+                        color: const Color(0xFFE65100),
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                    )
+                  else if (plan.durationMonths > 1)
                     Text(
                       lang == 'en'
                           ? '₹${plan.perMonth}/month'
@@ -672,7 +803,7 @@ class _SubscriptionPaywallSheetState
               children: [
                 // Strikethrough MRP
                 Text(
-                  '₹${plan.mrpInr}',
+                  '₹$strikePrice',
                   style: GoogleFonts.mukta(
                     fontSize: 12,
                     color: Colors.grey.shade600,
@@ -683,11 +814,11 @@ class _SubscriptionPaywallSheetState
                 ),
                 // Actual price
                 Text(
-                  plan.durationMonths == 1
+                  plan.durationMonths == 1 && offerPrice == null
                       ? (lang == 'en'
-                            ? '₹${plan.priceInr}/mo'
-                            : '₹${plan.priceInr}/मा.')
-                      : '₹${plan.priceInr}',
+                            ? '₹$shownPrice/mo'
+                            : '₹$shownPrice/मा.')
+                      : '₹$shownPrice',
                   style: GoogleFonts.mukta(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -709,7 +840,7 @@ class _SubscriptionPaywallSheetState
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '${plan.discountPercent}%',
+                '$discount%',
                 style: GoogleFonts.mukta(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -856,6 +987,8 @@ class _SubscriptionPaywallSheetState
                   }
 
                   if (success && mounted) {
+                    final onTrial = ref.read(subscriptionProvider).isTrial;
+                    final days = _trialDaysFor(plan);
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -874,11 +1007,17 @@ class _SubscriptionPaywallSheetState
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                lang == 'en'
-                                    ? '🎉 Premium is now active!'
-                                    : (lang == 'hi'
-                                          ? '🎉 प्रीमियम सक्रिय!'
-                                          : '🎉 प्रीमियम सक्रिय!'),
+                                onTrial
+                                    ? (lang == 'en'
+                                          ? '🎉 Your $days-day free trial has started!'
+                                          : (lang == 'hi'
+                                                ? '🎉 आपका $days दिन का मुफ्त ट्रायल शुरू!'
+                                                : '🎉 तुमचा ${_mrDigits(days)} दिवसांचा मोफत ट्रायल सुरू!'))
+                                    : (lang == 'en'
+                                          ? '🎉 Premium is now active!'
+                                          : (lang == 'hi'
+                                                ? '🎉 प्रीमियम सक्रिय!'
+                                                : '🎉 प्रीमियम सक्रिय!')),
                                 style: GoogleFonts.mukta(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -968,14 +1107,38 @@ class _SubscriptionPaywallSheetState
   }
 
   String _subscribeButtonText(String lang, SubscriptionPlan plan) {
+    final offerPrice = _festivePrices[plan.productId];
+    if (offerPrice != null) {
+      switch (lang) {
+        case 'hi':
+          return 'दिवाली ऑफर पाएं • ${plan.labelHi()} ₹$offerPrice';
+        case 'en':
+          return 'Get Diwali Offer • ${plan.labelEn()} ₹$offerPrice';
+        case 'mr':
+        default:
+          return 'दिवाळी ऑफर मिळवा • ${plan.labelMr()} ₹$offerPrice';
+      }
+    }
+    if (_hasTrial(plan)) {
+      final d = _trialDaysFor(plan);
+      switch (lang) {
+        case 'hi':
+          return '$d दिन मुफ्त ट्रायल शुरू करें';
+        case 'en':
+          return 'Start $d-Day Free Trial';
+        case 'mr':
+        default:
+          return '${_mrDigits(d)} दिवस मोफत ट्रायल सुरू करा';
+      }
+    }
     switch (lang) {
       case 'hi':
-        return 'मुफ्त ट्रायल शुरू करें • ${plan.labelHi()} ₹${plan.priceInr}';
+        return 'सदस्यता लें • ${plan.labelHi()} ₹${plan.priceInr}';
       case 'en':
-        return 'Start Free Trial • ${plan.labelEn()} ₹${plan.priceInr}';
+        return 'Subscribe • ${plan.labelEn()} ₹${plan.priceInr}';
       case 'mr':
       default:
-        return 'मोफत ट्रायल सुरू करा • ${plan.labelMr()} ₹${plan.priceInr}';
+        return 'सदस्यता घ्या • ${plan.labelMr()} ₹${plan.priceInr}';
     }
   }
 

@@ -245,9 +245,14 @@ List<DeitySheetItem> buildItemsForDeityCategory({
       }
     }
   } else {
-    // General fallback for all other deities (Rama, Vitthal, Swami Samarth, etc.)
+    // General fallback for all other deities (Rama, Vitthal, Mahakal, Khatu Shyam, etc.)
     final tagKey = category.name.toLowerCase();
-    for (final a in aartiItems.where((i) => i.tags.any((t) => t.toLowerCase().contains(tagKey)))) {
+    for (final a in aartiItems.where((i) => i.tags.any((t) {
+      final tl = t.toLowerCase();
+      if (tl.contains(tagKey)) return true;
+      if (category == BhaktiCategory.stotra && (tl.contains('stuti') || tl.contains('ashtak') || tl.contains('kavach'))) return true;
+      return false;
+    }))) {
       if (seenIds.add(a.id)) items.add(DeitySheetItem.fromAarti(a, localeCode));
     }
   }

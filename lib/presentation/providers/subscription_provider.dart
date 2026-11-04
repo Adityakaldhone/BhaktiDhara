@@ -11,9 +11,20 @@ import 'premium_provider.dart';
 /// methods to purchase, cancel, and restore subscriptions.
 class SubscriptionNotifier extends StateNotifier<SubscriptionStatus> {
   final Ref _ref;
+  Timer? _billingInitTimer;
+
+  /// Connecting to Play Billing blocks the Android main thread briefly; on
+  /// low-end devices doing it alongside startup work (ads, Firebase) caused ANRs.
+  static const _billingInitDelay = Duration(seconds: 8);
 
   SubscriptionNotifier(this._ref) : super(SubscriptionStatus.free) {
     _loadState();
+  }
+
+  @override
+  void dispose() {
+    _billingInitTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadState() async {
@@ -22,8 +33,16 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionStatus> {
     // Keep premium provider in sync
     _ref.read(isPremiumProvider.notifier).setPremium(status.isActive);
 
-    // Initialize Google Play Billing in background
-    unawaited(SubscriptionService.instance.initialize());
+    _billingInitTimer = Timer(_billingInitDelay, () {
+      unawaited(_syncWithStore());
+    });
+  }
+
+  Future<void> _syncWithStore() async {
+    final status = await SubscriptionService.instance.syncWithStore();
+    if (status == null || !mounted) return;
+    state = status;
+    _ref.read(isPremiumProvider.notifier).setPremium(status.isActive);
   }
 
   /// Refresh subscription status from backend (call on app launch).

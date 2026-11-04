@@ -2,15 +2,25 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:intl/intl.dart';
-
 import '../domain/entities/panchang.dart';
 import '../domain/entities/panchang_city.dart';
 import 'backend_service.dart';
 import 'gemini_horoscope_service.dart';
+import 'tithi_engine_names.dart';
+import 'tithi_engine_service.dart';
 
 /// Gemini AI Service for fetching daily authentic Vedic Panchang calculations & insights
 /// calibrated for the user's specific city / geographic location.
+///
+/// Whatever the source (backend cache, Gemini, offline fallback), the
+/// astronomical fields — tithi, paksha, maas, karana, Bhadra, sunrise/sunset
+/// and every sunrise-derived muhurat — are recomputed with [TithiEngineService].
 class GeminiPanchangService {
+  GeminiPanchangService({TithiEngineService? engine})
+      : _engine = engine ?? TithiEngineService();
+
+  final TithiEngineService _engine;
+
   /// In-memory cache to prevent redundant API calls for same date + city + language.
   final Map<String, PanchangData> _cache = {};
 
@@ -27,6 +37,12 @@ class GeminiPanchangService {
       return _cache[dateKey]!;
     }
 
+    try {
+      await _engine.preloadYear(city, date.year);
+    } catch (_) {
+      // Outside the engine's 1900–2100 range; _withEngine leaves data as is.
+    }
+
     // 1. Try Hetzner backend cache first (5ms, saves Gemini quota)
     if (!forceRefresh) {
       final backendPanchang = await BackendService.fetchCachedPanchang(
@@ -36,8 +52,9 @@ class GeminiPanchangService {
         langCode: langCode,
       );
       if (backendPanchang != null) {
-        _cache[dateKey] = backendPanchang;
-        return backendPanchang;
+        final verified = _withEngine(backendPanchang, date, city, langCode);
+        _cache[dateKey] = verified;
+        return verified;
       }
     }
 
@@ -52,8 +69,9 @@ class GeminiPanchangService {
           langCode: langCode,
           apiKey: apiKey,
         );
-        _cache[dateKey] = aiPanchang;
-        return aiPanchang;
+        final verified = _withEngine(aiPanchang, date, city, langCode);
+        _cache[dateKey] = verified;
+        return verified;
       } catch (_) {
         // Fallback gracefully on network error or quota/key issues
       }
@@ -65,9 +83,171 @@ class GeminiPanchangService {
       city: city,
       langCode: langCode,
     );
-    _cache[dateKey] = fallbackPanchang;
-    return fallbackPanchang;
+    final verified = _withEngine(
+      fallbackPanchang,
+      date,
+      city,
+      langCode,
+      useEngineFestival: true,
+    );
+    _cache[dateKey] = verified;
+    return verified;
   }
+
+  TithiDaySnapshot? _snapshot(DateTime date, PanchangCity city) {
+    try {
+      return _engine.day(date, city);
+    } catch (_) {
+      // The engine covers 1900–2100; outside that the source data stands.
+      return null;
+    }
+  }
+
+  /// Replaces the astronomical fields of [p] with engine-computed values.
+  /// [useEngineFestival] lets the engine's festival list name the day, which
+  /// is right for the offline fallback; AI/backend text is kept otherwise.
+  PanchangData _withEngine(
+    PanchangData p,
+    DateTime date,
+    PanchangCity city,
+    String langCode, {
+    bool useEngineFestival = false,
+  }) {
+    final snap = _snapshot(date, city);
+    if (snap == null) return p;
+    final names = TithiEngineNames(langCode);
+    final info = snap.sunriseTithi;
+
+    final dayStart = DateTime.utc(date.year, date.month, date.day);
+    double hoursOf(DateTime utc) =>
+        snap.local(utc).difference(dayStart).inSeconds / 3600.0;
+    String range(double a, double b) =>
+        '${_formatDecimalTime(a, langCode)} - ${_formatDecimalTime(b, langCode)}';
+
+    final sunrise = hoursOf(snap.sunriseUtc);
+    final sunset = hoursOf(snap.sunsetUtc);
+    final dayLength = sunset - sunrise;
+    final muhurta = dayLength / 15.0;
+    final ashtabhaga = dayLength / 8.0;
+    final weekday = date.weekday;
+
+    final seg = snap.sunriseSegment;
+    final next = snap.nextSegment;
+    final kshaya = snap.kshayaSegment;
+    final tithiEnd = StringBuffer(_until(seg.endUtc, snap, langCode));
+    if (next != null) {
+      tithiEnd.write(
+          ', ${_t(langCode, 'नंतर', 'फिर', 'then')} ${names.tithi(next.tithi.tithiNumber)}');
+    }
+    if (kshaya != null) {
+      tithiEnd.write(' (${_t(langCode, 'क्षय तिथी', 'क्षय तिथि', 'kshaya tithi')})');
+    }
+
+    final karana = snap.sunriseKarana;
+    final vishti = snap.karanas
+        .where((k) => TithiEngineNames.isVishti(k.halfIndex))
+        .toList();
+    final bhadra = vishti.isEmpty
+        ? _t(langCode, 'नाही', 'नहीं', 'None')
+        : vishti
+            .map((k) => range(hoursOf(k.startUtc), hoursOf(k.endUtc)))
+            .join(', ');
+
+    final festivals = snap.observances
+        .map((f) => names.observance(f.id, f.name))
+        .join(' / ');
+
+    final shaka = _shakaYear(date, city);
+
+    return p.copyWith(
+      maas: names.month(info.month, isAdhika: info.isAdhika),
+      paksha: names.paksha(info.paksha),
+      tithi: names.tithi(info.tithiNumber),
+      tithiEndTime: tithiEnd.toString(),
+      karana: karana == null ? null : names.karana(karana.halfIndex),
+      karanaEndTime:
+          karana == null ? null : _until(karana.endUtc, snap, langCode),
+      bhadra: bhadra,
+      sunrise: _formatDecimalTime(sunrise, langCode),
+      sunset: _formatDecimalTime(sunset, langCode),
+      brahmaMuhurat: range(sunrise - 96 / 60, sunrise - 48 / 60),
+      abhijitMuhurat: range(sunrise + 7 * muhurta, sunrise + 8 * muhurta),
+      vijayaMuhurat: range(sunrise + 10 * muhurta, sunrise + 11 * muhurta),
+      godhuliMuhurat: range(sunset - 15 / 60, sunset + 15 / 60),
+      rahuKaal: _calculateRahuKaal(weekday, sunrise, ashtabhaga, langCode),
+      yamaganda: _calculateYamaganda(weekday, sunrise, ashtabhaga, langCode),
+      gulikaKaal: _calculateGulika(weekday, sunrise, ashtabhaga, langCode),
+      durmuhurat: _durmuhurat(weekday, sunrise, muhurta, langCode),
+      shakaSamvat: shaka == null ? null : _toDevanagari(shaka, langCode),
+      vikramSamvat:
+          shaka == null ? null : _toDevanagari(shaka + 135, langCode),
+      festivalName: festivals.isNotEmpty &&
+              (useEngineFestival || p.festivalName.trim().isEmpty)
+          ? festivals
+          : null,
+    );
+  }
+
+  /// The Shaka year turns over on Gudi Padwa (Chaitra Shukla Pratipada).
+  int? _shakaYear(DateTime date, PanchangCity city) {
+    try {
+      final padwa = _engine
+          .yearObservances(city, date.year)
+          .firstWhere((f) => f.id == 'gudi_padwa');
+      final d = DateTime.utc(date.year, date.month, date.day);
+      return d.isBefore(padwa.date) ? date.year - 79 : date.year - 78;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// First Durmuhurat of the day; indices are 1-based day muhurtas (of 15).
+  String _durmuhurat(
+      int weekday, double sunrise, double muhurta, String langCode) {
+    const firstMuhurta = {
+      DateTime.sunday: 14,
+      DateTime.monday: 9,
+      DateTime.tuesday: 4,
+      DateTime.wednesday: 8,
+      DateTime.thursday: 6,
+      DateTime.friday: 4,
+      DateTime.saturday: 1,
+    };
+    final start = sunrise + (firstMuhurta[weekday]! - 1) * muhurta;
+    return '${_formatDecimalTime(start, langCode)} - '
+        '${_formatDecimalTime(start + muhurta, langCode)}';
+  }
+
+  /// "रात्री ०९:४२ पर्यंत" / "रात ०९:४२ तक" / "Till 09:42 PM".
+  String _until(DateTime utc, TithiDaySnapshot snap, String langCode) {
+    final local = snap.local(utc);
+    final hour = local.hour;
+    final h12 = hour % 12 == 0 ? 12 : hour % 12;
+    final hm =
+        '${h12.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    final nextDay = DateTime(local.year, local.month, local.day)
+        .isAfter(DateTime(snap.date.year, snap.date.month, snap.date.day));
+    if (langCode == 'en') {
+      return 'Till $hm ${hour >= 12 ? 'PM' : 'AM'}${nextDay ? ' (next day)' : ''}';
+    }
+    final part = hour < 4
+        ? _t(langCode, 'उत्तररात्री', 'रात', '')
+        : hour < 6
+            ? _t(langCode, 'पहाटे', 'भोर', '')
+            : hour < 12
+                ? _t(langCode, 'सकाळी', 'सुबह', '')
+                : hour < 16
+                    ? _t(langCode, 'दुपारी', 'दोपहर', '')
+                    : hour < 19
+                        ? _t(langCode, 'संध्याकाळी', 'शाम', '')
+                        : _t(langCode, 'रात्री', 'रात', '');
+    final suffix = _t(langCode, 'पर्यंत', 'तक', '');
+    final day = nextDay ? ' (${_t(langCode, 'उद्या', 'कल', '')})' : '';
+    return '$part ${_toDevanagariDigits(hm)} $suffix$day';
+  }
+
+  String _t(String langCode, String mr, String hi, String en) =>
+      langCode == 'en' ? en : (langCode == 'hi' ? hi : mr);
 
   Future<PanchangData> _fetchFromGemini({
     required DateTime date,
@@ -178,7 +358,10 @@ Respond ONLY with a valid JSON object matching this schema:
     // 2. Lunar month cycle ~29.530588 days
     final lunarCycle = 29.530588853;
     final lunarAge = (diffDays % lunarCycle + lunarCycle) % lunarCycle;
-    final tithiIndex = ((lunarAge / lunarCycle) * 30).floor() % 30; // 0 to 29
+    final engineTithi = _snapshot(date, city)?.sunriseTithi;
+    final tithiIndex = engineTithi != null
+        ? engineTithi.tithiNumber - 1
+        : ((lunarAge / lunarCycle) * 30).floor() % 30; // 0 to 29
     final isShukla = tithiIndex < 15;
     final tithiDay = (tithiIndex % 15) + 1; // 1 to 15
 
@@ -209,7 +392,7 @@ Respond ONLY with a valid JSON object matching this schema:
     final vikramYear = shakaYear + 135;
 
     // 8. Maas (Vedic Month estimation)
-    final maasIndex = _estimateMaas(date);
+    final maasIndex = engineTithi?.month.index ?? _estimateMaas(date);
 
     // 9. High-precision Solar Astronomical Calculation for City Coordinates
     final solarTimes = _calculateSolarTimes(
@@ -327,7 +510,7 @@ Respond ONLY with a valid JSON object matching this schema:
     };
   }
 
-  String _formatDecimalTime(double decimalHours) {
+  String _formatDecimalTime(double decimalHours, [String langCode = 'mr']) {
     var totalMinutes = (decimalHours * 60).round();
     totalMinutes = (totalMinutes % 1440 + 1440) % 1440; // 0..1439
     final hour24 = totalMinutes ~/ 60;
@@ -337,13 +520,11 @@ Respond ONLY with a valid JSON object matching this schema:
     var hour12 = hour24 % 12;
     if (hour12 == 0) hour12 = 12;
 
-    final hStr = hour12.toString().padLeft(2, '0');
-    final mStr = minutes.toString().padLeft(2, '0');
-    final devH = _toDevanagariDigits(hStr);
-    final devM = _toDevanagariDigits(mStr);
+    final hm =
+        '${hour12.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
     final amPm = isPm ? 'PM' : 'AM';
 
-    return '$devH:$devM $amPm';
+    return '${langCode == 'en' ? hm : _toDevanagariDigits(hm)} $amPm';
   }
 
   String _toDevanagariDigits(String numStr) {
@@ -356,7 +537,8 @@ Respond ONLY with a valid JSON object matching this schema:
     return res;
   }
 
-  String _calculateRahuKaal(int weekday, double sunrise, double ashtabhaga) {
+  String _calculateRahuKaal(int weekday, double sunrise, double ashtabhaga,
+      [String langCode = 'mr']) {
     // Traditional Ashtabhaga index for Rahu Kaal (0-indexed)
     int part;
     switch (weekday) {
@@ -385,10 +567,11 @@ Respond ONLY with a valid JSON object matching this schema:
     }
     final start = sunrise + part * ashtabhaga;
     final end = start + ashtabhaga;
-    return '${_formatDecimalTime(start)} - ${_formatDecimalTime(end)}';
+    return '${_formatDecimalTime(start, langCode)} - ${_formatDecimalTime(end, langCode)}';
   }
 
-  String _calculateYamaganda(int weekday, double sunrise, double ashtabhaga) {
+  String _calculateYamaganda(int weekday, double sunrise, double ashtabhaga,
+      [String langCode = 'mr']) {
     int part;
     switch (weekday) {
       case DateTime.monday:
@@ -404,10 +587,10 @@ Respond ONLY with a valid JSON object matching this schema:
         part = 0;
         break;
       case DateTime.friday:
-        part = 5;
+        part = 6;
         break;
       case DateTime.saturday:
-        part = 4;
+        part = 5;
         break;
       case DateTime.sunday:
       default:
@@ -416,10 +599,11 @@ Respond ONLY with a valid JSON object matching this schema:
     }
     final start = sunrise + part * ashtabhaga;
     final end = start + ashtabhaga;
-    return '${_formatDecimalTime(start)} - ${_formatDecimalTime(end)}';
+    return '${_formatDecimalTime(start, langCode)} - ${_formatDecimalTime(end, langCode)}';
   }
 
-  String _calculateGulika(int weekday, double sunrise, double ashtabhaga) {
+  String _calculateGulika(int weekday, double sunrise, double ashtabhaga,
+      [String langCode = 'mr']) {
     int part;
     switch (weekday) {
       case DateTime.monday:
@@ -447,7 +631,7 @@ Respond ONLY with a valid JSON object matching this schema:
     }
     final start = sunrise + part * ashtabhaga;
     final end = start + ashtabhaga;
-    return '${_formatDecimalTime(start)} - ${_formatDecimalTime(end)}';
+    return '${_formatDecimalTime(start, langCode)} - ${_formatDecimalTime(end, langCode)}';
   }
 
   int _estimateMaas(DateTime date) {

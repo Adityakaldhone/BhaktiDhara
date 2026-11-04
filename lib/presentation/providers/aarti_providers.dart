@@ -136,6 +136,19 @@ List<String> _getSpiritualSynonyms(String aartiId) {
       'sai', 'saibaba', 'shirdi', 'साई', 'शिर्डी'
     ];
   }
+  if (aartiId.startsWith('khatushyam')) {
+    return const [
+      'khatushyam', 'khatu', 'shyam', 'khatu shyam', 'shyam baba', 'lakhdatar',
+      'sheesh ke dani', 'teen baan', 'खाटू', 'श्याम', 'खाटू श्याम', 'श्याम बाबा',
+      'लखदातार', 'शीश के दानी', 'तीन बाण'
+    ];
+  }
+  if (aartiId.startsWith('mahakal')) {
+    return const [
+      'mahakal', 'mahakaleshwar', 'ujjain', 'bhasma aarti', 'avantika', 'bhole', 'shiv',
+      'महाकाल', 'महाकालेश्वर', 'उज्जैन', 'भस्म आरती', 'अवंतिका', 'भोले', 'शिव'
+    ];
+  }
   return const [];
 }
 

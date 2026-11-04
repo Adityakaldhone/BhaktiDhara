@@ -41,4 +41,20 @@ void main() {
     expect(config.canUpdate('1.0.6'), isTrue);
     expect(AppRemoteConfig.fromJson(config.toJson()).isEnabled('bhajan'), isFalse);
   });
+
+  test('festive popup needs the flag on and a campaign id', () {
+    expect(AppRemoteConfig.fromJson({}).showFestivePopup, isFalse);
+    expect(
+      AppRemoteConfig.fromJson({
+        'feature_flags': {'festive_offer_popup': true},
+      }).showFestivePopup,
+      isFalse,
+    );
+    final on = AppRemoteConfig.fromJson({
+      'feature_flags': {'festive_offer_popup': true},
+      'festive_popup_campaign': '2026-11-03T16:00:00+00:00',
+    });
+    expect(on.showFestivePopup, isTrue);
+    expect(AppRemoteConfig.fromJson(on.toJson()).festivePopupCampaign, on.festivePopupCampaign);
+  });
 }

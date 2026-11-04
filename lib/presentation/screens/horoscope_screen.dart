@@ -7,6 +7,7 @@ import '../../domain/entities/horoscope.dart';
 // import '../../services/gemini_horoscope_service.dart';
 import '../providers/horoscope_provider.dart';
 import '../providers/locale_provider.dart';
+import '../widgets/language_dropdown.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/premium_content_blur.dart';
 import '../../services/personal_numerology_service.dart';
@@ -353,6 +354,11 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
             ),
           ),
 
+          const Padding(
+            padding: EdgeInsets.only(left: 8, right: 8),
+            child: LanguageDropdown(),
+          ),
+
           // Premium Badge / Button
           Builder(
             builder: (ctx) {
@@ -660,7 +666,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${rashi.rulingPlanet} • ${rashi.element}',
+                      '${rashi.localizedPlanet(langCode)} • ${rashi.localizedElement(langCode)}',
                       style: GoogleFonts.mukta(
                         fontSize: 14.5,
                         color: const Color(0xFF8B6040),

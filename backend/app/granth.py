@@ -38,7 +38,8 @@ async def get_granth_books(
                    subtitle_mr, subtitle_hi, subtitle_en,
                    description_mr, description_hi, description_en,
                    total_chapters, total_verses, free_chapters,
-                   cover_image, sort_order, is_active, pdf_url
+                   cover_image, sort_order, is_active, pdf_url,
+                   page_count, pages_base_url
             FROM granth_books
             ORDER BY sort_order ASC, id ASC
             """
@@ -69,7 +70,9 @@ async def get_granth_books(
             "totalVerses": r["total_verses"],
             "freeChapters": r["free_chapters"],
             "coverImage": r["cover_image"],
-            "pdfUrl": r["pdf_url"] if "pdf_url" in r.keys() else None,
+            "pdfUrl": r["pdf_url"],
+            "pageCount": r["page_count"] or 0,
+            "pagesBaseUrl": r["pages_base_url"],
             "isActive": bool(r["is_active"]),
             "isUnlocked": is_vip or (r["free_chapters"] >= r["total_chapters"]),
         })
@@ -146,6 +149,8 @@ async def get_granth_chapters(
         },
         "coverImage": book["cover_image"] if "cover_image" in book.keys() else None,
         "pdfUrl": book["pdf_url"] if "pdf_url" in book.keys() else None,
+        "pageCount": (book["page_count"] or 0) if "page_count" in book.keys() else 0,
+        "pagesBaseUrl": book["pages_base_url"] if "pages_base_url" in book.keys() else None,
         "freeChapters": free_chapters,
         "isPremiumUser": is_vip,
         "chapters": chapters,

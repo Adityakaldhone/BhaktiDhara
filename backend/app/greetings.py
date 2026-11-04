@@ -626,6 +626,20 @@ def build_admin_router(require_admin) -> APIRouter:
         )
         return {"status": "started", "languages": langs, "images_per_lang": images_per_lang}
 
+    @router.get("/festival/status")
+    async def admin_festival_status():
+        from app.festival_greetings import festival_status
+        return {"festivals": await festival_status()}
+
+    @router.post("/festival/trigger")
+    async def admin_festival_trigger(budget: int = Query(24, ge=1, le=60)):
+        from app.greeting_generator import get_generator_status
+        from app.festival_greetings import run_festival_greetings_pipeline
+        if get_generator_status().get("running"):
+            raise HTTPException(status_code=409, detail="A generation job is already running.")
+        asyncio.create_task(run_festival_greetings_pipeline(budget=budget, is_manual_trigger=True))
+        return {"status": "started", "budget": budget}
+
     @router.post("/auto-gen/test")
     async def admin_autogen_test(
         lang: str = Query("hi", description="hi, mr, or en"),

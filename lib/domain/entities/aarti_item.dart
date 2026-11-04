@@ -241,6 +241,14 @@ class AartiItem {
       case 'Goddess Gayatri':
       case 'Gayatri':
         return localeCode == 'en' ? 'Shri Gayatri Mata Aarti' : 'श्री गायत्री माता आरती';
+      case 'Khatu Shyam':
+      case 'Lord Khatu Shyam':
+      case 'Shyam Baba':
+        return localeCode == 'en' ? 'Shri Khatu Shyam Aarti' : 'श्री खाटू श्याम आरती';
+      case 'Mahakal':
+      case 'Lord Mahakal':
+      case 'Mahakaleshwar':
+        return localeCode == 'en' ? 'Shri Mahakal Aarti' : 'श्री महाकाल आरती';
       default:
         return localeCode == 'en' ? '$deity Aarti' : 'श्री $deity आरती';
     }

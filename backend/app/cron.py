@@ -2,7 +2,6 @@ import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 from app.database import (
-    get_cached_horoscope,
     save_cached_horoscope,
     get_cached_panchang,
     save_cached_panchang,
@@ -12,7 +11,7 @@ from app.database import (
     prune_old_events,
 )
 from app.gemini_service import generate_horoscope, generate_panchang
-from app.vedic_cache import PRECACHE_RPM, precache_item
+from app.vedic_cache import PRECACHE_RPM, lookup_horoscope, precache_item
 
 logger = logging.getLogger("bhaktidhara.cron")
 
@@ -64,7 +63,7 @@ def build_precache_items(date_str: str):
             items.append((
                 f"horoscope {rashi_id} [{lang}]",
                 ("horoscope", date_str, rashi_id, "today", lang),
-                lambda r=rashi_id, l=lang: get_cached_horoscope(date_str, r, "today", l),
+                lambda r=rashi_id, l=lang: lookup_horoscope(date_str, r, "today", l),
                 lambda r=rashi_id, n=rashi_name, l=lang: generate_horoscope(
                     rashi_name=n, period="today", lang_code=l, date_text=date_str, rashi_id=r
                 ),

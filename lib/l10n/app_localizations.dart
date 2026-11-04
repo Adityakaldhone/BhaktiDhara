@@ -304,6 +304,54 @@ abstract class AppLocalizations {
   /// **'Granth'**
   String get navGranth;
 
+  /// No description provided for @navMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get navMore;
+
+  /// No description provided for @moreGranthSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'18 Mahapuranas, Bhagavad Gita & sacred scriptures'**
+  String get moreGranthSubtitle;
+
+  /// No description provided for @moreKundaliTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kundali Chart'**
+  String get moreKundaliTitle;
+
+  /// No description provided for @moreKundaliSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Vedic birth chart from date, time & place of birth'**
+  String get moreKundaliSubtitle;
+
+  /// No description provided for @moreGrahanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grahan (Eclipses)'**
+  String get moreGrahanTitle;
+
+  /// No description provided for @moreGrahanSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming solar & lunar eclipses, sutak times & reminders'**
+  String get moreGrahanSubtitle;
+
+  /// No description provided for @moreMilanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kundali Milan'**
+  String get moreMilanTitle;
+
+  /// No description provided for @moreMilanSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'36-guna Ashtakoota matching for marriage & Manglik check'**
+  String get moreMilanSubtitle;
+
   /// No description provided for @bhajanSangrah.
   ///
   /// In en, this message translates to:

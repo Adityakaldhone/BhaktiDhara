@@ -29,10 +29,12 @@ final greetingCategoriesProvider = FutureProvider<List<GreetingCategory>>((ref) 
   return ref.watch(greetingRepositoryProvider).fetchCategories(ref.watch(localeProvider).languageCode);
 });
 
-/// Slug of the chip selected at the top of the greetings screen.
-const kDefaultGreetingCategory = 'morning';
+/// Slug of the chip selected at the top of the greetings screen. Empty until
+/// the user picks one, so the server's first category (e.g. an upcoming
+/// festival) is shown by default.
+const kFallbackGreetingCategory = 'morning';
 const kFavoritesCategory = '__favorites__';
-final selectedGreetingCategoryProvider = StateProvider<String>((ref) => kDefaultGreetingCategory);
+final selectedGreetingCategoryProvider = StateProvider<String>((ref) => '');
 
 @immutable
 class GreetingFeedState {

@@ -12,10 +12,13 @@ import '../../domain/entities/panchang.dart';
 import '../../domain/entities/panchang_city.dart';
 import '../../domain/logic/panchang_timing.dart';
 import '../../services/backend_service.dart';
+import '../../services/tithi_engine_service.dart';
 import '../panchang/panchang_strings.dart';
+import '../panchang/tithi_engine_widgets.dart';
 import '../providers/locale_provider.dart';
 import '../providers/panchang_provider.dart';
 import '../providers/remote_config_provider.dart';
+import '../widgets/language_dropdown.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/premium_content_blur.dart';
 
@@ -64,7 +67,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _CitySelectionSheet(
+      builder: (ctx) => PanchangCitySheet(
         currentCity: currentCity,
         langCode: langCode,
       ),
@@ -215,6 +218,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
         panchang.dailyMantra.isNotEmpty;
 
     final isPremium = ref.watch(premiumAccessProvider);
+    final snapshot = ref.watch(tithiDaySnapshotProvider).valueOrNull;
 
     return RefreshIndicator(
       color: MandirTheme.primarySaffron,
@@ -225,7 +229,13 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           // TodayCard: always visible (free teaser — shows basic info)
-          _TodayCard(panchang: panchang, slots: slots, now: nowStatus, s: s),
+          _TodayCard(
+            panchang: panchang,
+            slots: slots,
+            now: nowStatus,
+            s: s,
+            snapshot: snapshot,
+          ),
           const SizedBox(height: 16),
           // ScheduleCard: title & indicators always visible, slots blurred if !isPremium
           _ScheduleCard(
@@ -238,6 +248,8 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
             const SizedBox(height: 16),
             _FestivalCard(panchang: panchang, s: s, isPremium: isPremium),
           ],
+          const SizedBox(height: 16),
+          UpcomingObservancesCard(s: s),
           const SizedBox(height: 16),
           _SunMoonCard(panchang: panchang, s: s, isPremium: isPremium),
           const SizedBox(height: 16),
@@ -465,6 +477,10 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                 ),
               ],
             ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: LanguageDropdown(),
           ),
           IconButton(
             tooltip: 'Refresh Panchang',
@@ -840,12 +856,14 @@ class _TodayCard extends StatelessWidget {
     required this.slots,
     required this.now,
     required this.s,
+    this.snapshot,
   });
 
   final PanchangData panchang;
   final List<PanchangSlot> slots;
   final PanchangNow? now;
   final PanchangStrings s;
+  final TithiDaySnapshot? snapshot;
 
   PanchangSlot? _slot(PanchangSlotKind kind) {
     for (final slot in slots) {
@@ -915,6 +933,10 @@ class _TodayCard extends StatelessWidget {
                     height: 1.15,
                   ),
                 ),
+                if (snapshot != null) ...[
+                  const SizedBox(height: 8),
+                  PanchangEngineStatus(snapshot: snapshot!, s: s),
+                ],
                 if (panchang.festivalName.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Row(
@@ -1657,12 +1679,14 @@ class _FullPanchangCard extends StatelessWidget {
       padding: const EdgeInsets.only(top: 10, bottom: 4),
       child: Row(
         children: [
-          Text(
-            text,
-            style: GoogleFonts.mukta(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: MandirTheme.primarySaffron,
+          Flexible(
+            child: Text(
+              text,
+              style: GoogleFonts.mukta(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: MandirTheme.primarySaffron,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -1744,21 +1768,22 @@ class _FullPanchangCard extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 //  CITY SELECTION SHEET
 // ═════════════════════════════════════════════════════════════════════════════
-class _CitySelectionSheet extends ConsumerStatefulWidget {
+class PanchangCitySheet extends ConsumerStatefulWidget {
   final PanchangCity currentCity;
   final String langCode;
 
-  const _CitySelectionSheet({
+  const PanchangCitySheet({
+    super.key,
     required this.currentCity,
     required this.langCode,
   });
 
   @override
-  ConsumerState<_CitySelectionSheet> createState() =>
-      _CitySelectionSheetState();
+  ConsumerState<PanchangCitySheet> createState() =>
+      _PanchangCitySheetState();
 }
 
-class _CitySelectionSheetState extends ConsumerState<_CitySelectionSheet> {
+class _PanchangCitySheetState extends ConsumerState<PanchangCitySheet> {
   final TextEditingController _searchController = TextEditingController();
   bool _isLocating = false;
   String _filter = '';

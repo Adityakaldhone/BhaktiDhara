@@ -224,4 +224,20 @@ const List<BhaktiDeity> kBhaktiDeities = [
     nameMr: 'नर्मदा माता',
     imageAsset: '$_dir/narmada.webp',
   ),
+  BhaktiDeity(
+    key: 'Mahakal',
+    aliases: ['Lord Mahakal', 'Mahakaleshwar', 'Shri Mahakal'],
+    nameEn: 'Mahakal Ujjain',
+    nameHi: 'श्री महाकाल',
+    nameMr: 'श्री महाकाल',
+    imageAsset: '$_dir/shiva.webp',
+  ),
+  BhaktiDeity(
+    key: 'Khatu Shyam',
+    aliases: ['Lord Khatu Shyam', 'Shyam Baba', 'Shri Khatu Shyam'],
+    nameEn: 'Khatu Shyam',
+    nameHi: 'श्री खाटू श्याम',
+    nameMr: 'श्री खाटू श्याम',
+    imageAsset: '$_dir/krishna.webp',
+  ),
 ];

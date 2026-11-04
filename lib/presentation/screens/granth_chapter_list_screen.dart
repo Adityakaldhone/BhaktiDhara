@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../../core/theme/theme.dart';
 import '../../domain/entities/granth.dart';
+import '../../services/ad_units.dart';
 import '../providers/granth_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/remote_config_provider.dart';
+import '../widgets/app_banner_ad.dart';
 import '../widgets/granth_meta.dart';
 import '../widgets/premium_blurred_gate.dart';
+import 'granth_page_reader_screen.dart';
 import 'granth_pothi_reader_screen.dart';
 import 'granth_reader_screen.dart';
 
@@ -45,6 +46,7 @@ class _GranthChapterListScreenState extends ConsumerState<GranthChapterListScree
 
     return Scaffold(
       backgroundColor: MandirTheme.backgroundCream,
+      bottomNavigationBar: const AppBannerAd(adUnitId: AdUnits.contentBanner),
       appBar: AppBar(
         title: Text(
           bookTitle,
@@ -506,7 +508,6 @@ class _GranthChapterListScreenState extends ConsumerState<GranthChapterListScree
     bool isVip,
     GranthStyleConfig style,
   ) {
-    final title = widget.book.titleFor(langCode);
     final description = widget.book.descriptionFor(langCode);
 
     return Container(
@@ -622,27 +623,19 @@ class _GranthChapterListScreenState extends ConsumerState<GranthChapterListScree
                   ),
                   elevation: 3,
                 ),
-                onPressed: () async {
-                  // Save last read record
-                  ref.read(granthLastReadProvider.notifier).save(
-                    bookSlug: widget.book.slug,
-                    bookTitle: title,
-                    pdfUrl: widget.book.pdfUrl,
-                    pageNumber: 1,
+                onPressed: () {
+                  final last = ref.read(granthLastReadProvider);
+                  final resumePage = last != null &&
+                          last.bookSlug == widget.book.slug &&
+                          last.pdfUrl == widget.book.pdfUrl
+                      ? last.pageNumber ?? 1
+                      : 1;
+                  openGranthBookReader(
+                    context,
+                    widget.book,
+                    langCode: langCode,
+                    page: resumePage,
                   );
-
-                  final uri = Uri.parse(widget.book.pdfUrl!);
-                  try {
-                    final launched = await launchUrl(
-                      uri,
-                      mode: LaunchMode.inAppBrowserView,
-                    );
-                    if (!launched) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
-                  } catch (_) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

@@ -215,7 +215,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
           host: 'https://www.youtube.com',
           playerVars: {
             autoplay: 1,
-            mute: 1,
+            mute: 0,
             playsinline: 1,
             rel: 0,
             controls: 1,
@@ -226,7 +226,11 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
           },
           events: {
             onReady: function () {
-              try { player.playVideo(); } catch (e) {}
+              try {
+                player.unMute();
+                player.setVolume(100);
+                player.playVideo();
+              } catch (e) {}
               reportMuteState();
             },
             onStateChange: function (event) {
@@ -348,6 +352,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
     _initMobileWebViewController();
   }
 
+  // ignore: unused_element
   Future<void> _unmuteFromUserTap() async {
     setState(() => _showUnmuteHint = false);
     await _webController?.runJavaScript('''
@@ -805,6 +810,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
                         ),
                       ),
                     ),
+                  /* Unmute hint disabled: the video now autoplays unmuted.
                   if (!kIsWeb && _showUnmuteHint && !_isLoading)
                     Positioned(
                       top: 10,
@@ -852,6 +858,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
                         ),
                       ),
                     ),
+                  */
                 ],
               ),
             ),

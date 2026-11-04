@@ -24,9 +24,38 @@ class GranthRepository {
     };
   }
 
+  /// Offline cache is best-effort: on some devices the preferences store
+  /// fails to load, and that must not block the live API.
+  Future<SharedPreferences?> _prefs() async {
+    try {
+      return await SharedPreferences.getInstance();
+    } catch (e) {
+      debugPrint('⚠️ Granth cache unavailable: $e');
+      _reportError('prefs', e);
+      return null;
+    }
+  }
+
+  Future<void> _writeCache(SharedPreferences? prefs, String key, String value) async {
+    try {
+      await prefs?.setString(key, value);
+    } catch (e) {
+      debugPrint('⚠️ Granth cache write failed for $key: $e');
+    }
+  }
+
+  static void _reportError(String stage, Object error) {
+    final message = error.toString();
+    BackendService.trackEvent(
+      'granth_load_error',
+      item: stage,
+      props: {'error': message.length > 200 ? message.substring(0, 200) : message},
+    );
+  }
+
   /// Fetches the list of sacred scriptures.
   Future<List<GranthBook>> getBooks() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs();
 
     // Try live API first
     try {
@@ -46,15 +75,17 @@ class GranthRepository {
             .toList();
 
         // Cache locally for offline support
-        await prefs.setString(_booksCacheKey, res.body);
+        await _writeCache(prefs, _booksCacheKey, res.body);
         return books;
       }
+      _reportError('books_http_${res.statusCode}', 'HTTP ${res.statusCode}');
     } catch (e) {
       debugPrint('⚠️ Error fetching granth books: $e');
+      _reportError('books', e);
     }
 
     // Fallback to cache
-    final cached = prefs.getString(_booksCacheKey);
+    final cached = prefs?.getString(_booksCacheKey);
     if (cached != null) {
       try {
         final data = json.decode(cached) as Map<String, dynamic>;
@@ -71,7 +102,7 @@ class GranthRepository {
 
   /// Fetches all chapters of a book.
   Future<List<GranthChapter>> getChapters(String bookSlug) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs();
     final cacheKey = '$_chaptersCachePrefix$bookSlug';
 
     try {
@@ -90,14 +121,14 @@ class GranthRepository {
             .map((c) => GranthChapter.fromJson(c))
             .toList();
 
-        await prefs.setString(cacheKey, res.body);
+        await _writeCache(prefs, cacheKey, res.body);
         return chapters;
       }
     } catch (e) {
       debugPrint('⚠️ Error fetching chapters for $bookSlug: $e');
     }
 
-    final cached = prefs.getString(cacheKey);
+    final cached = prefs?.getString(cacheKey);
     if (cached != null) {
       try {
         final data = json.decode(cached) as Map<String, dynamic>;
@@ -114,7 +145,7 @@ class GranthRepository {
 
   /// Fetches detailed chapter verses with lock status.
   Future<GranthChapterDetail?> getChapterDetail(String bookSlug, int chapterNum) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs();
     final cacheKey = '$_chapterDetailPrefix${bookSlug}_$chapterNum';
 
     try {
@@ -130,7 +161,7 @@ class GranthRepository {
         final detail = GranthChapterDetail.fromJson(data);
         // Only cache if full verses or unlocked
         if (!detail.isLocked) {
-          await prefs.setString(cacheKey, res.body);
+          await _writeCache(prefs, cacheKey, res.body);
         }
         return detail;
       }
@@ -138,7 +169,7 @@ class GranthRepository {
       debugPrint('⚠️ Error fetching chapter $chapterNum of $bookSlug: $e');
     }
 
-    final cached = prefs.getString(cacheKey);
+    final cached = prefs?.getString(cacheKey);
     if (cached != null) {
       try {
         final data = json.decode(cached) as Map<String, dynamic>;
@@ -151,7 +182,7 @@ class GranthRepository {
 
   /// Fetches Pothi metadata for a book (if available).
   Future<GranthPothiInfo?> getPothiInfo(String bookSlug) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefs();
     final cacheKey = 'granth_pothi_info_$bookSlug';
 
     try {
@@ -164,14 +195,14 @@ class GranthRepository {
 
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-        await prefs.setString(cacheKey, res.body);
+        await _writeCache(prefs, cacheKey, res.body);
         return GranthPothiInfo.fromJson(data);
       }
     } catch (e) {
       debugPrint('⚠️ Error fetching pothi info for $bookSlug: $e');
     }
 
-    final cached = prefs.getString(cacheKey);
+    final cached = prefs?.getString(cacheKey);
     if (cached != null) {
       try {
         final data = json.decode(cached) as Map<String, dynamic>;

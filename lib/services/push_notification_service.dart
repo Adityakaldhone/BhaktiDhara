@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import '../data/datasources/bhajan_catalog.dart';
 import '../data/datasources/catalog.dart';
@@ -16,6 +17,7 @@ import '../domain/entities/horoscope.dart';
 import '../firebase_options.dart';
 import '../presentation/screens/altar_screen.dart';
 import '../presentation/screens/bhajan_screen.dart';
+import '../presentation/screens/grahan_screen.dart';
 import '../presentation/screens/horoscope_screen.dart';
 import '../presentation/screens/jaap_counter_screen.dart';
 import '../presentation/screens/panchang_screen.dart';
@@ -208,12 +210,13 @@ class PushNotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final current = (prefs.getStringList(_topicsKey) ?? const []).toSet();
-      if (current.length == wanted.length && current.containsAll(wanted)) return;
       final messaging = FirebaseMessaging.instance;
       for (final topic in current.difference(wanted)) {
         await messaging.unsubscribeFromTopic(topic);
       }
-      for (final topic in wanted.difference(current)) {
+      // Always re-subscribe: the saved list can outlive the FCM registration
+      // (Auto Backup restore after reinstall, token reset), silently dropping topic pushes.
+      for (final topic in wanted) {
         await messaging.subscribeToTopic(topic);
       }
       await prefs.setStringList(_topicsKey, wanted.toList());
@@ -282,12 +285,62 @@ class PushNotificationService {
         );
       case 'bhajan':
         return config.isEnabled(AppRemoteConfig.bhajan) ? const BhajanScreen() : null;
+      case 'grahan':
+        return const GrahanScreen();
       case 'aarti':
         final aarti = _findAarti(data['aartiId']?.toString());
         return aarti == null ? null : AartiAltarScreen(aarti: aarti);
       default:
         return null;
     }
+  }
+
+  /// Whether on-device scheduled reminders are available (mobile, after [init]).
+  static bool get canScheduleReminders => _supported && _initialized;
+
+  /// Schedules a one-off local notification at [atUtc]; returns false when
+  /// unsupported or the time has passed. [payload] is routed like a push tap.
+  static Future<bool> scheduleReminder({
+    required int id,
+    required DateTime atUtc,
+    required String title,
+    required String body,
+    Map<String, dynamic> payload = const {},
+  }) async {
+    if (!canScheduleReminders || !atUtc.isAfter(DateTime.now())) return false;
+    try {
+      await _local.zonedSchedule(
+        id: id,
+        scheduledDate: tz.TZDateTime.from(atUtc.toUtc(), tz.UTC),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        title: title,
+        body: body,
+        payload: jsonEncode(payload),
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channel.id,
+            _channel.name,
+            channelDescription: _channel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+            color: const Color(0xFFFF9933),
+            styleInformation: BigTextStyleInformation(body),
+          ),
+          iOS: const DarwinNotificationDetails(presentAlert: true, presentSound: true),
+        ),
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Reminder scheduling failed: $e');
+      return false;
+    }
+  }
+
+  static Future<void> cancelReminder(int id) async {
+    if (!canScheduleReminders) return;
+    try {
+      await _local.cancel(id: id);
+    } catch (_) {}
   }
 
   /// Displays an immediate local notification simulating the 6:00 AM curiosity push.

@@ -30,8 +30,10 @@ import 'gayatri_songs_screen.dart';
 import 'gondavalekar_maharaj_songs_screen.dart';
 import 'hanuman_songs_screen.dart';
 import 'khandoba_songs_screen.dart';
+import 'khatushyam_songs_screen.dart';
 import 'krishna_songs_screen.dart';
 import 'lakshmi_songs_screen.dart';
+import 'mahakal_songs_screen.dart';
 import 'narmada_songs_screen.dart';
 import 'radha_songs_screen.dart';
 import 'rama_songs_screen.dart';
@@ -236,6 +238,14 @@ class _BhajanScreenState extends ConsumerState<BhajanScreen>
       }
       if (deity.key == 'Lord Datta' || deity.key == 'Datta' || deity.key == 'Shri Datta' || deity.key == 'Dattatreya' || deity.key == 'Shri Dattatreya') {
         Navigator.push(context, MaterialPageRoute(builder: (_) => const DattaSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Mahakal' || deity.key == 'Lord Mahakal' || deity.key == 'Mahakaleshwar' || deity.key == 'Shri Mahakal') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const MahakalSongsScreen()));
+        return;
+      }
+      if (deity.key == 'Khatu Shyam' || deity.key == 'Lord Khatu Shyam' || deity.key == 'Shyam Baba' || deity.key == 'Shri Khatu Shyam') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const KhatuShyamSongsScreen()));
         return;
       }
     }

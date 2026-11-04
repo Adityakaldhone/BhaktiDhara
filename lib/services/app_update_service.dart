@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -72,24 +73,116 @@ class AppUpdateService {
   }
 
   /// Attempts to trigger Google Play's native Flexible Update in the background.
-  /// If downloaded, immediately finishes the update.
+  /// Once downloaded, a "Restart" snackbar lets the user install it.
   static Future<bool> tryPlayStoreFlexibleUpdate() async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       return false;
     }
     try {
       final updateInfo = await InAppUpdate.checkForUpdate();
+      if (updateInfo.installStatus == InstallStatus.downloaded) {
+        _showRestartPrompt();
+        return true;
+      }
       if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable &&
           updateInfo.flexibleUpdateAllowed) {
-        final result = await InAppUpdate.startFlexibleUpdate();
-        if (result == AppUpdateResult.success) {
-          await InAppUpdate.completeFlexibleUpdate();
-          return true;
-        }
+        return _downloadFlexible();
       }
     } catch (e) {
       debugPrint('[AppUpdateService] Play Store flexible update error (normal in debug/sideload): $e');
     }
     return false;
+  }
+
+  /// Days an update may sit unapplied before the immediate (blocking) flow is used.
+  static const int _immediateAfterStaleDays = 7;
+
+  /// Priority (0-5, set per release via the Play Developer API) at or above
+  /// which the immediate flow is used.
+  static const int _immediatePriority = 4;
+
+  static final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  static bool _checking = false;
+  static bool _downloading = false;
+
+  /// Automatic update check, run on launch and on every resume:
+  /// - resumes an interrupted immediate update,
+  /// - prompts to install an already downloaded flexible update,
+  /// - uses the immediate flow for high-priority or stale updates,
+  /// - otherwise downloads silently in the background (flexible flow).
+  static Future<void> checkForUpdateAutomatically() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    if (_checking || _downloading) return;
+    _checking = true;
+    try {
+      final info = await InAppUpdate.checkForUpdate();
+
+      if (info.updateAvailability == UpdateAvailability.developerTriggeredUpdateInProgress) {
+        await InAppUpdate.performImmediateUpdate();
+        return;
+      }
+      if (info.installStatus == InstallStatus.downloaded) {
+        _showRestartPrompt();
+        return;
+      }
+      if (info.updateAvailability != UpdateAvailability.updateAvailable) return;
+
+      final stale = (info.clientVersionStalenessDays ?? 0) >= _immediateAfterStaleDays;
+      final urgent = info.updatePriority >= _immediatePriority;
+      if ((stale || urgent) && info.immediateUpdateAllowed) {
+        await InAppUpdate.performImmediateUpdate();
+      } else if (info.flexibleUpdateAllowed) {
+        unawaited(_downloadFlexible());
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Auto update check error (normal in debug/sideload): $e');
+    } finally {
+      _checking = false;
+    }
+  }
+
+  static Future<bool> _downloadFlexible() async {
+    if (_downloading) return true;
+    _downloading = true;
+    try {
+      final result = await InAppUpdate.startFlexibleUpdate();
+      if (result == AppUpdateResult.success) {
+        _showRestartPrompt();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Flexible download error: $e');
+    } finally {
+      _downloading = false;
+    }
+    return false;
+  }
+
+  static void _showRestartPrompt() {
+    final messenger = scaffoldMessengerKey.currentState;
+    final context = scaffoldMessengerKey.currentContext;
+    if (messenger == null || context == null) return;
+
+    final lang = Localizations.maybeLocaleOf(context)?.languageCode ?? 'en';
+    final (message, action) = switch (lang) {
+      'hi' => ('नया अपडेट डाउनलोड हो गया है।', 'रीस्टार्ट'),
+      'mr' => ('नवीन अपडेट डाउनलोड झाले आहे.', 'रीस्टार्ट'),
+      _ => ('A new update has been downloaded.', 'Restart'),
+    };
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(days: 1),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: action,
+            onPressed: () => InAppUpdate.completeFlexibleUpdate(),
+          ),
+        ),
+      );
   }
 }

@@ -84,10 +84,10 @@ class PersonalVedicService {
             : 'What to Avoid: Refrain from hasty financial commitments under pressure. Avoid rekindling old arguments or debates.');
 
     final pillar = langCode == 'mr'
-        ? 'ध्वनी कंपन: \'${rashi.rulingPlanet.split('(')[0].trim()}\' ग्रहाचा शुभ प्रभाव'
+        ? 'ध्वनी कंपन: \'${rashi.planetShortName('mr')}\' ग्रहाचा शुभ प्रभाव'
         : (langCode == 'hi'
-            ? 'ध्वनि कंपन: \'${rashi.rulingPlanet.split('(')[0].trim()}\' ग्रह का सकारात्मक प्रभाव'
-            : 'Vibration Resonance: Harmonic synergy with ${rashi.rulingPlanet}');
+            ? 'ध्वनि कंपन: \'${rashi.planetShortName('hi')}\' ग्रह का सकारात्मक प्रभाव'
+            : 'Vibration Resonance: Harmonic synergy with ${rashi.planetShortName('en')}');
 
     return PersonalVedicReading(
       initial: effectiveInitial,

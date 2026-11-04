@@ -25,11 +25,7 @@ class GreetingDashboardCard extends ConsumerWidget {
     if (!ref.watch(greetingsEnabledProvider)) return const SizedBox.shrink();
     final s = GreetingStrings(ref.watch(localeProvider).languageCode);
     final categories = ref.watch(greetingCategoriesProvider).valueOrNull ?? const [];
-    final cover = categories
-            .where((c) => c.slug == kDefaultGreetingCategory && c.coverUrl != null)
-            .map((c) => c.coverUrl)
-            .firstOrNull ??
-        categories.map((c) => c.coverUrl).nonNulls.firstOrNull;
+    final cover = categories.map((c) => c.coverUrl).nonNulls.firstOrNull;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),

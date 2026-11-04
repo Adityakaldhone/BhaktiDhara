@@ -117,7 +117,7 @@ void main() {
 
       // Verify Paywall sheet opens with subscription details
       expect(find.text('भक्तिधारा प्रीमियम'), findsOneWidget);
-      expect(find.text('🎉 सर्व योजनांवर ७ दिवस मोफत ट्रायल!'), findsOneWidget);
+      expect(find.text('🎉 ७ दिवस मोफत ट्रायल — कधीही रद्द करा'), findsOneWidget);
       expect(find.text('मासिक'), findsOneWidget);
       expect(find.text('वार्षिक'), findsOneWidget);
 

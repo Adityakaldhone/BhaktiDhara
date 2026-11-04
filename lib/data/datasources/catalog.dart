@@ -1,5 +1,7 @@
 import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/lyric_stanza.dart';
+import 'khatushyam_aartis_catalog.dart';
+import 'mahakal_aartis_catalog.dart';
 import 'marathi_aarti_catalog.dart';
 
 /// Static devotional catalog.
@@ -863,4 +865,6 @@ LyricStanza(
     ],
   ),
   ...kMarathiAartiCatalog,
+  ...kKhatuShyamAartisCatalog,
+  ...kMahakalAartisCatalog,
 ];

@@ -83,6 +83,7 @@ from app.push_service import (
     build_topic_target,
     send_to_topic_target,
     send_to_tokens,
+    subscribe_token_to_topics,
 )
 from app.gemini_service import consult_vedic_ai
 from app.greetings import init_greetings_db, public_router as greetings_public_router, build_admin_router as build_greetings_admin_router
@@ -136,16 +137,29 @@ async def lifespan(app: FastAPI):
         max_instances=1,
         misfire_grace_time=1800,
     )
-    # 4. Schedule Daily 12:00 AM IST Good Morning Greetings Generation (18:30 UTC)
-    # Generates 24 fresh cards daily (15 with quotes, 9 title-only) at $0.00 using Cloudflare Workers AI FLUX
+    # 4. Schedule Daily 12:00 AM IST Greetings Generation (18:30 UTC) using Cloudflare Workers AI FLUX.
+    # GREETING_AUTOGEN_MODE: "festival" (default) fills upcoming festival categories,
+    # "morning" generates 24 Good Morning cards, "off" disables generation.
+    from app.festival_greetings import run_festival_greetings_pipeline, sync_festival_categories
+
+    await sync_festival_categories()
+
     async def run_scheduled_morning_greetings() -> None:
-        logger.info("🌅 [Cron] Starting scheduled 12:00 AM IST Good Morning Greetings Generation...")
+        mode = os.getenv("GREETING_AUTOGEN_MODE", "festival").strip().lower()
+        logger.info("🌅 [Cron] Scheduled greetings generation, mode=%s", mode)
         try:
-            from app.greeting_generator import run_daily_morning_greetings_pipeline
-            result = await run_daily_morning_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=8)
-            logger.info("🌅 [Cron] Daily Morning Greetings Generation completed: %s", result)
+            if mode == "festival":
+                result = await run_festival_greetings_pipeline()
+            elif mode == "morning":
+                await sync_festival_categories()
+                from app.greeting_generator import run_daily_morning_greetings_pipeline
+                result = await run_daily_morning_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=8)
+            else:
+                await sync_festival_categories()
+                return
+            logger.info("🌅 [Cron] Greetings generation completed: %s", result)
         except Exception as e:
-            logger.error("❌ [Cron] Error running scheduled morning greetings generation: %s", e, exc_info=True)
+            logger.error("❌ [Cron] Error running scheduled greetings generation: %s", e, exc_info=True)
 
     scheduler.add_job(
         run_scheduled_morning_greetings,
@@ -209,6 +223,8 @@ class DevicePingRequest(BaseModel):
     appVersion: str = "1.0.4"
     locale: str = "mr"
     isVip: bool = False
+    deviceModel: Optional[str] = None
+    osVersion: Optional[str] = None
     userName: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -265,6 +281,9 @@ class AnnouncementCreate(BaseModel):
 
 class AnnouncementUpdate(BaseModel):
     active: Optional[bool] = None
+
+
+_background_tasks: set = set()
 
 
 class PushTokenRequest(BaseModel):
@@ -342,6 +361,11 @@ async def robots_txt():
     if target.exists():
         return FileResponse(target, media_type="text/plain")
     return HTMLResponse("User-agent: *\nAllow: /", media_type="text/plain")
+
+
+@app.get("/app-ads.txt", include_in_schema=False)
+async def app_ads_txt():
+    return FileResponse(STATIC_DIR / "app-ads.txt", media_type="text/plain")
 
 
 @app.get("/sitemap.xml", include_in_schema=False)
@@ -477,6 +501,8 @@ async def anonymous_ping_endpoint(payload: DevicePingRequest):
         city=payload.city,
         state=payload.state,
         country=payload.country,
+        device_model=payload.deviceModel,
+        os_version=payload.osVersion,
     )
     return {"status": "ok", **flags}
 
@@ -542,9 +568,12 @@ async def telemetry_event_endpoint(payload: TelemetryEventBatch):
 @app.post("/api/v1/telemetry/push-token")
 async def push_token_endpoint(payload: PushTokenRequest):
     """Registers the device's FCM token so it can be targeted from the admin dashboard."""
-    await save_push_token(
-        payload.deviceId[:64], payload.token[:4096], payload.enabled, payload.platform.lower()[:16]
-    )
+    platform = payload.platform.lower()[:16]
+    await save_push_token(payload.deviceId[:64], payload.token[:4096], payload.enabled, platform)
+    topics = ["all"] + ([platform] if platform in ("android", "ios") else [])
+    task = asyncio.create_task(subscribe_token_to_topics(payload.token[:4096], topics))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
     return {"status": "ok"}
 
 
@@ -705,7 +734,7 @@ async def admin_users_export_endpoint(
         search=search.strip(), platform=platform, locale=locale, tier=tier, status=status_filter
     )
     buf = io.StringIO()
-    columns = ["deviceId", "userName", "city", "state", "country", "platform", "appVersion", "locale",
+    columns = ["deviceId", "userName", "city", "state", "country", "platform", "appVersion", "deviceModel", "osVersion", "locale",
                "isVip", "vipGranted", "blocked", "firstSeen", "lastSeen", "pingCount", "notes"]
     writer = csv.DictWriter(buf, fieldnames=columns, extrasaction="ignore")
     writer.writeheader()
@@ -792,6 +821,11 @@ async def admin_config_get():
 @app.put("/api/v1/admin/config", dependencies=admin)
 async def admin_config_put(payload: AppConfigUpdate):
     updates = payload.model_dump(exclude_none=True)
+    new_flags = updates.get("feature_flags") or {}
+    if "festive_offer_popup" in new_flags:
+        old_flags = (await get_app_config()).get("feature_flags", {})
+        if new_flags["festive_offer_popup"] and not old_flags.get("festive_offer_popup"):
+            updates["festive_popup_campaign"] = datetime.now(timezone.utc).isoformat()
     config = await save_app_config(updates)
     await log_admin_action("update_config", ", ".join(sorted(updates.keys())))
     return config

@@ -27,7 +27,11 @@ DEFAULT_APP_CONFIG: Dict[str, Any] = {
         "premium_paywall": True,
         "status_cards": True,
         "status_card_photo": True,
+        "festive_offer_popup": False,
     },
+    # Renewed every time festive_offer_popup is switched on, so apps restart
+    # their per-campaign popup count.
+    "festive_popup_campaign": "",
 }
 
 
@@ -107,6 +111,8 @@ async def init_db():
             ("vip_granted", "INTEGER DEFAULT 0"),
             ("blocked", "INTEGER DEFAULT 0"),
             ("app_instance_id", "TEXT DEFAULT ''"),
+            ("device_model", "TEXT DEFAULT ''"),
+            ("os_version", "TEXT DEFAULT ''"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE devices ADD COLUMN {col[0]} {col[1]}")
@@ -274,6 +280,16 @@ async def init_db():
             )
         """)
 
+        for col in [
+            ("pdf_url", "TEXT"),
+            ("page_count", "INTEGER DEFAULT 0"),
+            ("pages_base_url", "TEXT"),
+        ]:
+            try:
+                await db.execute(f"ALTER TABLE granth_books ADD COLUMN {col[0]} {col[1]}")
+            except Exception:
+                pass
+
         await db.execute("""
             CREATE TABLE IF NOT EXISTS granth_chapters (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -412,6 +428,8 @@ async def record_device_ping(
     city: Optional[str] = None,
     state: Optional[str] = None,
     country: Optional[str] = None,
+    device_model: Optional[str] = None,
+    os_version: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Upserts a device ping with optional user-provided name & location.
 
@@ -422,21 +440,25 @@ async def record_device_ping(
     c_name = (city or "").strip()[:80]
     s_name = (state or "").strip()[:80]
     ctry_name = (country or "").strip()[:80]
+    d_model = (device_model or "").strip()[:80]
+    os_ver = (os_version or "").strip()[:40]
 
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
             INSERT INTO devices (
                 device_id, platform, app_version, locale, is_vip,
-                user_name, city, state, country,
+                user_name, city, state, country, device_model, os_version,
                 first_seen, last_seen, ping_count
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             ON CONFLICT(device_id) DO UPDATE SET
                 platform = excluded.platform,
                 app_version = excluded.app_version,
                 locale = excluded.locale,
                 is_vip = excluded.is_vip,
+                device_model = CASE WHEN excluded.device_model != '' THEN excluded.device_model ELSE devices.device_model END,
+                os_version = CASE WHEN excluded.os_version != '' THEN excluded.os_version ELSE devices.os_version END,
                 user_name = CASE WHEN excluded.user_name != '' THEN excluded.user_name ELSE devices.user_name END,
                 city = CASE WHEN excluded.city != '' THEN excluded.city ELSE devices.city END,
                 state = CASE WHEN excluded.state != '' THEN excluded.state ELSE devices.state END,
@@ -446,7 +468,7 @@ async def record_device_ping(
             """,
             (
                 device_id, platform, app_version, locale, 1 if is_vip else 0,
-                u_name, c_name, s_name, ctry_name,
+                u_name, c_name, s_name, ctry_name, d_model, os_ver,
                 now, now, now
             )
         )
@@ -592,6 +614,10 @@ async def record_events(device_id: str, events: List[Dict[str, Any]]):
         await db.executemany(
             "INSERT INTO events (device_id, name, item, props_json, created_at) VALUES (?, ?, ?, ?, ?)",
             rows,
+        )
+        await db.execute(
+            "UPDATE devices SET last_seen = ? WHERE device_id = ? AND datetime(last_seen) < datetime(?)",
+            (now, device_id, now),
         )
         await db.commit()
 
@@ -849,6 +875,8 @@ def _device_row_to_dict(r) -> Dict[str, Any]:
         "country": r["country"] or "",
         "platform": r["platform"],
         "appVersion": r["app_version"],
+        "deviceModel": r["device_model"] or "",
+        "osVersion": r["os_version"] or "",
         "locale": r["locale"],
         "isVip": bool(r["is_vip"]),
         "vipGranted": bool(r["vip_granted"]),
@@ -869,9 +897,12 @@ def _build_user_filters(
 ):
     where, params = [], []
     if search:
-        where.append("(user_name LIKE ? OR city LIKE ? OR state LIKE ? OR device_id LIKE ? OR notes LIKE ?)")
+        where.append(
+            "(user_name LIKE ? OR city LIKE ? OR state LIKE ? OR device_id LIKE ? OR notes LIKE ?"
+            " OR device_model LIKE ? OR os_version LIKE ?)"
+        )
         like = f"%{search}%"
-        params += [like] * 5
+        params += [like] * 7
     if platform:
         where.append("platform = ?")
         params.append(platform)

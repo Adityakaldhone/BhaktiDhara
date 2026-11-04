@@ -9,8 +9,16 @@ class GranthBook {
   final int freeChapters;
   final String? coverImage;
   final String? pdfUrl;
+
+  /// Pre-rendered page images (`<pagesBaseUrl>/0001.webp` …) for PDF books.
+  final int pageCount;
+  final String? pagesBaseUrl;
   final bool isActive;
   final bool isUnlocked;
+
+  bool get hasPageImages => pageCount > 0 && (pagesBaseUrl?.isNotEmpty ?? false);
+
+  String pageImageUrl(int page) => '$pagesBaseUrl/${page.toString().padLeft(4, '0')}.webp';
 
   const GranthBook({
     required this.id,
@@ -23,6 +31,8 @@ class GranthBook {
     required this.freeChapters,
     this.coverImage,
     this.pdfUrl,
+    this.pageCount = 0,
+    this.pagesBaseUrl,
     required this.isActive,
     required this.isUnlocked,
   });
@@ -55,6 +65,8 @@ class GranthBook {
       freeChapters: json['freeChapters'] is int ? json['freeChapters'] : 1,
       coverImage: json['coverImage']?.toString(),
       pdfUrl: json['pdfUrl']?.toString(),
+      pageCount: json['pageCount'] is int ? json['pageCount'] : 0,
+      pagesBaseUrl: json['pagesBaseUrl']?.toString(),
       isActive: json['isActive'] == true,
       isUnlocked: json['isUnlocked'] == true,
     );

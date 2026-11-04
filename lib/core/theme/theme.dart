@@ -175,9 +175,19 @@ class MandirTheme {
         return 'assets/bhakti/swami_samartha.webp';
       case 'Sant':
         return 'assets/bhakti/dnyaneshwar.webp';
+      case 'Mahakal':
+      case 'Lord Mahakal':
+      case 'Mahakaleshwar':
+        return 'assets/bhakti/shiva.webp';
+      case 'Khatu Shyam':
+      case 'Lord Khatu Shyam':
+      case 'Shyam Baba':
+        return 'assets/bhakti/krishna.webp';
       default:
         // Case-insensitive & Devanagari fallback matching
         final clean = deity.trim().toLowerCase();
+        if (clean.contains('mahakal') || clean.contains('महाकाल')) return 'assets/bhakti/shiva.webp';
+        if (clean.contains('khatu') || clean.contains('खाटू')) return 'assets/bhakti/krishna.webp';
         if (clean.contains('bhairav')) return 'assets/bhakti/bhairavnath.webp';
         if (clean.contains('chandra') || clean.contains('shashi') || clean.contains('som') || clean.contains('चंद्र')) {
           return 'assets/bhakti/chandra.webp';

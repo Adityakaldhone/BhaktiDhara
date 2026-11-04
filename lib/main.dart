@@ -15,9 +15,11 @@ import 'presentation/providers/remote_config_provider.dart';
 import 'presentation/providers/subscription_provider.dart';
 import 'presentation/providers/horoscope_provider.dart';
 import 'presentation/screens/dashboard_screen.dart';
+import 'presentation/screens/language_selection_screen.dart';
 import 'presentation/widgets/remote_notices.dart';
 import 'services/app_update_service.dart';
 import 'services/backend_service.dart';
+import 'services/interstitial_ad_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/rewarded_ad_service.dart';
 
@@ -64,6 +66,7 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
       if (!kIsWeb) {
         MobileAds.instance.initialize();
         RewardedAdService.instance.preload();
+        InterstitialAdService.instance.preload();
       }
 
       // 4. Background analytics ping & Clarity session tagging
@@ -82,8 +85,8 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
       _syncPushTopics();
       PushNotificationService.handlePendingTap();
 
-      // 6. Silently check for background flexible updates via Google Play
-      AppUpdateService.tryPlayStoreFlexibleUpdate();
+      // 6. Google Play in-app update (background download, immediate if urgent/stale)
+      AppUpdateService.checkForUpdateAutomatically();
     });
   }
 
@@ -99,6 +102,7 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
       ref.read(remoteConfigProvider.notifier).refresh();
       ref.invalidate(appVersionProvider);
       ref.invalidate(announcementsProvider);
+      AppUpdateService.checkForUpdateAutomatically();
     }
   }
 
@@ -125,6 +129,7 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
       title: 'BhaktiDhara: Aarti & Chalisa',
       debugShowCheckedModeBanner: false,
       navigatorKey: PushNotificationService.navigatorKey,
+      scaffoldMessengerKey: AppUpdateService.scaffoldMessengerKey,
       theme: MandirTheme.lightTheme,
       locale: currentLocale,
       localizationsDelegates: const [
@@ -139,7 +144,34 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
         Locale('mr'), // Marathi
       ],
       builder: (context, child) => ForceUpdateGate(child: child!),
-      home: const MandirDashboardScreen(),
+      home: const _StartupGate(),
+    );
+  }
+}
+
+/// Shows the language picker on first launch, the dashboard afterwards.
+class _StartupGate extends StatefulWidget {
+  const _StartupGate();
+
+  @override
+  State<_StartupGate> createState() => _StartupGateState();
+}
+
+class _StartupGateState extends State<_StartupGate> {
+  final Future<String?> _savedLanguage = loadUserLanguageCode();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _savedLanguage,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(backgroundColor: MandirTheme.backgroundCream);
+        }
+        return snapshot.data == null
+            ? const LanguageSelectionScreen()
+            : const MandirDashboardScreen();
+      },
     );
   }
 }

@@ -114,6 +114,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navGranth => 'Granth';
 
   @override
+  String get navMore => 'More';
+
+  @override
+  String get moreGranthSubtitle =>
+      '18 Mahapuranas, Bhagavad Gita & sacred scriptures';
+
+  @override
+  String get moreKundaliTitle => 'Kundali Chart';
+
+  @override
+  String get moreKundaliSubtitle =>
+      'Your Vedic birth chart from date, time & place of birth';
+
+  @override
+  String get moreGrahanTitle => 'Grahan (Eclipses)';
+
+  @override
+  String get moreGrahanSubtitle =>
+      'Upcoming solar & lunar eclipses, sutak times & reminders';
+
+  @override
+  String get moreMilanTitle => 'Kundali Milan';
+
+  @override
+  String get moreMilanSubtitle =>
+      '36-guna Ashtakoota matching for marriage & Manglik check';
+
+  @override
   String get bhajanSangrah => 'Bhakti Sangrah';
 
   @override

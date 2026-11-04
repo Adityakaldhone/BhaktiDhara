@@ -31,6 +31,52 @@ class Rashi {
         return nameMr;
     }
   }
+
+  /// [rulingPlanet] is stored as Marathi with English in brackets, e.g. 'मंगळ (Mars)'.
+  String localizedPlanet(String langCode) =>
+      _localizeTerm(rulingPlanet, langCode, _planetsHi);
+
+  /// [element] is stored as Marathi with English in brackets, e.g. 'अग्नी (Fire)'.
+  String localizedElement(String langCode) =>
+      _localizeTerm(element, langCode, _elementsHi);
+
+  /// Planet name only, without the English part, e.g. 'मंगळ' / 'मंगल' / 'Mars'.
+  String planetShortName(String langCode) {
+    final full = localizedPlanet(langCode);
+    return full.contains('(') ? full.split('(').first.trim() : full;
+  }
+
+  static String _localizeTerm(String value, String langCode, Map<String, String> hindi) {
+    final english = RegExp(r'\(([^)]+)\)').firstMatch(value)?.group(1)?.trim();
+    if (english == null) return value;
+    switch (langCode) {
+      case 'en':
+        return english;
+      case 'hi':
+        final hi = hindi[english];
+        return hi == null ? value : '$hi ($english)';
+      case 'mr':
+      default:
+        return value;
+    }
+  }
+
+  static const _planetsHi = {
+    'Mars': 'मंगल',
+    'Venus': 'शुक्र',
+    'Mercury': 'बुध',
+    'Moon': 'चंद्र',
+    'Sun': 'सूर्य',
+    'Jupiter': 'गुरु',
+    'Saturn': 'शनि',
+  };
+
+  static const _elementsHi = {
+    'Fire': 'अग्नि',
+    'Earth': 'पृथ्वी',
+    'Air': 'वायु',
+    'Water': 'जल',
+  };
 }
 
 /// The 12 sacred Vedic Rashis (Zodiac signs).
