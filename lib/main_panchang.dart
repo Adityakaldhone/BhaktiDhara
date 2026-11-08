@@ -165,17 +165,17 @@ class _PanchangStartupGate extends StatefulWidget {
 }
 
 class _PanchangStartupGateState extends State<_PanchangStartupGate> {
-  final Future<String?> _savedLanguage = loadUserLanguageCode();
+  final Future<bool> _showLanguageSelection = shouldShowLanguageSelection();
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: _savedLanguage,
+    return FutureBuilder<bool>(
+      future: _showLanguageSelection,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(backgroundColor: MandirTheme.backgroundCream);
         }
-        return snapshot.data == null
+        return snapshot.data!
             ? const LanguageSelectionScreen()
             : const PanchangAppDashboardScreen();
       },

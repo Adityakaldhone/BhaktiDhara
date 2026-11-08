@@ -13,7 +13,8 @@ class ReviewStorageService {
   static const _keyAartiCount = 'review_aarti_completed_count';
   static const _keyJaapMalaCount = 'review_jaap_mala_count';
   static const _keyCardShareCount = 'review_card_share_count';
-  static const _keyFirstOpenEpoch = 'review_first_open_epoch';
+  static const firstOpenEpochKey = 'review_first_open_epoch';
+  static const _keyFirstOpenEpoch = firstOpenEpochKey;
   static const _keyDistinctDays = 'review_distinct_open_days';
   static const _keyLastOpenDate = 'review_last_open_date';
   static const _keyDismissedVersion = 'review_dismissed_version';
