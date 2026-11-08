@@ -281,7 +281,7 @@ class MandirTheme {
       case 'Kartik Swami':
         return 'assets/bhakti/kartik_swami.webp';
       case 'Narsingh Devta':
-        return 'assets/bhakti/vishnu.webp';
+        return 'assets/bhakti/narsingh.webp';
       case 'Nanda Devi':
         return 'assets/bhakti/nanda_devi.webp';
       case 'Surkanda Devi':
@@ -289,7 +289,7 @@ class MandirTheme {
       case 'Dhari Devi':
         return 'assets/bhakti/dhari_devi.webp';
       case 'Chandrabadni Devi':
-        return 'assets/bhakti/durga.webp';
+        return 'assets/bhakti/chandrabadni.webp';
       case 'Golu Devta':
         return 'assets/bhakti/golu_devta.webp';
       case 'Mahasu Devta':

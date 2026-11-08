@@ -584,8 +584,7 @@ const List<BhaktiDeity> kBhaktiDeities = [
     nameEn: 'Narsingh Devta',
     nameHi: 'नरसिंह देवता',
     nameMr: 'नरसिंह देवता',
-    // TODO: replace with a dedicated Narsingh cut-out in assets/bhakti/.
-    imageAsset: '$_dir/vishnu.webp',
+    imageAsset: '$_dir/narsingh.webp',
   ),
   BhaktiDeity(
     key: 'Nanda Devi',
@@ -613,8 +612,7 @@ const List<BhaktiDeity> kBhaktiDeities = [
     nameEn: 'Chandrabadni Devi',
     nameHi: 'माँ चंद्रबदनी',
     nameMr: 'चंद्रबदनी देवी',
-    // TODO: replace with a dedicated Chandrabadni cut-out in assets/bhakti/.
-    imageAsset: '$_dir/durga.webp',
+    imageAsset: '$_dir/chandrabadni.webp',
   ),
   BhaktiDeity(
     key: 'Golu Devta',
