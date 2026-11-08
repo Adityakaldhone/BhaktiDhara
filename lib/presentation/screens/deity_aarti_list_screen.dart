@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../domain/entities/aarti_item.dart';
+import '../../domain/logic/deity_affinity_ranker.dart';
 import '../../services/ad_units.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/bhakti_darshan_providers.dart';
+import '../providers/deity_affinity_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/review_provider.dart';
 import '../widgets/app_banner_ad.dart';
+import '../widgets/devotional_review_dialog.dart';
 import 'altar_screen.dart';
 
 /// Configuration metadata for deity header presentation.
@@ -47,10 +51,13 @@ class DeityAartiListScreen extends ConsumerStatefulWidget {
 class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final Stopwatch _visit = Stopwatch()..start();
+  late final DeityAffinityNotifier _affinity;
 
   @override
   void initState() {
     super.initState();
+    _affinity = ref.read(deityAffinityProvider.notifier);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(recentDeitiesProvider.notifier).recordDeityOpened(widget.deity);
@@ -60,6 +67,9 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 
   @override
   void dispose() {
+    if (_visit.elapsed >= DeityAffinityRanker.minCountedDwell) {
+      _affinity.recordOpen(widget.deity);
+    }
     _searchController.dispose();
     super.dispose();
   }
@@ -111,7 +121,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           title: 'संतोषी माता',
           subtitle: 'आरती संग्रह',
           shloka: 'जय देवी श्री देवी संतोषी माते । वंदन भावें माझें तव पदकमलातें ॥',
-          imagePath: 'assets/decorations/santoshi_mata.png',
+          imagePath: 'assets/decorations/santoshi_mata.webp',
         );
       case 'Lord Vitthal':
         return const _DeityHeaderInfo(
@@ -248,12 +258,19 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           shloka: 'त्वदीय पादपङ्कजं नमामि देवि नर्मदे ॥ नर्मदे हर ॥',
           imagePath: 'assets/bhakti/narmada.webp',
         );
+      case 'Goddess Ganga':
+        return const _DeityHeaderInfo(
+          title: 'श्री गंगा माता',
+          subtitle: 'आरती संग्रह',
+          shloka: 'नमामि गङ्गे तव पादपङ्कजं सुरासुरैर्वन्दितदिव्यरूपम् ॥ हर हर गंगे ॥',
+          imagePath: 'assets/bhakti/ganga.webp',
+        );
       case 'Goddess Gayatri':
         return const _DeityHeaderInfo(
           title: 'श्री गायत्री माता',
           subtitle: 'मंत्र संग्रह',
           shloka: 'ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात् ॥',
-          imagePath: 'assets/decorations/gayatri.png',
+          imagePath: 'assets/decorations/gayatri.webp',
         );
       case 'Sant Balumama':
         return const _DeityHeaderInfo(
@@ -313,14 +330,15 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           subtitle: 'आरती संग्रह',
           shloka: '''हारे का सहारा, बाबा श्याम हमारा ।
 तीन बाण धारी, कलयुग अवतारी ॥''',
-          imagePath: 'assets/bhakti/krishna.webp',
+          imagePath: 'assets/bhakti/khatu_shyam.webp',
         );
       default:
+        final bhaktiDeity = kBhaktiDeities.where((d) => d.matches(deity)).firstOrNull;
         return _DeityHeaderInfo(
-          title: deity,
+          title: bhaktiDeity?.nameHi ?? deity,
           subtitle: 'आरती संग्रह',
           shloka: 'ॐ',
-          imagePath: MandirTheme.getDeityImageAsset(deity),
+          imagePath: bhaktiDeity?.imageAsset ?? MandirTheme.getDeityImageAsset(deity),
         );
     }
   }
@@ -334,20 +352,42 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
     );
   }
 
+  Future<void> _handleBack(BuildContext context) async {
+    final reviewService = ref.read(reviewServiceProvider);
+    if (reviewService.isEligibleForAartiExitPrompt()) {
+      reviewService.markPromptShownThisSession();
+      final localeCode = ref.read(localeProvider).languageCode;
+      await showDevotionalReviewDialog(
+        context,
+        reviewService: reviewService,
+        localeCode: localeCode,
+      );
+    }
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final catalogAsync = ref.watch(aartiCatalogProvider);
     final localeCode = ref.watch(localeProvider).languageCode;
     final headerInfo = _getHeaderInfo(widget.deity, localeCode);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _handleBack(context);
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F4E8),
       bottomNavigationBar: const AppBannerAd(adUnitId: AdUnits.contentBanner),
       body: Stack(
         children: [
           // ── 1. Sacred Temple Background ────────────────────────────────
           Positioned.fill(
-            child: Image.asset('assets/aarti_screen/bg.png', fit: BoxFit.cover),
+            child: Image.asset('assets/aarti_screen/bg.webp', fit: BoxFit.cover),
           ),
 
           // ── 2. Scrollable Body Content ─────────────────────────────────
@@ -450,7 +490,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                       left: -2,
                       bottom: -4,
                       child: Image.asset(
-                        'assets/aarti_list/left_lotus.png',
+                        'assets/aarti_list/left_lotus.webp',
                         height: 82,
                         fit: BoxFit.contain,
                       ),
@@ -461,7 +501,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                       right: -2,
                       bottom: -4,
                       child: Image.asset(
-                        'assets/aarti_list/right_lotus.png',
+                        'assets/aarti_list/right_lotus.webp',
                         height: 82,
                         fit: BoxFit.contain,
                       ),
@@ -473,8 +513,9 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TOP BAR (Enlarged Back Button + assets/aarti_screen/om.png)
@@ -499,9 +540,9 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: GestureDetector(
-                onTap: () => Navigator.maybePop(context),
+                onTap: () => _handleBack(context),
                 child: Image.asset(
-                  'assets/aarti_screen/back_button.png',
+                  'assets/aarti_screen/back_button.webp',
                   width: 75,
                   height: 75,
                   fit: BoxFit.contain,
@@ -646,7 +687,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/aarti_list/search_bar_bg.png'),
+          image: AssetImage('assets/aarti_list/search_bar_bg.webp'),
           fit: BoxFit.fill,
         ),
       ),
@@ -729,7 +770,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
       height: 88,
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/aarti_list/aarti_list_card_bg.png'),
+          image: AssetImage('assets/aarti_list/aarti_list_card_bg.webp'),
           fit: BoxFit.fill,
         ),
       ),

@@ -29,12 +29,14 @@ void main() {
 
   // Instant launch: Render widget tree immediately on frame 0 without blocking on disk/network I/O
   runApp(
-    ClarityService.wrapWithClarity(
-      projectId: _clarityProjectId,
-      child: const ProviderScope(
-        child: NityaAartiApp(),
-      ),
-    ),
+    const bool.fromEnvironment('PERF_NO_CLARITY')
+        ? const ProviderScope(child: NityaAartiApp())
+        : ClarityService.wrapWithClarity(
+            projectId: _clarityProjectId,
+            child: const ProviderScope(
+              child: NityaAartiApp(),
+            ),
+          ),
   );
 }
 

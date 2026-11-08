@@ -19,6 +19,9 @@ import '../../domain/entities/aarti_item.dart';
 import '../../services/audio_service.dart';
 import '../../services/backend_service.dart';
 import '../providers/aarti_favorites_provider.dart';
+import '../providers/deity_affinity_provider.dart';
+import '../providers/review_provider.dart';
+import '../widgets/devotional_review_dialog.dart';
 import '../widgets/lyric_card.dart';
 
 /// App origin used as Referer so YouTube embeds avoid Error 153 /
@@ -53,6 +56,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
   final Stopwatch _dwell = Stopwatch();
   Timer? _completionTimer;
   bool _completionLogged = false;
+  late final DeityAffinityNotifier _affinity;
 
   // Accessibility font scaler for 50+ demographic (1.0x, 1.25x, 1.5x)
   static const _fontScales = [1.0, 1.25, 1.5];
@@ -90,6 +94,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
 
   final List<_FlowerParticle> _petals = [];
   final math.Random _random = math.Random();
+  Timer? _pushpaTimer;
   ui.Image? _pushpaImage;
 
   String get _activeVideoId =>
@@ -99,6 +104,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _affinity = ref.read(deityAffinityProvider.notifier);
     BackendService.trackEvent(
       'aarti_open',
       item: widget.aarti.title,
@@ -125,6 +131,14 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
       duration: const Duration(milliseconds: 1000),
     );
 
+    // Tools keep animating for as long as their sound is playing.
+    _audio.bellPlaying.addListener(
+      () => _syncToolAnimation(_bellController, _audio.bellPlaying.value),
+    );
+    _audio.conchPlaying.addListener(
+      () => _syncToolAnimation(_shankhController, _audio.conchPlaying.value),
+    );
+
     // Continuous breathing flame flicker for diya
     _deepakController = AnimationController(
       vsync: this,
@@ -135,16 +149,14 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
       vsync: this,
       duration: const Duration(seconds: 1),
     )..addListener(() {
-        if (_petals.isNotEmpty) {
-          setState(() {
-            for (var p in _petals) {
-              p.update();
-            }
-            _petals.removeWhere((p) => p.y > 1.15);
-            if (_petals.isEmpty) {
-              _petalsController.stop();
-            }
-          });
+        // Particles are repainted by the controller; rebuilding the screen here
+        // would also rebuild the YouTube platform view on every frame.
+        for (var p in _petals) {
+          p.update();
+        }
+        _petals.removeWhere((p) => p.y > 1.15);
+        if (_petals.isEmpty && _pushpaTimer == null) {
+          _petalsController.stop();
         }
       });
 
@@ -367,7 +379,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
 
   Future<void> _loadPushpaAsset() async {
     try {
-      final byteData = await rootBundle.load('assets/aarti_screen/pushpa.png');
+      final byteData = await rootBundle.load('assets/aarti_screen/pushpa.webp');
       final bytes = byteData.buffer.asUint8List();
       final codec = await ui.instantiateImageCodec(
         bytes,
@@ -431,9 +443,15 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _completionTimer?.cancel();
+    _affinity.recordSession(
+      widget.aarti.deity,
+      _dwell.elapsed,
+      completed: _completionLogged,
+    );
     try {
       WakelockPlus.disable();
     } catch (_) {}
+    _pushpaTimer?.cancel();
     _audio.dispose();
     _bellController.dispose();
     _shankhController.dispose();
@@ -456,14 +474,18 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
     } catch (_) {}
   }
 
-  Future<void> _onGhantiTap() async {
-    _bellController.forward(from: 0.0);
-    await _audio.playBell();
-  }
+  void _onGhantiTap() => _audio.toggleBell();
 
-  Future<void> _onShankhTap() async {
-    _shankhController.forward(from: 0.0);
-    await _audio.playConch();
+  void _onShankhTap() => _audio.toggleConch();
+
+  void _syncToolAnimation(AnimationController controller, bool playing) {
+    if (playing) {
+      controller.repeat();
+    } else {
+      controller
+        ..stop()
+        ..value = 0.0;
+    }
   }
 
   void _onDeepakTap() {
@@ -479,9 +501,27 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
     });
   }
 
+  /// First tap starts a continuous flower shower, the next tap stops it.
   void _onPushpaTap() {
     HapticFeedback.mediumImpact();
-    for (int i = 0; i < 36; i++) {
+    if (_pushpaTimer != null) {
+      _pushpaTimer!.cancel();
+      _pushpaTimer = null;
+      _petals.clear();
+      _petalsController
+        ..stop()
+        ..value = 0.0;
+      return;
+    }
+    _spawnPetals(36, spread: 0.45);
+    _pushpaTimer = Timer.periodic(
+      const Duration(milliseconds: 700),
+      (_) => _spawnPetals(8, spread: 0.15),
+    );
+  }
+
+  void _spawnPetals(int count, {required double spread}) {
+    for (int i = 0; i < count; i++) {
       final typeIndex = i % 5;
       final type = FlowerType.values[typeIndex];
       final baseSize =
@@ -492,7 +532,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
       _petals.add(
         _FlowerParticle(
           x: _random.nextDouble(),
-          y: -_random.nextDouble() * 0.45,
+          y: -_random.nextDouble() * spread,
           size: baseSize,
           speedY: 0.0035 + _random.nextDouble() * 0.0045,
           swingSpeed: 0.02 + _random.nextDouble() * 0.035,
@@ -519,6 +559,32 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
         .join();
   }
 
+  Future<void> _handleBack(BuildContext context) async {
+    // 1. Immediately pause video playback
+    try {
+      _webController?.runJavaScript(
+        'if (window.player && player.pauseVideo) { player.pauseVideo(); }',
+      );
+    } catch (_) {}
+
+    // 2. Automatically prompt for review on Aarti back press if eligible
+    final reviewService = ref.read(reviewServiceProvider);
+    if (reviewService.isEligibleForAartiExitPrompt()) {
+      reviewService.markPromptShownThisSession();
+      final localeCode = Localizations.localeOf(context).languageCode;
+      await showDevotionalReviewDialog(
+        context,
+        reviewService: reviewService,
+        localeCode: localeCode,
+      );
+    }
+
+    // 3. Complete navigation pop
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).languageCode;
@@ -526,14 +592,20 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
     // ignore: unused_local_variable
     final aboutText = widget.aarti.localizedAbout(locale);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _handleBack(context);
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFFBEBD2),
       body: Stack(
         children: [
           // 1. Full Temple Background
           Positioned.fill(
             child: Image.asset(
-              'assets/aarti_screen/bg.png',
+              'assets/aarti_screen/bg.webp',
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
             ),
@@ -597,21 +669,24 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
           ),
 
           // 3. Flower Petals Shower Particle Layer
-          if (_petals.isNotEmpty)
-            Positioned.fill(
-              child: IgnorePointer(
+          Positioned.fill(
+            child: IgnorePointer(
+              child: RepaintBoundary(
                 child: CustomPaint(
                   painter: _PetalsPainter(
                     petals: _petals,
                     pushpaImage: _pushpaImage,
+                    repaint: _petalsController,
                   ),
                 ),
               ),
             ),
+          ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ── Header Bar ─────────────────────────────────────────────────────────────
 
@@ -647,9 +722,9 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
             Align(
               alignment: Alignment.centerLeft,
               child: GestureDetector(
-                onTap: () => Navigator.maybePop(context),
+                onTap: () => _handleBack(context),
                 child: Image.asset(
-                  'assets/aarti_screen/back_button.png',
+                  'assets/aarti_screen/back_button.webp',
                   width: 60,
                   height: 60,
                   fit: BoxFit.contain,
@@ -884,7 +959,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
           decoration: const BoxDecoration(
             image: DecorationImage(
-          image: AssetImage('assets/aarti_screen/ghanti_card_container_bg.png'),
+          image: AssetImage('assets/aarti_screen/ghanti_card_container_bg.webp'),
           fit: BoxFit.fill,
         ),
         boxShadow: [
@@ -915,7 +990,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
                     return Transform.rotate(angle: angle, child: child);
                   },
                   child: Image.asset(
-                    'assets/aarti_screen/ghanti.png',
+                    'assets/aarti_screen/ghanti.webp',
                     width: 30,
                     height: 30,
                     fit: BoxFit.contain,
@@ -934,7 +1009,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
                     return Transform.scale(scale: scale, child: child);
                   },
                   child: Image.asset(
-                    'assets/aarti_screen/shankh.png',
+                    'assets/aarti_screen/shankh.webp',
                     width: 28,
                     height: 28,
                     fit: BoxFit.contain,
@@ -990,7 +1065,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
                 label: 'पुष्प',
                 onTap: _onPushpaTap,
                 iconWidget: Image.asset(
-                  'assets/aarti_screen/pushpa.png',
+                  'assets/aarti_screen/pushpa.webp',
                   width: 28,
                   height: 28,
                   fit: BoxFit.contain,
@@ -1065,7 +1140,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
             title: Row(
               children: [
                 Image.asset(
-                  'assets/aarti_screen/book.png',
+                  'assets/aarti_screen/book.webp',
                   width: 32,
                   height: 32,
                 ),
@@ -1130,7 +1205,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
             Row(
               children: [
                 Image.asset(
-                  'assets/aarti_screen/book.png',
+                  'assets/aarti_screen/book.webp',
                   width: 28,
                   height: 28,
                   fit: BoxFit.contain,
@@ -1182,7 +1257,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/aarti_screen/book.png',
+              'assets/aarti_screen/book.webp',
               width: 20,
               height: 20,
               fit: BoxFit.contain,
@@ -1263,7 +1338,11 @@ class _PetalsPainter extends CustomPainter {
   final List<_FlowerParticle> petals;
   final ui.Image? pushpaImage;
 
-  _PetalsPainter({required this.petals, this.pushpaImage});
+  _PetalsPainter({
+    required this.petals,
+    this.pushpaImage,
+    super.repaint,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1443,5 +1522,6 @@ class _PetalsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _PetalsPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _PetalsPainter oldDelegate) =>
+      oldDelegate.pushpaImage != pushpaImage || oldDelegate.petals != petals;
 }

@@ -125,60 +125,19 @@ void main() {
       expect(find.text('आज'), findsOneWidget);
       expect(find.text('उद्या'), findsOneWidget);
 
-      // Today card answers the key questions first
       final todayCard = find.byKey(const Key('panchang-today-card'));
       expect(todayCard, findsOneWidget);
-      expect(
-        find.descendant(of: todayCard, matching: find.text('सर्वोत्तम शुभ वेळ')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: todayCard, matching: find.text('ही वेळ टाळा')),
-        findsOneWidget,
-      );
+      expect(find.text('सर्वोत्तम शुभ वेळ'), findsNothing);
+      expect(find.text('ही वेळ टाळा'), findsNothing);
+      expect(find.text('शुभ व अशुभ वेळा'), findsNothing);
+      expect(find.text('सण, व्रत व मंत्र'), findsNothing);
 
-      // One schedule with every good and bad window
-      expect(find.text('शुभ व अशुभ वेळा'), findsOneWidget);
-      for (final name in [
-        'ब्रह्म मुहूर्त',
-        'अमृत काळ',
-        'विजय मुहूर्त',
-        'गोधूलि मुहूर्त',
-        'यमगंड',
-        'गुलिक काळ',
-        'दुर्मुहूर्त',
-        'भद्रा काळ',
-      ]) {
-        await tester.scrollUntilVisible(
-          find.text(name),
-          200,
-          scrollable: find.byType(Scrollable).first,
-        );
-        expect(find.text(name), findsOneWidget);
-      }
-      expect(find.text('अभिजीत मुहूर्त'), findsWidgets);
-      expect(find.text('राहु काळ'), findsWidgets);
-
-      // Sun & Moon
-      await tester.scrollUntilVisible(
-        find.text('चंद्रास्त'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.text('सूर्य व चंद्र'), findsOneWidget);
-      expect(find.text('सूर्योदय'), findsOneWidget);
-      expect(find.text('सूर्यास्त'), findsOneWidget);
-      expect(find.text('चंद्रोदय'), findsOneWidget);
-
-      // Full Panchang stays one tap away and still shows every limb
+      // Full Panchang is shown expanded, right after the today card
       await tester.scrollUntilVisible(
         find.text('संपूर्ण पंचांग पहा'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('नक्षत्र'), findsNothing);
-      await tester.tap(find.text('संपूर्ण पंचांग पहा'));
-      await tester.pumpAndSettle();
       for (final label in [
         'तिथी',
         'वार',
@@ -200,6 +159,28 @@ void main() {
         );
         expect(find.text(label), findsOneWidget);
       }
+
+      await tester.scrollUntilVisible(
+        find.text('चंद्रास्त'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('सूर्य व चंद्र'), findsOneWidget);
+      expect(find.text('सूर्योदय'), findsOneWidget);
+      expect(find.text('सूर्यास्त'), findsOneWidget);
+      expect(find.text('चंद्रोदय'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('आगामी सण व व्रत'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('पुणे (महाराष्ट्र)'),
+        -300,
+        scrollable: find.byType(Scrollable).first,
+      );
       // Tap City location pill to open City Selection Modal Sheet
       await tester.tap(find.text('पुणे (महाराष्ट्र)'));
       await tester.pumpAndSettle();
@@ -250,8 +231,6 @@ void main() {
           300,
           scrollable: find.byType(Scrollable).first,
         );
-        await tester.tap(details);
-        await tester.pumpAndSettle();
         await tester.drag(
           find.byType(Scrollable).first,
           const Offset(0, -3000),

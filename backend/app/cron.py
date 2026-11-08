@@ -45,6 +45,7 @@ TOP_CITIES = [
 PRECACHE_LANGS = ["mr", "hi"]
 
 _precache_lock = asyncio.Lock()
+_uninstall_check_lock = asyncio.Lock()
 
 
 def precache_running() -> bool:
@@ -222,6 +223,35 @@ RASHI_CLIFFHANGERS = {
         "body": "गुरु ग्रहाची शुभ दृष्टी! आज कोणता मंत्र जपावा? ➔ तुमचे भविष्य पहा",
     },
 }
+
+
+async def run_uninstall_check_job():
+    """Daily: pings every push token silently so uninstalls are detected even
+    on days no campaign goes out."""
+    from app.database import delete_push_tokens, get_all_push_tokens
+    from app.push_service import find_unregistered_tokens, PushNotConfigured
+
+    if _uninstall_check_lock.locked():
+        logger.info("Uninstall check already running; skipping this trigger.")
+        return {"checked": 0, "uninstalled": 0, "error": "A check is already running"}
+
+    async with _uninstall_check_lock:
+        run_id = await start_job_run("uninstall_check")
+        try:
+            tokens = await get_all_push_tokens()
+            dead = await find_unregistered_tokens(tokens)
+            await delete_push_tokens(dead)
+            detail = f"Checked {len(tokens)} devices, {len(dead)} uninstalled"
+            await finish_job_run(run_id, "success", detail)
+            logger.info("Uninstall check: %s", detail)
+            return {"checked": len(tokens), "uninstalled": len(dead)}
+        except PushNotConfigured:
+            await finish_job_run(run_id, "skipped", "Firebase push credentials not configured")
+            return {"checked": 0, "uninstalled": 0, "skipped": True}
+        except Exception as e:
+            logger.exception("Uninstall check failed")
+            await finish_job_run(run_id, "failed", str(e))
+            return {"checked": 0, "uninstalled": 0, "error": str(e)}
 
 
 async def send_daily_morning_horoscope_push():

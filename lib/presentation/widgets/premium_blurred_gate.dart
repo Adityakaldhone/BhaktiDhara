@@ -308,7 +308,10 @@ void showPremiumPaywallSheet(
   final isPremium = ref.read(isPremiumProvider);
   if (!isPremium) {
     BackendService.trackEvent('paywall_view', item: 'subscription_sheet');
-    AnalyticsService.logFunnelEvent(FunnelEvent.paywallView, parameters: {'source': 'subscription_sheet'});
+    AnalyticsService.logFunnelEvent(
+      FunnelEvent.paywallView,
+      parameters: {'source': 'subscription_sheet'},
+    );
   }
 
   // Reset selected plan to the first (recommended annual)
@@ -324,11 +327,8 @@ void showPremiumPaywallSheet(
   );
 }
 
-String _mrDigits(int n) => n
-    .toString()
-    .split('')
-    .map((c) => '०१२३४५६७८९'[int.parse(c)])
-    .join();
+String _mrDigits(int n) =>
+    n.toString().split('').map((c) => '०१२३४५६७८९'[int.parse(c)]).join();
 
 class _SubscriptionPaywallSheet extends ConsumerStatefulWidget {
   final String langCode;
@@ -421,9 +421,11 @@ class _SubscriptionPaywallSheetState
         return '$d days free, then ₹$p every $m months';
       case 'mr':
       default:
-        if (m == 1) return '${_mrDigits(d)} दिवस मोफत, नंतर ₹${_mrDigits(p)}/महिना';
-        if (m == 12) return '${_mrDigits(d)} दिवस मोफत, नंतर ₹${_mrDigits(p)}/वर्ष';
-        return '${_mrDigits(d)} दिवस मोफत, नंतर दर ${_mrDigits(m)} महिन्यांनी ₹${_mrDigits(p)}';
+        final days = _mrDigits(d);
+        final price = _mrDigits(p);
+        if (m == 1) return '$days दिवस मोफत, नंतर ₹$price/महिना';
+        if (m == 12) return '$days दिवस मोफत, नंतर ₹$price/वर्ष';
+        return '$days दिवस मोफत, नंतर दर ${_mrDigits(m)} महिन्यांनी ₹$price';
     }
   }
 
@@ -536,10 +538,7 @@ class _SubscriptionPaywallSheetState
           decoration: BoxDecoration(
             color: const Color(0xFFFFF3D6),
             shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFFD4AF37),
-              width: 1.2,
-            ),
+            border: Border.all(color: const Color(0xFFD4AF37), width: 1.2),
           ),
           child: const Icon(
             Icons.workspace_premium_rounded,
@@ -552,9 +551,7 @@ class _SubscriptionPaywallSheetState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              lang == 'en'
-                  ? 'BhaktiDhara Premium'
-                  : 'भक्तिधारा प्रीमियम',
+              lang == 'en' ? 'BhaktiDhara Premium' : 'भक्तिधारा प्रीमियम',
               style: GoogleFonts.mukta(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -626,7 +623,11 @@ class _SubscriptionPaywallSheetState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.celebration_rounded, color: Colors.white, size: 20),
+              const Icon(
+                Icons.celebration_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: FittedBox(
@@ -664,10 +665,8 @@ class _SubscriptionPaywallSheetState
     return GestureDetector(
       onTap: () {
         ref.read(selectedPlanIndexProvider.notifier).state = index;
-        BackendService.trackEvent(
-          'plan_select',
-          item: plan.productId,
-        );
+        BackendService.trackEvent('plan_select', item: plan.productId);
+        _purchase(plan, lang, source: 'plan_card');
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -815,9 +814,7 @@ class _SubscriptionPaywallSheetState
                 // Actual price
                 Text(
                   plan.durationMonths == 1 && offerPrice == null
-                      ? (lang == 'en'
-                            ? '₹$shownPrice/mo'
-                            : '₹$shownPrice/मा.')
+                      ? (lang == 'en' ? '₹$shownPrice/mo' : '₹$shownPrice/मा.')
                       : '₹$shownPrice',
                   style: GoogleFonts.mukta(
                     fontSize: 18,
@@ -831,10 +828,7 @@ class _SubscriptionPaywallSheetState
 
             // Discount badge
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 6,
-                vertical: 2,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: const Color(0xFF8B1D18),
                 borderRadius: BorderRadius.circular(8),
@@ -938,6 +932,112 @@ class _SubscriptionPaywallSheetState
     );
   }
 
+  Future<void> _purchase(
+    SubscriptionPlan plan,
+    String lang, {
+    required String source,
+  }) async {
+    if (_isPurchasing) return;
+    setState(() => _isPurchasing = true);
+    BackendService.trackEvent(
+      'subscribe_tap',
+      item: plan.productId,
+      props: {'source': source},
+    );
+
+    final success = await ref
+        .read(subscriptionProvider.notifier)
+        .purchasePlan(plan);
+
+    if (mounted) {
+      setState(() => _isPurchasing = false);
+    }
+
+    if (success && mounted) {
+      final onTrial = ref.read(subscriptionProvider).isTrial;
+      final days = _trialDaysFor(plan);
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF8B1D18),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Row(
+            children: [
+              const Icon(
+                Icons.stars_rounded,
+                color: Color(0xFFFFD54F),
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  onTrial
+                      ? (lang == 'en'
+                            ? '🎉 Your $days-day free trial has started!'
+                            : (lang == 'hi'
+                                  ? '🎉 आपका $days दिन का मुफ्त ट्रायल शुरू!'
+                                  : '🎉 तुमचा ${_mrDigits(days)} दिवसांचा मोफत ट्रायल सुरू!'))
+                      : (lang == 'en'
+                            ? '🎉 Premium is now active!'
+                            : (lang == 'hi'
+                                  ? '🎉 प्रीमियम सक्रिय!'
+                                  : '🎉 प्रीमियम सक्रिय!')),
+                  style: GoogleFonts.mukta(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else if (mounted) {
+      final errorMsg = ref.read(subscriptionProvider.notifier).lastError;
+      if (errorMsg == null) {
+        BackendService.trackEvent(
+          'subscription_purchase_cancel',
+          item: plan.productId,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor:
+                errorMsg == SubscriptionService.pendingPaymentMessage
+                    ? Colors.orange.shade800
+                    : Colors.red.shade900,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    errorMsg,
+                    style: GoogleFonts.mukta(fontSize: 13, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildSubscribeButton(String lang, int selectedIndex, bool isPremium) {
     final plan = kSubscriptionPlans[selectedIndex];
 
@@ -971,101 +1071,7 @@ class _SubscriptionPaywallSheetState
           ),
           onPressed: _isPurchasing
               ? null
-              : () async {
-                  setState(() => _isPurchasing = true);
-                  BackendService.trackEvent(
-                    'subscribe_tap',
-                    item: plan.productId,
-                  );
-
-                  final success = await ref
-                      .read(subscriptionProvider.notifier)
-                      .purchasePlan(plan);
-
-                  if (mounted) {
-                    setState(() => _isPurchasing = false);
-                  }
-
-                  if (success && mounted) {
-                    final onTrial = ref.read(subscriptionProvider).isTrial;
-                    final days = _trialDaysFor(plan);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: const Color(0xFF8B1D18),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        content: Row(
-                          children: [
-                            const Icon(
-                              Icons.stars_rounded,
-                              color: Color(0xFFFFD54F),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                onTrial
-                                    ? (lang == 'en'
-                                          ? '🎉 Your $days-day free trial has started!'
-                                          : (lang == 'hi'
-                                                ? '🎉 आपका $days दिन का मुफ्त ट्रायल शुरू!'
-                                                : '🎉 तुमचा ${_mrDigits(days)} दिवसांचा मोफत ट्रायल सुरू!'))
-                                    : (lang == 'en'
-                                          ? '🎉 Premium is now active!'
-                                          : (lang == 'hi'
-                                                ? '🎉 प्रीमियम सक्रिय!'
-                                                : '🎉 प्रीमियम सक्रिय!')),
-                                style: GoogleFonts.mukta(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  } else if (mounted) {
-                    final errorMsg =
-                        ref.read(subscriptionProvider.notifier).lastError;
-                    if (errorMsg != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: Colors.red.shade900,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          content: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  errorMsg,
-                                  style: GoogleFonts.mukta(
-                                    fontSize: 13,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          duration: const Duration(seconds: 6),
-                        ),
-                      );
-                    }
-                  }
-                },
+              : () => _purchase(plan, lang, source: 'button'),
           child: _isPurchasing
               ? const SizedBox(
                   width: 22,
@@ -1165,12 +1171,9 @@ class _SubscriptionPaywallSheetState
             isEn
                 ? 'Manage / Cancel Subscription'
                 : (isHi
-                    ? 'सदस्यता प्रबंधित / रद्द करें'
-                    : 'सदस्यता व्यवस्थापित / रद्द करा'),
-            style: GoogleFonts.mukta(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
+                      ? 'सदस्यता प्रबंधित / रद्द करें'
+                      : 'सदस्यता व्यवस्थापित / रद्द करा'),
+            style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 10),
@@ -1197,8 +1200,8 @@ class _SubscriptionPaywallSheetState
                           isEn
                               ? '✅ Purchase restored successfully!'
                               : (isHi
-                                  ? '✅ खरीदी सफलतापूर्वक पुनर्प्राप्त!'
-                                  : '✅ खरेदी यशस्वीरीत्या पुनर्प्राप्त!'),
+                                    ? '✅ खरीदी सफलतापूर्वक पुनर्प्राप्त!'
+                                    : '✅ खरेदी यशस्वीरीत्या पुनर्प्राप्त!'),
                         ),
                         backgroundColor: const Color(0xFF2E7D32),
                       ),
@@ -1210,8 +1213,8 @@ class _SubscriptionPaywallSheetState
                           isEn
                               ? 'No previous purchase found'
                               : (isHi
-                                  ? 'पिछली खरीदी नहीं मिली'
-                                  : 'मागील खरेदी सापडली नाही'),
+                                    ? 'पिछली खरीदी नहीं मिली'
+                                    : 'मागील खरेदी सापडली नाही'),
                         ),
                         backgroundColor: Colors.orange.shade800,
                       ),
@@ -1222,7 +1225,9 @@ class _SubscriptionPaywallSheetState
               child: Text(
                 isEn
                     ? 'Restore Purchase'
-                    : (isHi ? 'खरीदी पुनर्प्राप्त करें' : 'खरेदी पुनर्प्राप्त करा'),
+                    : (isHi
+                          ? 'खरीदी पुनर्प्राप्त करें'
+                          : 'खरेदी पुनर्प्राप्त करा'),
                 style: GoogleFonts.mukta(
                   fontSize: 12,
                   color: MandirTheme.textMuted,
@@ -1230,14 +1235,15 @@ class _SubscriptionPaywallSheetState
                 ),
               ),
             ),
-            Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+            Text(
+              '•',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+            ),
             // Terms of Use
             GestureDetector(
               onTap: () => showSubscriptionTermsDialog(context, lang),
               child: Text(
-                isEn
-                    ? 'Terms of Use'
-                    : (isHi ? 'नियम व शर्तें' : 'नियम व अटी'),
+                isEn ? 'Terms of Use' : (isHi ? 'नियम व शर्तें' : 'नियम व अटी'),
                 style: GoogleFonts.mukta(
                   fontSize: 12,
                   color: MandirTheme.textMuted,
@@ -1245,7 +1251,10 @@ class _SubscriptionPaywallSheetState
                 ),
               ),
             ),
-            Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+            Text(
+              '•',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+            ),
             // Privacy Policy
             GestureDetector(
               onTap: () async {
@@ -1283,8 +1292,8 @@ class _SubscriptionPaywallSheetState
             isEn
                 ? '• Auto-Renewal: Renews automatically unless cancelled at least 24 hours before the end of the current period or 7-day trial.\n• Charges: Your Google Play account is charged upon confirmation or trial completion.\n• Cancel Anytime: You can pause or cancel anytime via Google Play Subscriptions.'
                 : (isHi
-                    ? '• स्वतः नवीनीकरण: वर्तमान अवधि या 7-दिवसीय ट्रायल समाप्त होने से 24 घंटे पहले रद्द न करने पर स्वतः नवीनीकरण होगा।\n• शुल्क: ट्रायल समाप्त होने पर Google Play खाते से शुल्क लिया जाएगा।\n• कभी भी रद्द करें: Google Play Store > सदस्यताएं में जाकर कभी भी रद्द कर सकते हैं।'
-                    : '• स्वयं-नूतनीकरण: सध्याचा कालावधी किंवा ७-दिवसीय ट्रायल संपण्याच्या २४ तास आधी रद्द न केल्यास सदस्यता आपोआप रिन्यू होईल.\n• शुल्क आकारणी: ट्रायल संपल्यानंतर Google Play खात्यातून शुल्क आकारले जाईल.\n• कधीही रद्द करा: आपण Google Play Store > सदस्यतेमधून कधीही रद्द करू शकता.'),
+                      ? '• स्वतः नवीनीकरण: वर्तमान अवधि या 7-दिवसीय ट्रायल समाप्त होने से 24 घंटे पहले रद्द न करने पर स्वतः नवीनीकरण होगा।\n• शुल्क: ट्रायल समाप्त होने पर Google Play खाते से शुल्क लिया जाएगा।\n• कभी भी रद्द करें: Google Play Store > सदस्यताएं में जाकर कभी भी रद्द कर सकते हैं।'
+                      : '• स्वयं-नूतनीकरण: सध्याचा कालावधी किंवा ७-दिवसीय ट्रायल संपण्याच्या २४ तास आधी रद्द न केल्यास सदस्यता आपोआप रिन्यू होईल.\n• शुल्क आकारणी: ट्रायल संपल्यानंतर Google Play खात्यातून शुल्क आकारले जाईल.\n• कधीही रद्द करा: आपण Google Play Store > सदस्यतेमधून कधीही रद्द करू शकता.'),
             textAlign: TextAlign.center,
             style: GoogleFonts.mukta(
               fontSize: 11,
@@ -1341,44 +1350,50 @@ void showSubscriptionTermsDialog(BuildContext context, String lang) {
                 description: isEn
                     ? 'All subscriptions auto-renew at the end of each billing cycle (monthly, 3-month, 6-month, or annual) unless cancelled at least 24 hours prior to the renewal date. Payments are billed securely via Google Play.'
                     : (isHi
-                        ? 'सभी सदस्यताएं बिलिंग चक्र के अंत में स्वतः नवीनीकृत होती हैं। नवीनीकरण से कम से कम 24 घंटे पहले रद्द न करने पर Google Play से शुल्क लिया जाएगा।'
-                        : 'सर्व सदस्यता कालावधी संपल्यावर आपोआप रिन्यू होतात. नूतनीकरणाच्या किमान २४ तास आधी रद्द न केल्यास Google Play द्वारे पेमेंट घेतले जाईल.'),
+                          ? 'सभी सदस्यताएं बिलिंग चक्र के अंत में स्वतः नवीनीकृत होती हैं। नवीनीकरण से कम से कम 24 घंटे पहले रद्द न करने पर Google Play से शुल्क लिया जाएगा।'
+                          : 'सर्व सदस्यता कालावधी संपल्यावर आपोआप रिन्यू होतात. नूतनीकरणाच्या किमान २४ तास आधी रद्द न केल्यास Google Play द्वारे पेमेंट घेतले जाईल.'),
               ),
               const SizedBox(height: 12),
               _buildTermsSection(
                 icon: Icons.card_giftcard_rounded,
                 title: isEn
                     ? '2. 7-Day Free Trial'
-                    : (isHi ? '2. 7 दिन का मुफ्त ट्रायल' : '2. ७ दिवस मोफत ट्रायल'),
+                    : (isHi
+                          ? '2. 7 दिन का मुफ्त ट्रायल'
+                          : '2. ७ दिवस मोफत ट्रायल'),
                 description: isEn
                     ? 'Eligible new subscribers receive 7 days of free access. If you do not cancel before the 7-day trial ends, your Google Play account will automatically be charged the selected plan price.'
                     : (isHi
-                        ? 'नए उपयोगकर्ताओं को 7 दिन का निःशुल्क ट्रायल मिलता है। 7 दिन समाप्त होने से पहले रद्द न करने पर चयनित प्लान की राशि काटी जाएगी।'
-                        : 'नवीन वापरकर्त्यांना ७ दिवसांचा मोफत ट्रायल मिळतो. ७ दिवस संपण्यापूर्वी रद्द न केल्यास निवडलेल्या योजनेची रक्कम आकारली जाईल.'),
+                          ? 'नए उपयोगकर्ताओं को 7 दिन का निःशुल्क ट्रायल मिलता है। 7 दिन समाप्त होने से पहले रद्द न करने पर चयनित प्लान की राशि काटी जाएगी।'
+                          : 'नवीन वापरकर्त्यांना ७ दिवसांचा मोफत ट्रायल मिळतो. ७ दिवस संपण्यापूर्वी रद्द न केल्यास निवडलेल्या योजनेची रक्कम आकारली जाईल.'),
               ),
               const SizedBox(height: 12),
               _buildTermsSection(
                 icon: Icons.cancel_outlined,
                 title: isEn
                     ? '3. How to Cancel Anytime'
-                    : (isHi ? '3. सदस्यता कैसे रद्द करें' : '3. सदस्यता कशी रद्द करावी'),
+                    : (isHi
+                          ? '3. सदस्यता कैसे रद्द करें'
+                          : '3. सदस्यता कशी रद्द करावी'),
                 description: isEn
                     ? 'You can cancel anytime in 1 tap without any fee. Open Google Play Store ➔ Tap Profile icon ➔ Payments & Subscriptions ➔ Subscriptions ➔ BhaktiDhara ➔ Cancel Subscription. VIP benefits remain active until the billing cycle expires.'
                     : (isHi
-                        ? 'आप कभी भी बिना किसी शुल्क के सदस्यता रद्द कर सकते हैं। Google Play Store ➔ प्रोफाइल ➔ भुगतान और सदस्यताएं ➔ सदस्यता ➔ BhaktiDhara ➔ सदस्यता रद्द करें पर टैप करें।'
-                        : 'आपण कोणत्याही शुल्काशिवाय कधीही रद्द करू शकता. Google Play Store ➔ प्रोफाईल ➔ पेमेंट्स आणि सदस्यता ➔ BhaktiDhara ➔ सदस्यता रद्द करा वर टॅप करा.'),
+                          ? 'आप कभी भी बिना किसी शुल्क के सदस्यता रद्द कर सकते हैं। Google Play Store ➔ प्रोफाइल ➔ भुगतान और सदस्यताएं ➔ सदस्यता ➔ BhaktiDhara ➔ सदस्यता रद्द करें पर टैप करें।'
+                          : 'आपण कोणत्याही शुल्काशिवाय कधीही रद्द करू शकता. Google Play Store ➔ प्रोफाईल ➔ पेमेंट्स आणि सदस्यता ➔ BhaktiDhara ➔ सदस्यता रद्द करा वर टॅप करा.'),
               ),
               const SizedBox(height: 12),
               _buildTermsSection(
                 icon: Icons.shield_outlined,
                 title: isEn
                     ? '4. Privacy & Payment Security'
-                    : (isHi ? '4. गोपनीयता व डेटा सुरक्षा' : '4. गोपनीयता व डेटा सुरक्षा'),
+                    : (isHi
+                          ? '4. गोपनीयता व डेटा सुरक्षा'
+                          : '4. गोपनीयता व डेटा सुरक्षा'),
                 description: isEn
                     ? 'In accordance with DPDP and consumer protection guidelines, BhaktiDhara never stores or accesses your bank accounts, credit cards, or UPI PINs. All billing transactions are encrypted and processed by Google Play.'
                     : (isHi
-                        ? 'DPDP और उपभोक्ता नियमों के तहत, BhaktiDhara आपके बैंक, कार्ड या UPI विवरण को संग्रहीत नहीं करता। सभी भुगतान Google Play द्वारा सुरक्षित हैं।'
-                        : 'DPDP नियमांनुसार BhaktiDhara तुमचे बँक, कार्ड किंवा UPI तपशील कधीही साठवत नाही. सर्व व्यवहार Google Play द्वारे सुरक्षितपणे केले जातात.'),
+                          ? 'DPDP और उपभोक्ता नियमों के तहत, BhaktiDhara आपके बैंक, कार्ड या UPI विवरण को संग्रहीत नहीं करता। सभी भुगतान Google Play द्वारा सुरक्षित हैं।'
+                          : 'DPDP नियमांनुसार BhaktiDhara तुमचे बँक, कार्ड किंवा UPI तपशील कधीही साठवत नाही. सर्व व्यवहार Google Play द्वारे सुरक्षितपणे केले जातात.'),
               ),
               const SizedBox(height: 16),
               // Direct button to open Google Play Subscriptions
@@ -1402,8 +1417,8 @@ void showSubscriptionTermsDialog(BuildContext context, String lang) {
                     isEn
                         ? 'Open Google Play Subscriptions'
                         : (isHi
-                            ? 'Google Play सदस्यताएं खोलें'
-                            : 'Google Play सदस्यता उघडा'),
+                              ? 'Google Play सदस्यताएं खोलें'
+                              : 'Google Play सदस्यता उघडा'),
                     style: GoogleFonts.mukta(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

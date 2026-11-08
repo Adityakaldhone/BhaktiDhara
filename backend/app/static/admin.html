@@ -669,6 +669,7 @@
           <label class="row" style="font-size:13px;color:var(--text-muted);cursor:pointer">
             <input type="checkbox" id="auto-refresh" checked> Auto-refresh
           </label>
+          <button type="button" class="btn ghost sm" data-check-uninstalls title="Runs daily at 3 PM IST">🗑️ Check Uninstalls</button>
           <button type="button" class="btn ghost sm" data-refresh="overview">↻ Refresh</button>
         </div>
       </div>
@@ -732,7 +733,7 @@
           <select class="inp" id="u-platform"><option value="">All platforms</option><option value="android">Android</option><option value="ios">iOS</option><option value="web">Web</option></select>
           <select class="inp" id="u-locale"><option value="">All languages</option><option value="mr">Marathi</option><option value="hi">Hindi</option><option value="en">English</option></select>
           <select class="inp" id="u-tier"><option value="">All tiers</option><option value="vip">VIP (any)</option><option value="paid">VIP (paid)</option><option value="granted">VIP (granted)</option><option value="free">Free</option></select>
-          <select class="inp" id="u-status"><option value="">Any status</option><option value="active7d">Active last 7d</option><option value="new7d">New last 7d</option><option value="dormant">Dormant 30d+</option><option value="blocked">Blocked</option></select>
+          <select class="inp" id="u-status"><option value="">Any status</option><option value="active7d">Active last 7d</option><option value="new7d">New last 7d</option><option value="dormant">Dormant 30d+</option><option value="uninstalled">Uninstalled</option><option value="blocked">Blocked</option></select>
           <select class="inp" id="u-sort"><option value="last_seen">Sort: Last active</option><option value="first_seen">Sort: Newest install</option><option value="pings">Sort: Most sessions</option><option value="name">Sort: Name</option></select>
         </div>
       </div>
@@ -875,9 +876,14 @@
               </div>
             </div>
           </div>
-          <button type="button" class="btn sm" id="btn-trigger-morning-horoscope">
-            🔔 Trigger 6 AM Push Immediately
-          </button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn sm" id="btn-trigger-morning-horoscope">
+              🔔 Trigger 6 AM Push Immediately
+            </button>
+            <button type="button" class="btn ghost sm" id="btn-check-uninstalls" data-check-uninstalls title="Runs daily at 3 PM IST">
+              🗑️ Check Uninstalls Now
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1446,6 +1452,7 @@
     else if (u.vipGranted) out.push('<span class="pill granted">🎁 Granted</span>');
     else out.push('<span class="pill">Free</span>');
     if (u.blocked) out.push(' <span class="pill blocked">Blocked</span>');
+    if (u.uninstalledAt) out.push(' <span class="pill blocked">Uninstalled</span>');
     return out.join('');
   }
 
@@ -1519,6 +1526,11 @@
       kpi('Active 30 Days (MAU)', fmt(k.mau), `Stickiness DAU/MAU: <b style="color:var(--text-primary)">${k.stickiness_pct}%</b>`, 'var(--violet)'),
       kpi('VIP Members', '⭐ ' + fmt(k.vip_paid + k.vip_granted), `${fmt(k.vip_paid)} paid · ${fmt(k.vip_granted)} granted · ${k.vip_conversion_pct}% conv.`, 'var(--gold)'),
       kpi('Dormant (30d+)', fmt(k.dormant_30d), k.total_installs ? `${(k.dormant_30d / k.total_installs * 100).toFixed(1)}% of installs` : '', 'var(--red)'),
+      kpi('Uninstalled', fmt(k.uninstalled), `<span title="Dates are when the daily check detected the uninstall, not when it happened. The first check also caught every uninstall since launch.">${[
+        k.total_installs ? `${(k.uninstalled / k.total_installs * 100).toFixed(1)}% of installs` : '',
+        `${fmt(k.uninstalled_7d)} detected last 7d`,
+        k.avg_days_before_uninstall != null ? `active ${k.avg_days_before_uninstall}d before leaving` : '',
+      ].filter(Boolean).join(' · ')} ⓘ</span>`, 'var(--red)'),
     ].join('');
 
     const labels = data.series.days.map(shortDay);
@@ -1644,6 +1656,7 @@
         <div>Language</div><div>${esc(LANG[u.locale] || u.locale)}</div>
         <div>Installed</div><div>${dateIN(u.firstSeen)}</div>
         <div>Last Active</div><div>${dateIN(u.lastSeen)} (${timeAgo(u.lastSeen)})</div>
+        ${u.uninstalledAt ? `<div>Uninstalled</div><div style="color:var(--red)">Detected ${dateIN(u.uninstalledAt)} (${timeAgo(u.uninstalledAt)})</div>` : ''}
         <div>Total Sessions</div><div>${fmt(u.pingCount)} sessions · ${d.activeDays.length} active days (60d)</div>
       </div>
       <div class="label" style="font-size:12px;color:var(--text-muted);text-transform:uppercase;font-weight:700">Activity Heatmap · Last 60 Days</div>
@@ -1881,6 +1894,24 @@
   }
   $('#btn-trigger-morning-horoscope')?.addEventListener('click', triggerMorningHoroscopePush);
   $('#btn-quick-morning-push')?.addEventListener('click', triggerMorningHoroscopePush);
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-check-uninstalls]');
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    try {
+      toast('⏳ Checking which devices still have the app...');
+      const { result } = await api('/api/v1/admin/push/check-uninstalls', { method: 'POST' });
+      toast(result.skipped ? '⚠️ Push credentials not configured'
+        : result.error ? '⚠️ Check failed: ' + result.error
+        : `🗑️ Checked ${fmt(result.checked)} devices · ${fmt(result.uninstalled)} newly uninstalled`);
+      loaders[currentView]?.().catch(err => console.error(err));
+    } catch (err) {
+      toast('⚠️ Uninstall check failed: ' + (err.message || err));
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   function pushStatus(c) {
     const cls = { sent: 'ok', scheduled: 'live', sending: 'warn', failed: 'blocked', cancelled: '' }[c.status] || '';

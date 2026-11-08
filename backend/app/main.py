@@ -70,6 +70,7 @@ from app.cron import (
     precache_running,
     RASHI_NAMES,
     send_daily_morning_horoscope_push,
+    run_uninstall_check_job,
 )
 from app.vedic_cache import (
     GeminiBusy,
@@ -136,6 +137,15 @@ async def lifespan(app: FastAPI):
         replace_existing=True,
         max_instances=1,
         misfire_grace_time=1800,
+    )
+    # Daily 3:00 PM IST silent push to every token, to detect uninstalls.
+    scheduler.add_job(
+        run_uninstall_check_job,
+        trigger=CronTrigger(hour=9, minute=30, timezone="UTC"),
+        id="daily_uninstall_check",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
     )
     # 4. Schedule Daily 12:00 AM IST Greetings Generation (18:30 UTC) using Cloudflare Workers AI FLUX.
     # GREETING_AUTOGEN_MODE: "festival" (default) fills upcoming festival categories,
@@ -1051,5 +1061,13 @@ async def admin_send_morning_horoscope():
     """Manually triggers the daily 6:00 AM IST Horoscope curiosity cliffhanger push immediately."""
     result = await send_daily_morning_horoscope_push()
     await log_admin_action("trigger_morning_push", f"Result: {result}")
+    return {"status": "ok", "result": result}
+
+
+@app.post("/api/v1/admin/push/check-uninstalls", dependencies=admin)
+async def admin_check_uninstalls():
+    """Runs the daily uninstall check immediately."""
+    result = await run_uninstall_check_job()
+    await log_admin_action("check_uninstalls", f"Result: {result}")
     return {"status": "ok", "result": result}
 

@@ -18,6 +18,7 @@ class ReviewStorageService {
   static const _keyLastOpenDate = 'review_last_open_date';
   static const _keyDismissedVersion = 'review_dismissed_version';
   static const _keyFeedbackSent = 'review_feedback_sent';
+  static const _keyAppOpenCount = 'review_app_open_count';
 
   SharedPreferences? _prefs;
   ReviewStorageService([this._prefs]) {
@@ -66,10 +67,21 @@ class ReviewStorageService {
   // ── Open-day tracking ────────────────────────────────────────────────────
   int get distinctOpenDays => _prefs?.getInt(_keyDistinctDays) ?? 0;
 
+  /// Total count of app opens (sessions).
+  int get appOpenCount {
+    final count = _prefs?.getInt(_keyAppOpenCount) ?? 0;
+    final distinctDays = distinctOpenDays;
+    return count > distinctDays ? count : distinctDays;
+  }
+
   Future<void> recordAppOpen() async {
     final p = await _getPrefs();
     final today = _todayKey();
     final lastDate = p.getString(_keyLastOpenDate);
+
+    // Track total opens across sessions
+    final currentOpens = p.getInt(_keyAppOpenCount) ?? 0;
+    await p.setInt(_keyAppOpenCount, currentOpens + 1);
 
     // First ever open
     if (p.getInt(_keyFirstOpenEpoch) == null) {

@@ -54,15 +54,13 @@ class LyricCard extends StatelessWidget {
               top: 0,
               bottom: 0,
               right: 0,
-              child: Opacity(
-                opacity: 0.18,
-                child: Image.asset(
-                  'assets/decorations/card_right_design.png',
-                  fit: BoxFit.fitHeight,
-                  alignment: Alignment.centerRight,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const SizedBox.shrink(),
-                ),
+              child: Image.asset(
+                'assets/decorations/card_right_design.webp',
+                fit: BoxFit.fitHeight,
+                alignment: Alignment.centerRight,
+                opacity: const AlwaysStoppedAnimation(0.18),
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
               ),
             ),
 

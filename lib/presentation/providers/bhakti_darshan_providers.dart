@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/bhajan_catalog.dart';
 import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../data/datasources/catalog.dart';
+import '../../data/datasources/gujarati_deities_catalog.dart';
 import '../../data/datasources/khatushyam_stotras_catalog.dart';
 import '../../data/datasources/mahakal_stotras_catalog.dart';
+import '../../data/datasources/rajasthani_deities_catalog.dart';
+import '../../data/datasources/uttarakhand_deities_catalog.dart';
 import '../../data/repositories/recent_deities_repository.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/bhakti_deity.dart';
@@ -18,6 +21,9 @@ final bhaktiContentProvider = Provider<List<AartiItem>>((ref) {
       ...kBhajanCatalog,
       ...kKhatuShyamStotrasCatalog,
       ...kMahakalStotrasCatalog,
+      ...kGujaratiDeitiesCatalog,
+      ...kRajasthaniDeitiesCatalog,
+      ...kUttarakhandDeitiesCatalog,
     ])
       if (seen.add(item.id)) item,
   ];

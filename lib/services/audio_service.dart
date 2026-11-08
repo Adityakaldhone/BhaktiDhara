@@ -1,48 +1,73 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// Thin wrapper around [audioplayers] for ghanti (bell) and shankh (conch)
-/// sound effects.
+/// Ghanti (bell) and shankh (conch) sounds for the aarti altar.
 ///
-/// Both methods always trigger [HapticFeedback.heavyImpact] so the
-/// tactile experience works even when audio assets are not yet bundled.
+/// Each sound is a toggle: the first tap starts it, a second tap while it is
+/// still sounding stops it. [bellPlaying] / [conchPlaying] report the state
+/// and fall back to `false` when the sound finishes on its own.
 ///
-/// To activate real audio:
-///   1. Place ghanti.mp3 and shankh.mp3 under assets/sounds/
-///   2. Uncomment the assets/sounds/ entries in pubspec.yaml
+/// The players mix with other audio instead of taking audio focus, so the
+/// aarti video keeps playing underneath.
 class AudioService {
-  final AudioPlayer _bellPlayer = AudioPlayer();
-  final AudioPlayer _conchPlayer = AudioPlayer();
+  static const String _bellAsset = 'sounds/aarti_ghanti.mp3';
+  static const String _conchAsset = 'sounds/shankh_dhun.mp3';
 
-  /// Plays the temple bell sound. Falls back to haptics if asset is missing.
-  Future<void> playBell() async {
-    await HapticFeedback.heavyImpact();
+  static final AudioContext _mixContext = AudioContextConfig(
+    focus: AudioContextConfigFocus.mixWithOthers,
+  ).build();
+
+  final ValueNotifier<bool> bellPlaying = ValueNotifier(false);
+  final ValueNotifier<bool> conchPlaying = ValueNotifier(false);
+
+  Future<AudioPlayer>? _bellPlayer;
+  Future<AudioPlayer>? _conchPlayer;
+  bool _disposed = false;
+
+  Future<void> toggleBell() =>
+      _toggle(_bellPlayer ??= _createPlayer(bellPlaying), bellPlaying, _bellAsset);
+
+  Future<void> toggleConch() => _toggle(
+      _conchPlayer ??= _createPlayer(conchPlaying), conchPlaying, _conchAsset);
+
+  Future<AudioPlayer> _createPlayer(ValueNotifier<bool> state) async {
+    final player = AudioPlayer();
+    player.onPlayerComplete.listen((_) {
+      if (!_disposed) state.value = false;
+    });
     try {
-      await _bellPlayer.stop();
-      await _bellPlayer.play(AssetSource('sounds/ghanti.mp3'));
-    } catch (_) {
-      // Audio asset not yet bundled — haptic feedback only (expected in demo)
-    }
+      await player.setAudioContext(_mixContext);
+    } catch (_) {}
+    return player;
   }
 
-  /// Plays the conch shell sound. Falls back to haptics if asset is missing.
-  Future<void> playConch() async {
-    await HapticFeedback.heavyImpact();
+  Future<void> _toggle(
+    Future<AudioPlayer> playerFuture,
+    ValueNotifier<bool> state,
+    String asset,
+  ) async {
+    HapticFeedback.heavyImpact();
+    final shouldPlay = !state.value;
+    state.value = shouldPlay;
     try {
-      await _conchPlayer.stop();
-      await _conchPlayer.play(AssetSource('sounds/shankh_dhun.mp3'));
-    } catch (_) {
-      try {
-        await _conchPlayer.play(AssetSource('sounds/shankh.mp3'));
-      } catch (_) {
-        // Audio asset not yet bundled — haptic feedback only
+      final player = await playerFuture;
+      if (shouldPlay) {
+        await player.stop();
+        await player.play(AssetSource(asset));
+      } else {
+        await player.stop();
       }
+    } catch (_) {
+      if (!_disposed) state.value = false;
     }
   }
 
-  /// Release underlying [AudioPlayer] resources.
   void dispose() {
-    _bellPlayer.dispose();
-    _conchPlayer.dispose();
+    _disposed = true;
+    _bellPlayer?.then((p) => p.dispose());
+    _conchPlayer?.then((p) => p.dispose());
+    bellPlaying.dispose();
+    conchPlaying.dispose();
   }
 }

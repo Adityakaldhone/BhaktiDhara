@@ -61,24 +61,26 @@ class _JaapBackgroundState extends State<JaapBackground>
             width: mandalaSize,
             height: mandalaSize,
             child: IgnorePointer(
-              child: RotationTransition(
-                turns: _rotation,
-                child: const CustomPaint(painter: _MandalaPainter()),
+              child: RepaintBoundary(
+                child: RotationTransition(
+                  turns: _rotation,
+                  child: const RepaintBoundary(
+                    child: CustomPaint(painter: _MandalaPainter()),
+                  ),
+                ),
               ),
             ),
           ),
           Positioned.fill(
             child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.08,
-                child: Align(
-                  alignment: const Alignment(0, 0.95),
-                  child: Image.asset(
-                    MandirTheme.getDeityImageAsset(widget.deity),
-                    height: size.height * 0.42,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                  ),
+              child: Align(
+                alignment: const Alignment(0, 0.95),
+                child: Image.asset(
+                  MandirTheme.getDeityImageAsset(widget.deity),
+                  height: size.height * 0.42,
+                  fit: BoxFit.contain,
+                  opacity: const AlwaysStoppedAnimation(0.08),
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
             ),

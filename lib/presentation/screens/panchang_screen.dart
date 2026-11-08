@@ -213,9 +213,9 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
   }) {
     final slots = panchangSlots(panchang);
     final nowStatus = isToday ? panchangNow(slots, nowMinute) : null;
-    final hasFestival = panchang.festivalName.isNotEmpty ||
-        panchang.festivalDescription.isNotEmpty ||
-        panchang.dailyMantra.isNotEmpty;
+    // final hasFestival = panchang.festivalName.isNotEmpty ||
+    //     panchang.festivalDescription.isNotEmpty ||
+    //     panchang.dailyMantra.isNotEmpty;
 
     final isPremium = ref.watch(premiumAccessProvider);
     final snapshot = ref.watch(tithiDaySnapshotProvider).valueOrNull;
@@ -237,27 +237,26 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
             snapshot: snapshot,
           ),
           const SizedBox(height: 16),
-          // ScheduleCard: title & indicators always visible, slots blurred if !isPremium
-          _ScheduleCard(
-            slots: slots,
-            s: s,
-            nowMinute: isToday ? nowMinute : null,
-            isPremium: isPremium,
-          ),
-          if (hasFestival) ...[
-            const SizedBox(height: 16),
-            _FestivalCard(panchang: panchang, s: s, isPremium: isPremium),
-          ],
-          const SizedBox(height: 16),
-          UpcomingObservancesCard(s: s),
+          _FullPanchangCard(panchang: panchang, s: s),
+          // const SizedBox(height: 16),
+          // _ScheduleCard(
+          //   slots: slots,
+          //   s: s,
+          //   nowMinute: isToday ? nowMinute : null,
+          //   isPremium: isPremium,
+          // ),
+          // if (hasFestival) ...[
+          //   const SizedBox(height: 16),
+          //   _FestivalCard(panchang: panchang, s: s, isPremium: isPremium),
+          // ],
           const SizedBox(height: 16),
           _SunMoonCard(panchang: panchang, s: s, isPremium: isPremium),
-          const SizedBox(height: 16),
-          _FullPanchangCard(panchang: panchang, s: s, isPremium: isPremium),
           if (!isPremium) ...[
             const SizedBox(height: 16),
             _buildSubscriptionCta(s.lang),
           ],
+          const SizedBox(height: 16),
+          UpcomingObservancesCard(s: s),
           const SizedBox(height: 20),
           Center(
             child: Text(
@@ -730,7 +729,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
 //  SHARED PIECES
 // ═════════════════════════════════════════════════════════════════════════════
 class _Card extends StatelessWidget {
-  const _Card({required this.child});
+  const _Card({super.key, required this.child});
 
   final Widget child;
 
@@ -865,6 +864,7 @@ class _TodayCard extends StatelessWidget {
   final PanchangStrings s;
   final TithiDaySnapshot? snapshot;
 
+  // ignore: unused_element
   PanchangSlot? _slot(PanchangSlotKind kind) {
     for (final slot in slots) {
       if (slot.kind == kind) return slot;
@@ -874,8 +874,8 @@ class _TodayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final best = _slot(PanchangSlotKind.abhijit);
-    final avoid = _slot(PanchangSlotKind.rahu);
+    // final best = _slot(PanchangSlotKind.abhijit);
+    // final avoid = _slot(PanchangSlotKind.rahu);
 
     return Container(
       key: const Key('panchang-today-card'),
@@ -900,15 +900,14 @@ class _TodayCard extends StatelessWidget {
           Positioned(
             right: -15,
             top: -15,
-            child: Opacity(
-              opacity: 0.08,
-              child: Image.asset(
-                'assets/decorations/corner_mandala.png',
+            child: Image.asset(
+                'assets/decorations/corner_mandala.webp',
                 width: 140,
                 height: 140,
+                cacheWidth: 420,
+                opacity: const AlwaysStoppedAnimation(0.08),
                 errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
-            ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -962,34 +961,34 @@ class _TodayCard extends StatelessWidget {
                   const SizedBox(height: 14),
                   _NowBanner(now: now!, s: s),
                 ],
-                if (best != null || avoid != null) ...[
-                  const SizedBox(height: 14),
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (best != null)
-                          Expanded(
-                            child: _KeyTimeTile(
-                              label: s.bestTime,
-                              slot: best,
-                              s: s,
-                            ),
-                          ),
-                        if (best != null && avoid != null)
-                          const SizedBox(width: 10),
-                        if (avoid != null)
-                          Expanded(
-                            child: _KeyTimeTile(
-                              label: s.avoidTime,
-                              slot: avoid,
-                              s: s,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                // if (best != null || avoid != null) ...[
+                //   const SizedBox(height: 14),
+                //   IntrinsicHeight(
+                //     child: Row(
+                //       crossAxisAlignment: CrossAxisAlignment.stretch,
+                //       children: [
+                //         if (best != null)
+                //           Expanded(
+                //             child: _KeyTimeTile(
+                //               label: s.bestTime,
+                //               slot: best,
+                //               s: s,
+                //             ),
+                //           ),
+                //         if (best != null && avoid != null)
+                //           const SizedBox(width: 10),
+                //         if (avoid != null)
+                //           Expanded(
+                //             child: _KeyTimeTile(
+                //               label: s.avoidTime,
+                //               slot: avoid,
+                //               s: s,
+                //             ),
+                //           ),
+                //       ],
+                //     ),
+                //   ),
+                // ],
               ],
             ),
           ),
@@ -1080,6 +1079,7 @@ class _NowBanner extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _KeyTimeTile extends StatelessWidget {
   const _KeyTimeTile({required this.label, required this.slot, required this.s});
 
@@ -1157,6 +1157,7 @@ class _KeyTimeTile extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 //  2. GOOD & BAD TIMES, IN ORDER OF THE DAY
 // ═════════════════════════════════════════════════════════════════════════════
+// ignore: unused_element
 class _ScheduleCard extends StatelessWidget {
   const _ScheduleCard({
     required this.slots,
@@ -1302,6 +1303,7 @@ class _ScheduleCard extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 //  3. FESTIVAL, VRAT & MANTRA
 // ═════════════════════════════════════════════════════════════════════════════
+// ignore: unused_element
 class _FestivalCard extends StatelessWidget {
   const _FestivalCard({
     required this.panchang,
@@ -1577,99 +1579,46 @@ class _FullPanchangCard extends StatelessWidget {
   const _FullPanchangCard({
     required this.panchang,
     required this.s,
-    required this.isPremium,
   });
 
   final PanchangData panchang;
   final PanchangStrings s;
-  final bool isPremium;
 
   @override
   Widget build(BuildContext context) {
     final p = panchang;
-    return Material(
-      color: MandirTheme.surfaceWhite,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: _cardBorder),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          key: const Key('panchang-full-details'),
-          tilePadding: const EdgeInsets.fromLTRB(14, 6, 10, 6),
-          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-          iconColor: MandirTheme.primarySaffron,
-          collapsedIconColor: MandirTheme.primarySaffron,
-          leading: const Icon(
-            Icons.auto_stories_rounded,
-            color: MandirTheme.primarySaffron,
-            size: 26,
-          ),
-          // TITLE AND SUBTITLE ARE ALWAYS VISIBLE AND UNBLURRED!
-          title: Text(
-            s.detailsTitle,
-            style: GoogleFonts.mukta(
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-              color: MandirTheme.textDark,
-            ),
-          ),
-          subtitle: Text(
+    return _Card(
+      key: const Key('panchang-full-details'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(Icons.auto_stories_rounded, s.detailsTitle),
+          const SizedBox(height: 2),
+          Text(
             s.detailsHint,
             style: GoogleFonts.mukta(
               fontSize: 14,
               color: MandirTheme.textMuted,
             ),
           ),
-          children: [
-            if (isPremium) ...[
-              _section(s.limbsSection),
-              _row(s.tithi, s.tithiMeaning, '${p.paksha} ${p.tithi}', p.tithiEndTime),
-              _row(s.vaar, s.vaarMeaning(p.vaarGraha), p.vaar, null),
-              _row(s.nakshatra, s.nakshatraMeaning, p.nakshatra, p.nakshatraEndTime),
-              _row(s.yoga, s.yogaMeaning, p.yoga, p.yogaEndTime),
-              _row(s.karana, s.karanaMeaning, p.karana, p.karanaEndTime),
-              _section(s.rashiSection),
-              _row(s.suryaRashi, null, p.suryaRashi, null),
-              _row(s.chandraRashi, null, p.chandraRashi, null),
-              _section(s.yearSection),
-              _row(s.maas, null, p.maas, null),
-              _row(s.paksha, null, p.paksha, null),
-              _row(s.vikramSamvat, null, p.vikramSamvat, null),
-              _row(s.shakaSamvat, null, p.shakaSamvat, null),
-              _row(s.samvatsara, null, p.samvatsara, null),
-              _row(s.ritu, null, p.ritu, null),
-              _row(s.ayana, null, p.ayana, null),
-            ] else ...[
-              BlurredContentGate(
-                langCode: s.lang,
-                child: Column(
-                  children: [
-                    _section(s.limbsSection),
-                    _row(s.tithi, s.tithiMeaning, '${p.paksha} ${p.tithi}', p.tithiEndTime),
-                    _row(s.vaar, s.vaarMeaning(p.vaarGraha), p.vaar, null),
-                    _row(s.nakshatra, s.nakshatraMeaning, p.nakshatra, p.nakshatraEndTime),
-                    _row(s.yoga, s.yogaMeaning, p.yoga, p.yogaEndTime),
-                    _row(s.karana, s.karanaMeaning, p.karana, p.karanaEndTime),
-                    _section(s.rashiSection),
-                    _row(s.suryaRashi, null, p.suryaRashi, null),
-                    _row(s.chandraRashi, null, p.chandraRashi, null),
-                    _section(s.yearSection),
-                    _row(s.maas, null, p.maas, null),
-                    _row(s.paksha, null, p.paksha, null),
-                    _row(s.vikramSamvat, null, p.vikramSamvat, null),
-                    _row(s.shakaSamvat, null, p.shakaSamvat, null),
-                    _row(s.samvatsara, null, p.samvatsara, null),
-                    _row(s.ritu, null, p.ritu, null),
-                    _row(s.ayana, null, p.ayana, null),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
+          _section(s.limbsSection),
+          _row(s.tithi, s.tithiMeaning, '${p.paksha} ${p.tithi}', p.tithiEndTime),
+          _row(s.vaar, s.vaarMeaning(p.vaarGraha), p.vaar, null),
+          _row(s.nakshatra, s.nakshatraMeaning, p.nakshatra, p.nakshatraEndTime),
+          _row(s.yoga, s.yogaMeaning, p.yoga, p.yogaEndTime),
+          _row(s.karana, s.karanaMeaning, p.karana, p.karanaEndTime),
+          _section(s.rashiSection),
+          _row(s.suryaRashi, null, p.suryaRashi, null),
+          _row(s.chandraRashi, null, p.chandraRashi, null),
+          _section(s.yearSection),
+          _row(s.maas, null, p.maas, null),
+          _row(s.paksha, null, p.paksha, null),
+          _row(s.vikramSamvat, null, p.vikramSamvat, null),
+          _row(s.shakaSamvat, null, p.shakaSamvat, null),
+          _row(s.samvatsara, null, p.samvatsara, null),
+          _row(s.ritu, null, p.ritu, null),
+          _row(s.ayana, null, p.ayana, null),
+        ],
       ),
     );
   }

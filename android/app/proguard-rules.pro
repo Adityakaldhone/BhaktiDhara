@@ -34,6 +34,12 @@
     <init>();
 }
 
+# androidx.startup instantiates initializers reflectively from manifest metadata
+-keep class * implements androidx.startup.Initializer { <init>(); }
+-keep class androidx.startup.** { *; }
+-keep class androidx.lifecycle.ProcessLifecycleInitializer { <init>(); }
+-keep class androidx.profileinstaller.** { *; }
+
 # Flutter Local Notifications
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
 -keep class com.google.gson.** { *; }

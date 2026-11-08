@@ -66,7 +66,7 @@ void main() {
 
     testWidgets('HoroscopeScreen renders Rashi carousel and reading content',
         (WidgetTester tester) async {
-      await tester.binding.setSurfaceSize(const Size(600, 3600));
+      await tester.binding.setSurfaceSize(const Size(600, 4800));
       addTearDown(() async => await tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
@@ -99,7 +99,7 @@ void main() {
 
       // Check period selector tabs
       expect(find.text('आज'), findsOneWidget);
-      expect(find.text('उद्या'), findsOneWidget);
+      expect(find.text('उद्या'), findsNothing);
       expect(find.text('साप्ताहिक'), findsOneWidget);
 
       // Check Rashi symbol and name
@@ -155,7 +155,7 @@ void main() {
 
     testWidgets('HoroscopeScreen opens with initialRashiId deep-link',
         (WidgetTester tester) async {
-      await tester.binding.setSurfaceSize(const Size(600, 3600));
+      await tester.binding.setSurfaceSize(const Size(600, 4800));
       addTearDown(() async => await tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(

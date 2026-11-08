@@ -141,12 +141,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         children: [
           // Background sacred temple watermark
           Positioned.fill(
-            child: Opacity(
-              opacity: 0.12,
-              child: Image.asset(
-                'assets/aarti_screen/bg.png',
-                fit: BoxFit.cover,
-              ),
+            child: Image.asset(
+              'assets/aarti_screen/bg.webp',
+              fit: BoxFit.cover,
+              opacity: const AlwaysStoppedAnimation(0.12),
             ),
           ),
 
@@ -156,7 +154,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 // ── Top Header ───────────────────────────────────────────────
                 _buildHeader(screenTitle, subtitle),
 
-                // ── Period Selector (Today / Tomorrow / Weekly) ──────────────
+                // ── Period Selector (Today / Weekly) ────────────────────────
                 _buildPeriodSelector(selectedPeriod, langCode),
 
                 const SizedBox(height: 8),
@@ -432,19 +430,13 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PERIOD SELECTOR (Today / Tomorrow / Weekly)
+  // PERIOD SELECTOR (Today / Weekly)
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildPeriodSelector(String currentPeriod, String langCode) {
     final periods = [
       {
         'key': 'today',
         'label': langCode == 'mr' ? 'आज' : (langCode == 'hi' ? 'आज' : 'Today'),
-      },
-      {
-        'key': 'tomorrow',
-        'label': langCode == 'mr'
-            ? 'उद्या'
-            : (langCode == 'hi' ? 'कल' : 'Tomorrow'),
       },
       {
         'key': 'weekly',

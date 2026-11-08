@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/subscription_plan.dart';
+import '../../services/backend_service.dart';
 import '../../services/subscription_service.dart';
 import 'premium_provider.dart';
 
@@ -18,13 +19,21 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionStatus> {
   static const _billingInitDelay = Duration(seconds: 8);
 
   SubscriptionNotifier(this._ref) : super(SubscriptionStatus.free) {
+    SubscriptionService.instance.onBackgroundStatus = _applyStatus;
     _loadState();
   }
 
   @override
   void dispose() {
     _billingInitTimer?.cancel();
+    SubscriptionService.instance.onBackgroundStatus = null;
     super.dispose();
+  }
+
+  void _applyStatus(SubscriptionStatus status) {
+    if (!mounted) return;
+    state = status;
+    _ref.read(isPremiumProvider.notifier).setPremium(status.isActive);
   }
 
   Future<void> _loadState() async {
@@ -66,10 +75,16 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionStatus> {
       final status = await SubscriptionService.instance.buyPlan(plan);
       state = status;
       _ref.read(isPremiumProvider.notifier).setPremium(status.isActive);
+      if (!status.isActive) lastError = SubscriptionService.instance.lastErrorMessage;
       return status.isActive;
     } catch (e) {
       lastError = SubscriptionService.instance.lastErrorMessage ??
           e.toString().replaceAll('Exception: ', '');
+      BackendService.trackEvent(
+        'subscription_purchase_fail',
+        item: plan.productId,
+        props: {'reason': lastError},
+      );
       return false;
     }
   }

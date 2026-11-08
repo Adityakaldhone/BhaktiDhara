@@ -14,7 +14,7 @@ const List<AartiItem> kKhatuShyamAartisCatalog = [
     singer: 'Nova Rajasthani',
     tags: ['Aarti'],
     youtubeVideoId: 'V4iwTYVXbGk',
-    durationText: '5:30',
+    durationText: '9:21',
     accentColorHex: '#1565C0',
     deityEmoji: '🙏',
     aboutMr: 'श्याम बाबा की सबसे प्रसिद्ध आरती। खाटू श्याम जी के भक्तों द्वारा सर्वाधिक सुनी जाने वाली आरती।',
@@ -23,8 +23,48 @@ const List<AartiItem> kKhatuShyamAartisCatalog = [
     lyrics: [
       LyricStanza(
         startTimeMs: 0,
-        devanagari: 'ॐ जय श्री श्याम हरे, प्रभु जय श्री श्याम हरे।\nतुम बिन दुख लागे, कोई काम न सरे॥',
-        transliteration: 'Om Jai Shri Shyam Hare, Prabhu Jai Shri Shyam Hare.\nTum Bin Dukh Laage, Koi Kaam Na Sare.',
+        devanagari: 'ॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।\nखाटू धाम विराजत,\nअनुपम रूप धरे॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Om Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.\nKhatu Dham Virajat,\nAnupam Roop Dhare.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
+      ),
+      LyricStanza(
+        startTimeMs: 62000,
+        devanagari: 'रतन जड़ित सिंहासन,\nसिर पर चंवर ढुरे ।\nतन केसरिया बागो,\nकुण्डल श्रवण पड़े ॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Ratan Jadit Singhasan,\nSir Par Chanvar Dhure.\nTan Kesariya Bago,\nKundal Shravan Pade.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
+      ),
+      LyricStanza(
+        startTimeMs: 124000,
+        devanagari: 'गल पुष्पों की माला,\nसिर पार मुकुट धरे ।\nखेवत धूप अग्नि पर,\nदीपक ज्योति जले ॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Gal Pushpon Ki Mala,\nSir Par Mukut Dhare.\nKhevat Dhoop Agni Par,\nDeepak Jyoti Jale.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
+      ),
+      LyricStanza(
+        startTimeMs: 186000,
+        devanagari: 'मोदक खीर चूरमा,\nसुवरण थाल भरे ।\nसेवक भोग लगावत,\nसेवा नित्य करे ॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Modak Kheer Churma,\nSuvaran Thaal Bhare.\nSevak Bhog Lagavat,\nSeva Nitya Kare.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
+      ),
+      LyricStanza(
+        startTimeMs: 248000,
+        devanagari: 'झांझ कटोरा और घडियावल,\nशंख मृदंग घुरे ।\nभक्त आरती गावे,\nजय-जयकार करे ॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Jhanjh Katora Aur Ghadiyaval,\nShankh Mridang Ghure.\nBhakt Aarti Gave,\nJai-Jaikar Kare.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
+      ),
+      LyricStanza(
+        startTimeMs: 310000,
+        devanagari: 'जो ध्यावे फल पावे,\nसब दुःख से उबरे ।\nसेवक जन निज मुख से,\nश्री श्याम-श्याम उचरे ॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Jo Dhyave Phal Pave,\nSab Dukh Se Ubare.\nSevak Jan Nij Mukh Se,\nShri Shyam-Shyam Uchare.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
+      ),
+      LyricStanza(
+        startTimeMs: 372000,
+        devanagari: 'श्री श्याम बिहारी जी की आरती,\nजो कोई नर गावे ।\nकहत भक्त-जन,\nमनवांछित फल पावे ॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Shri Shyam Bihari Ji Ki Aarti,\nJo Koi Nar Gave.\nKahat Bhakt-Jan,\nManvanchhit Phal Pave.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
+      ),
+      LyricStanza(
+        startTimeMs: 434000,
+        devanagari: 'जय श्री श्याम हरे,\nबाबा जी श्री श्याम हरे ।\nनिज भक्तों के तुमने,\nपूरण काज करे ॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Jai Shri Shyam Hare,\nBaba Ji Shri Shyam Hare.\nNij Bhakton Ke Tumne,\nPooran Kaaj Kare.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
+      ),
+      LyricStanza(
+        startTimeMs: 496000,
+        devanagari: 'ॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे।\nखाटू धाम विराजत,\nअनुपम रूप धरे॥\nॐ जय श्री श्याम हरे,\nबाबा जय श्री श्याम हरे ।',
+        transliteration: 'Om Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.\nKhatu Dham Virajat,\nAnupam Roop Dhare.\nOm Jai Shri Shyam Hare,\nBaba Jai Shri Shyam Hare.',
       ),
     ],
   ),

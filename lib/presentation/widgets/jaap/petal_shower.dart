@@ -94,7 +94,7 @@ class _PetalShowerState extends State<PetalShower>
         child: Transform.rotate(
           angle: petal.spin * t * math.pi,
           child: Image.asset(
-            'assets/aarti_screen/pushpa.png',
+            'assets/aarti_screen/pushpa.webp',
             width: petal.size,
             height: petal.size,
             errorBuilder: (_, _, _) => Text(

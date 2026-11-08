@@ -131,7 +131,7 @@ class MandirTheme {
       case 'Goddess Tulsi':
         return 'assets/bhakti/tulasi.webp';
       case 'Goddess Santoshi Mata':
-        return 'assets/decorations/santoshi_mata.png';
+        return 'assets/decorations/santoshi_mata.webp';
       case 'Goddess Renuka Mata':
       case 'Renuka Mata':
       case 'Renuka':
@@ -157,10 +157,15 @@ class MandirTheme {
       case 'Narmada Mata':
       case 'Reva':
         return 'assets/bhakti/narmada.webp';
+      case 'Goddess Ganga':
+      case 'Ganga':
+      case 'Ganga Mata':
+      case 'Maa Ganga':
+        return 'assets/bhakti/ganga.webp';
       case 'Gayatri':
       case 'Goddess Gayatri':
       case 'Gayatri Mata':
-        return 'assets/decorations/gayatri.png';
+        return 'assets/decorations/gayatri.webp';
       case 'Sant Balumama':
       case 'Balumama':
         return 'assets/bhakti/balumama.webp';
@@ -182,12 +187,121 @@ class MandirTheme {
       case 'Khatu Shyam':
       case 'Lord Khatu Shyam':
       case 'Shyam Baba':
-        return 'assets/bhakti/krishna.webp';
+        return 'assets/bhakti/khatu_shyam.webp';
+      case 'Somnath Mahadev':
+        return 'assets/bhakti/somnath.webp';
+      case 'Nageshwar Mahadev':
+        return 'assets/bhakti/nageshwar.webp';
+      case 'Bhadreshwar Mahadev':
+        return 'assets/bhakti/bhadreshwar.webp';
+      case 'Dwarkadhish':
+        return 'assets/bhakti/dwarkadhish.webp';
+      case 'Ranchhodrai':
+        return 'assets/bhakti/ranchhodrai.webp';
+      case 'Ranchhodji':
+        return 'assets/bhakti/ranchhodji.webp';
+      case 'Bhalka Tirth Krishna':
+        return 'assets/bhakti/bhalka_tirth_krishna.webp';
+      case 'Shamlaji':
+        return 'assets/bhakti/shamlaji.webp';
+      case 'Ambaji':
+        return 'assets/bhakti/ambaji.webp';
+      case 'Pavagadh Mahakali':
+        return 'assets/bhakti/pavagadh_mahakali.webp';
+      case 'Chamunda Mata':
+        return 'assets/bhakti/chamunda.webp';
+      case 'Bahuchar Mata':
+        return 'assets/bhakti/bahuchar.webp';
+      case 'Khodiyar Mata':
+        return 'assets/bhakti/khodiyar.webp';
+      case 'Ashapura Mata':
+        return 'assets/bhakti/ashapura.webp';
+      case 'Momai Mata':
+        return 'assets/bhakti/momai.webp';
+      case 'Meldi Mata':
+        return 'assets/bhakti/meldi.webp';
+      case 'Harsiddhi Mata':
+        return 'assets/bhakti/harsiddhi.webp';
+      case 'Umiya Mata':
+        return 'assets/bhakti/umiya.webp';
+      case 'Swaminarayan':
+        return 'assets/bhakti/swaminarayan.webp';
+      case 'Mahudi Ghantakarna Mahavir':
+        return 'assets/bhakti/ghantakarna_mahavir.webp';
+      case 'Salasar Balaji':
+        return 'assets/bhakti/salasar_balaji.webp';
+      case 'Mehandipur Balaji':
+        return 'assets/bhakti/mehandipur_balaji.webp';
+      case 'Shrinathji':
+        return 'assets/bhakti/shrinathji.webp';
+      case 'Govind Dev Ji':
+        return 'assets/bhakti/govind_dev_ji.webp';
+      case 'Charbhuja Nath':
+        return 'assets/bhakti/charbhuja_nath.webp';
+      case 'Eklingji':
+        return 'assets/bhakti/eklingji.webp';
+      case 'Brahma Ji':
+        return 'assets/bhakti/brahma.webp';
+      case 'Karni Mata':
+        return 'assets/bhakti/karni_mata.webp';
+      case 'Jeen Mata':
+        return 'assets/bhakti/jeen_mata.webp';
+      case 'Kaila Devi':
+        return 'assets/bhakti/kaila_devi.webp';
+      case 'Rani Sati Dadi':
+        return 'assets/bhakti/rani_sati_dadi.webp';
+      case 'Tripura Sundari':
+        return 'assets/bhakti/tripura_sundari.webp';
+      case 'Gogaji':
+        return 'assets/bhakti/gogaji.webp';
+      case 'Tejaji':
+        return 'assets/bhakti/tejaji.webp';
+      case 'Pabuji':
+        return 'assets/bhakti/pabuji.webp';
+      case 'Ramdevji':
+        return 'assets/bhakti/ramdevji.webp';
+      case 'Devnarayan Ji':
+        return 'assets/bhakti/devnarayan.webp';
+      case 'Mallinath Ji':
+        return 'assets/bhakti/mallinath.webp';
+      case 'Kedarnath':
+        return 'assets/bhakti/kedarnath.webp';
+      case 'Badrinath':
+        return 'assets/bhakti/badrinath.webp';
+      case 'Gangotri':
+        return 'assets/bhakti/gangotri.webp';
+      case 'Yamunotri':
+        return 'assets/bhakti/yamunotri.webp';
+      case 'Jageshwar Mahadev':
+        return 'assets/bhakti/jageshwar.webp';
+      case 'Neelkanth Mahadev':
+        return 'assets/bhakti/neelkanth.webp';
+      case 'Baleshwar Mahadev':
+        return 'assets/bhakti/baleshwar.webp';
+      case 'Kartik Swami':
+        return 'assets/bhakti/kartik_swami.webp';
+      case 'Narsingh Devta':
+        return 'assets/bhakti/vishnu.webp';
+      case 'Nanda Devi':
+        return 'assets/bhakti/nanda_devi.webp';
+      case 'Surkanda Devi':
+        return 'assets/bhakti/surkanda_devi.webp';
+      case 'Dhari Devi':
+        return 'assets/bhakti/dhari_devi.webp';
+      case 'Chandrabadni Devi':
+        return 'assets/bhakti/durga.webp';
+      case 'Golu Devta':
+        return 'assets/bhakti/golu_devta.webp';
+      case 'Mahasu Devta':
+        return 'assets/bhakti/mahasu_devta.webp';
       default:
         // Case-insensitive & Devanagari fallback matching
         final clean = deity.trim().toLowerCase();
         if (clean.contains('mahakal') || clean.contains('महाकाल')) return 'assets/bhakti/shiva.webp';
-        if (clean.contains('khatu') || clean.contains('खाटू')) return 'assets/bhakti/krishna.webp';
+        if (clean.contains('khatu') || clean.contains('खाटू')) return 'assets/bhakti/khatu_shyam.webp';
+        if ((clean.contains('ganga') && !clean.contains('gangadhar')) || clean.contains('गंगा')) {
+          return 'assets/bhakti/ganga.webp';
+        }
         if (clean.contains('bhairav')) return 'assets/bhakti/bhairavnath.webp';
         if (clean.contains('chandra') || clean.contains('shashi') || clean.contains('som') || clean.contains('चंद्र')) {
           return 'assets/bhakti/chandra.webp';
@@ -199,7 +313,7 @@ class MandirTheme {
           return 'assets/bhakti/narmada.webp';
         }
         if (clean.contains('gayatri') || clean.contains('गायत्री')) {
-          return 'assets/decorations/gayatri.png';
+          return 'assets/decorations/gayatri.webp';
         }
         if (clean.contains('balumama') || clean.contains('बाळू')) return 'assets/bhakti/balumama.webp';
         if (clean.contains('gondavalekar') || clean.contains('गोंदवलेकर')) {
@@ -252,7 +366,7 @@ class MandirTheme {
           return 'assets/bhakti/Venkateswara.webp';
         }
         if (clean.contains('tulsi') || clean.contains('तुळस')) return 'assets/bhakti/tulasi.webp';
-        if (clean.contains('santoshi') || clean.contains('संतोषी')) return 'assets/decorations/santoshi_mata.png';
+        if (clean.contains('santoshi') || clean.contains('संतोषी')) return 'assets/decorations/santoshi_mata.webp';
         if (clean.contains('sant') || clean.contains('संत')) return 'assets/bhakti/dnyaneshwar.webp';
 
         return 'assets/decorations/om.png';

@@ -15,7 +15,7 @@ final selectedRashiProvider = StateProvider<Rashi>((ref) {
   return kAllRashis.first;
 });
 
-/// Provider for the currently selected period ('today', 'tomorrow', 'weekly').
+/// Provider for the currently selected period ('today', 'weekly').
 final selectedHoroscopePeriodProvider = StateProvider<String>((ref) {
   return 'today';
 });

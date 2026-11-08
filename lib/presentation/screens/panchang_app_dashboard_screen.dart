@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme/theme.dart';
 import '../providers/locale_provider.dart';
+import '../providers/review_provider.dart';
 import 'calendar/calendar_screen.dart';
 import 'grahan_screen.dart';
 import 'horoscope_screen.dart';
@@ -160,6 +161,15 @@ class _PanchangMoreScreen extends ConsumerWidget {
     final shareTitle = langCode == 'hi'
         ? 'ऐप शेयर करें'
         : (langCode == 'mr' ? 'अ‍ॅप शेअर करा' : 'Share App');
+
+    final rateTitle = langCode == 'hi'
+        ? 'ऐप को रेटिंग दें'
+        : (langCode == 'mr' ? 'अ‍ॅपला रेटिंग द्या' : 'Rate this App');
+    final rateSubtitle = langCode == 'hi'
+        ? 'Google Play Store पर 5 स्टार रेटिंग देकर सहयोग करें'
+        : (langCode == 'mr'
+            ? 'गुगल प्ले स्टोअरवर ५ स्टार रेटिंग देऊन सहकार्य करा'
+            : 'Support us with a 5-star rating on Play Store');
 
     final appName = langCode == 'hi'
         ? 'संपूर्ण पंचांग एवं राशिफल'
@@ -332,6 +342,22 @@ class _PanchangMoreScreen extends ConsumerWidget {
                   text: 'पहा आजचे संपूर्ण पंचांग, राशीभविष्य, शुभ मुहूर्त व कुंडली एकाच ठिकाणी: https://play.google.com/store/apps/details?id=com.kaldhone.panchang',
                 ),
               );
+            },
+          ),
+          const SizedBox(height: 10),
+
+          // Rate App (In-App Review / Play Store)
+          _SettingsTile(
+            icon: Icons.star_rate_rounded,
+            iconBgColor: const Color(0xFFFF9800),
+            title: rateTitle,
+            subtitle: rateSubtitle,
+            trailing: const Icon(Icons.open_in_new_rounded,
+                size: 16, color: MandirTheme.textMuted),
+            onTap: () {
+              ref
+                  .read(reviewServiceProvider)
+                  .requestInAppReview(fallbackToStore: true);
             },
           ),
 

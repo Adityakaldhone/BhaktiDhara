@@ -126,6 +126,7 @@ class TithiEngineService {
       system: MonthSystem.purnimant, convention: convention);
 
   final Map<String, List<FestivalDate>> _yearCache = {};
+  final Map<String, Future<void>> _yearLoads = {};
 
   /// North Indian regions count months Purnimant; Maharashtra, Gujarat, the
   /// South and the diaspora default to Amant.
@@ -242,15 +243,23 @@ class TithiEngineService {
       _yearCache[_yearKey(city, year)] ??= _buildYear(city, year);
 
   /// Fills the [yearObservances] cache for [year] in a background isolate.
-  Future<void> preloadYear(PanchangCity city, int year) async {
+  Future<void> preloadYear(PanchangCity city, int year) {
     final key = _yearKey(city, year);
-    if (_yearCache.containsKey(key)) return;
+    if (_yearCache.containsKey(key)) return Future.value();
     if (!backgroundPreload) {
       _yearCache[key] = _buildYear(city, year);
-      return;
+      return Future.value();
     }
-    final list = await compute(_buildYearIsolate, (city, year, convention));
-    _yearCache[key] ??= list;
+    return _yearLoads[key] ??= _loadYear(city, year, key);
+  }
+
+  Future<void> _loadYear(PanchangCity city, int year, String key) async {
+    try {
+      final list = await compute(_buildYearIsolate, (city, year, convention));
+      _yearCache[key] ??= list;
+    } finally {
+      _yearLoads.remove(key);
+    }
   }
 
   static List<FestivalDate> _buildYearIsolate(

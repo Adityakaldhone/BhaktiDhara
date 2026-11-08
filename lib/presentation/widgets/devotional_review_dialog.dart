@@ -350,29 +350,35 @@ class _DevotionalReviewCardState extends State<_DevotionalReviewCard>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // "Later" link
-                TextButton(
-                  onPressed: _submitting
-                      ? null
-                      : () =>
-                          Navigator.pop(context, ReviewDialogResult.later),
-                  child: Text(
-                    _laterText,
-                    style: GoogleFonts.mukta(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: MandirTheme.textMuted,
+                Flexible(
+                  child: TextButton(
+                    onPressed: _submitting
+                        ? null
+                        : () =>
+                            Navigator.pop(context, ReviewDialogResult.later),
+                    child: Text(
+                      _laterText,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.mukta(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: MandirTheme.textMuted,
+                      ),
                     ),
                   ),
                 ),
                 // "Already rated" link
-                TextButton(
-                  onPressed: _submitting ? null : _onAlreadyRated,
-                  child: Text(
-                    _alreadyRated,
-                    style: GoogleFonts.mukta(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: MandirTheme.textMuted,
+                Flexible(
+                  child: TextButton(
+                    onPressed: _submitting ? null : _onAlreadyRated,
+                    child: Text(
+                      _alreadyRated,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.mukta(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: MandirTheme.textMuted,
+                      ),
                     ),
                   ),
                 ),

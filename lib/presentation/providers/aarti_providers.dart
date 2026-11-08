@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/aarti_repository_impl.dart';
 import '../../domain/entities/aarti_item.dart';
+import '../../domain/logic/deity_affinity_ranker.dart';
 import '../../domain/repositories/aarti_repository.dart';
+import 'deity_affinity_provider.dart';
 
 /// Provider for the repository implementation
 final aartiRepositoryProvider = Provider<AartiRepository>((ref) {
@@ -29,44 +31,45 @@ bool matchAartiSearch(AartiItem item, String rawQuery) {
   final query = rawQuery.trim().toLowerCase();
   if (query.isEmpty) return true;
 
-  // 1. Direct fields: English, Hindi, Marathi titles
-  if (item.title.toLowerCase().contains(query) ||
-      item.titleHi.toLowerCase().contains(query) ||
-      item.titleMr.toLowerCase().contains(query)) {
-    return true;
-  }
+  // Titles, deities, singer, tags and lyrics in every script.
+  if (_searchText(item).contains(query)) return true;
 
-  // 2. Deities in English, Hindi, Marathi
-  if (item.deity.toLowerCase().contains(query) ||
-      item.deityHi.toLowerCase().contains(query) ||
-      item.deityMr.toLowerCase().contains(query)) {
-    return true;
-  }
-
-  // 3. Singer attribution and tags
-  if (item.singer.toLowerCase().contains(query) ||
-      item.tags.any((tag) => tag.toLowerCase().contains(query))) {
-    return true;
-  }
-
-  // 4. Lyrics matching (both Devanagari script and English transliteration)
-  for (final stanza in item.lyrics) {
-    if (stanza.devanagari.toLowerCase().contains(query) ||
-        stanza.transliteration.toLowerCase().contains(query)) {
-      return true;
-    }
-  }
-
-  // 5. Popular spiritual synonyms, colloquial names, and phonetic variations
-  final synonyms = _getSpiritualSynonyms(item.id);
-  for (final synonym in synonyms) {
-    final syn = synonym.toLowerCase();
+  // Popular spiritual synonyms, colloquial names, and phonetic variations
+  for (final syn in _searchSynonyms(item)) {
     if (syn.contains(query) || query.contains(syn)) {
       return true;
     }
   }
 
   return false;
+}
+
+final _searchTextCache = Expando<String>();
+final _searchSynonymsCache = Expando<List<String>>();
+
+/// Lower-cased searchable fields of [item], built once per item. Fields are
+/// separated by newlines so a query can't match across two fields.
+String _searchText(AartiItem item) {
+  return _searchTextCache[item] ??= [
+    item.title,
+    item.titleHi,
+    item.titleMr,
+    item.deity,
+    item.deityHi,
+    item.deityMr,
+    item.singer,
+    ...item.tags,
+    for (final stanza in item.lyrics) ...[
+      stanza.devanagari,
+      stanza.transliteration,
+    ],
+  ].join('\n').toLowerCase();
+}
+
+List<String> _searchSynonyms(AartiItem item) {
+  return _searchSynonymsCache[item] ??= _getSpiritualSynonyms(item.id)
+      .map((s) => s.toLowerCase())
+      .toList(growable: false);
 }
 
 List<String> _getSpiritualSynonyms(String aartiId) {
@@ -136,6 +139,12 @@ List<String> _getSpiritualSynonyms(String aartiId) {
       'sai', 'saibaba', 'shirdi', 'साई', 'शिर्डी'
     ];
   }
+  if (aartiId.startsWith('ganga')) {
+    return const [
+      'ganga', 'gange', 'ganga mata', 'maa ganga', 'bhagirathi', 'jahnavi',
+      'har har gange', 'गंगा', 'गंगे', 'गंगा माता', 'भागीरथी', 'जाह्नवी', 'हर हर गंगे'
+    ];
+  }
   if (aartiId.startsWith('khatushyam')) {
     return const [
       'khatushyam', 'khatu', 'shyam', 'khatu shyam', 'shyam baba', 'lakhdatar',
@@ -180,6 +189,11 @@ final filteredCatalogProvider = Provider<AsyncValue<List<AartiItem>>>((ref) {
 
     // On the main dashboard (All deities): show one distinct card per deity
     final seenDeities = <String>{};
-    return catalog.where((item) => seenDeities.add(item.deity)).toList();
+    final distinct = catalog.where((item) => seenDeities.add(item.deity)).toList();
+    return DeityAffinityRanker.applyTopBand(
+      distinct,
+      ref.watch(sacredTopDeitiesProvider),
+      (item) => canonicalDeityKey(item.deity),
+    );
   });
 });

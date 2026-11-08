@@ -46,6 +46,10 @@ class SubscriptionService {
   Completer<SubscriptionStatus>? _activePurchaseCompleter;
   _CheckoutValue? _pendingCheckout;
 
+  /// Called when a purchase lands with no checkout waiting on it, e.g. a
+  /// pending UPI payment that Play confirms minutes later.
+  void Function(SubscriptionStatus status)? onBackgroundStatus;
+
   /// Holds the last error message for UI diagnostics.
   String? lastErrorMessage;
 
@@ -97,8 +101,23 @@ class SubscriptionService {
   /// and a failed attempt is retried on the next call.
   Future<void> initialize() {
     if (_subscription != null && _isBillingAvailable) return Future.value();
-    return _initFuture ??= _initialize().whenComplete(() => _initFuture = null);
+    return _initFuture ??= _initialize()
+        .timeout(_billingTimeout, onTimeout: () {
+          lastErrorMessage = _slowPlayMessage;
+          debugPrint('[SubscriptionService] Billing init timed out');
+        })
+        .whenComplete(() => _initFuture = null);
   }
+
+  /// Play sometimes never answers the billing connection; without a limit the
+  /// paywall spinner (and every later attempt) waits forever.
+  static const _billingTimeout = Duration(seconds: 12);
+
+  static const pendingPaymentMessage =
+      'Payment is processing. Premium will activate automatically once Google Play confirms it.';
+
+  static const _slowPlayMessage =
+      'Google Play is taking too long to respond. Check your internet connection and try again.';
 
   /// Building the native BillingClient makes a blocking Binder call on the
   /// Android main thread, so this must not run during app startup.
@@ -108,7 +127,7 @@ class SubscriptionService {
       return;
     }
     try {
-      _isBillingAvailable = await _iap.isAvailable();
+      _isBillingAvailable = await _iap.isAvailable().timeout(_billingTimeout);
       if (!_isBillingAvailable) {
         debugPrint('[SubscriptionService] Store billing unavailable (fallback to simulation)');
         return;
@@ -134,16 +153,17 @@ class SubscriptionService {
   /// Queries product details from store for all configured plans.
   Future<void> refreshProducts() async {
     if (kIsWeb) return;
-    if (!_isBillingAvailable) {
-      _isBillingAvailable = await _iap.isAvailable();
-      if (!_isBillingAvailable) {
-        debugPrint('[SubscriptionService] Google Play Billing is unavailable');
-        return;
-      }
-    }
     try {
+      if (!_isBillingAvailable) {
+        _isBillingAvailable = await _iap.isAvailable().timeout(_billingTimeout);
+        if (!_isBillingAvailable) {
+          debugPrint('[SubscriptionService] Google Play Billing is unavailable');
+          return;
+        }
+      }
       final productIds = kSubscriptionPlans.map((p) => p.productId).toSet();
-      final response = await _iap.queryProductDetails(productIds);
+      final response =
+          await _iap.queryProductDetails(productIds).timeout(_billingTimeout);
       if (response.error == null) {
         _storeProducts = response.productDetails;
         debugPrint(
@@ -168,6 +188,9 @@ class SubscriptionService {
             'Google Play error: ${response.error!.message} (${response.error!.code})';
         debugPrint('[SubscriptionService] Query product error: ${response.error}');
       }
+    } on TimeoutException {
+      lastErrorMessage = _slowPlayMessage;
+      debugPrint('[SubscriptionService] Product query timed out');
     } catch (e) {
       lastErrorMessage = 'Failed to query Google Play products: $e';
       debugPrint('[SubscriptionService] Refresh products error: $e');
@@ -202,7 +225,7 @@ class SubscriptionService {
           ? 'Google Play Billing is unavailable on this device. Ensure Google Play Store is installed and active.'
           : 'Google Play did not return product details for "${plan.productId}". Verify that this ID is Active in Play Console under Subscriptions and your tester account has access.';
       debugPrint('[SubscriptionService] $reason');
-      lastErrorMessage = reason;
+      lastErrorMessage = lastErrorMessage == _slowPlayMessage ? _slowPlayMessage : reason;
 
       // In debug mode on non-Android (simulator/web), allow fallback to simulation:
       if (kDebugMode && !Platform.isAndroid) {
@@ -360,10 +383,15 @@ class SubscriptionService {
     _activePurchaseCompleter = Completer<SubscriptionStatus>();
 
     try {
-      final initiated = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      final initiated = await _iap
+          .buyNonConsumable(purchaseParam: purchaseParam)
+          .timeout(_billingTimeout, onTimeout: () {
+        lastErrorMessage = _slowPlayMessage;
+        return false;
+      });
       if (!initiated) {
         _activePurchaseCompleter = null;
-        lastErrorMessage =
+        lastErrorMessage ??=
             'Google Play Billing could not initiate purchase sheet for ${plan.productId}.';
         throw Exception(lastErrorMessage);
       }
@@ -437,6 +465,16 @@ class SubscriptionService {
     for (final purchaseDetails in purchaseDetailsList) {
       if (purchaseDetails.status == PurchaseStatus.pending) {
         debugPrint('[SubscriptionService] Purchase pending: ${purchaseDetails.productID}');
+        BackendService.trackEvent(
+          'subscription_purchase_pending',
+          item: purchaseDetails.productID,
+        );
+        // UPI and cash payments can take minutes to confirm; the purchased
+        // update arrives later on this stream and activates premium then.
+        if (_activePurchaseCompleter != null && !_activePurchaseCompleter!.isCompleted) {
+          lastErrorMessage = pendingPaymentMessage;
+          _activePurchaseCompleter!.complete(await loadSubscriptionStatus());
+        }
       } else if (purchaseDetails.status == PurchaseStatus.error) {
         final error = purchaseDetails.error;
         debugPrint('[SubscriptionService] Purchase error: $error');
@@ -515,6 +553,8 @@ class SubscriptionService {
 
         if (_activePurchaseCompleter != null && !_activePurchaseCompleter!.isCompleted) {
           _activePurchaseCompleter!.complete(finalStatus);
+        } else {
+          onBackgroundStatus?.call(finalStatus);
         }
       }
     }

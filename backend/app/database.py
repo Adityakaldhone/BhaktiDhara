@@ -113,6 +113,9 @@ async def init_db():
             ("app_instance_id", "TEXT DEFAULT ''"),
             ("device_model", "TEXT DEFAULT ''"),
             ("os_version", "TEXT DEFAULT ''"),
+            # Set when FCM reports the device's push token as UNREGISTERED,
+            # cleared when the device pings again (reinstall).
+            ("uninstalled_at", "TEXT DEFAULT ''"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE devices ADD COLUMN {col[0]} {col[1]}")
@@ -464,6 +467,7 @@ async def record_device_ping(
                 state = CASE WHEN excluded.state != '' THEN excluded.state ELSE devices.state END,
                 country = CASE WHEN excluded.country != '' THEN excluded.country ELSE devices.country END,
                 last_seen = ?,
+                uninstalled_at = '',
                 ping_count = devices.ping_count + 1
             """,
             (
@@ -702,6 +706,18 @@ async def get_overview(days: int = 30) -> Dict[str, Any]:
         dormant = await _fetch_scalar(
             db, "SELECT COUNT(*) FROM devices WHERE datetime(last_seen) < datetime('now', '-30 day')"
         )
+        uninstalled = await _fetch_scalar(db, "SELECT COUNT(*) FROM devices WHERE COALESCE(uninstalled_at, '') != ''")
+        uninstalled_7d = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM devices WHERE COALESCE(uninstalled_at, '') != '' "
+            "AND datetime(uninstalled_at) >= datetime('now', '-7 day')",
+        )
+        async with db.execute(
+            "SELECT AVG(julianday(last_seen) - julianday(first_seen)) FROM devices "
+            "WHERE COALESCE(uninstalled_at, '') != ''"
+        ) as cur:
+            row = await cur.fetchone()
+            avg_days_before_uninstall = round(row[0], 1) if row and row[0] is not None else None
         vip_paid = await _fetch_scalar(db, "SELECT COUNT(*) FROM devices WHERE is_vip = 1")
         vip_granted = await _fetch_scalar(db, "SELECT COUNT(*) FROM devices WHERE vip_granted = 1 AND is_vip = 0")
         blocked = await _fetch_scalar(db, "SELECT COUNT(*) FROM devices WHERE blocked = 1")
@@ -763,6 +779,9 @@ async def get_overview(days: int = 30) -> Dict[str, Any]:
             "mau": mau,
             "stickiness_pct": pct(dau, mau),
             "dormant_30d": dormant,
+            "uninstalled": uninstalled,
+            "uninstalled_7d": uninstalled_7d,
+            "avg_days_before_uninstall": avg_days_before_uninstall,
             "vip_paid": vip_paid,
             "vip_granted": vip_granted,
             "vip_conversion_pct": pct(vip_paid, total),
@@ -884,6 +903,7 @@ def _device_row_to_dict(r) -> Dict[str, Any]:
         "notes": r["notes"] or "",
         "firstSeen": r["first_seen"],
         "lastSeen": r["last_seen"],
+        "uninstalledAt": r["uninstalled_at"] or "",
         "pingCount": r["ping_count"],
     }
 
@@ -925,6 +945,8 @@ def _build_user_filters(
         where.append("datetime(first_seen) >= datetime('now', '-7 day')")
     elif status == "blocked":
         where.append("blocked = 1")
+    elif status == "uninstalled":
+        where.append("COALESCE(uninstalled_at, '') != ''")
     clause = ("WHERE " + " AND ".join(where)) if where else ""
     return clause, params
 
@@ -1287,11 +1309,26 @@ async def save_push_token(device_id: str, token: str, enabled: bool, platform: s
 
 
 async def delete_push_tokens(tokens: List[str]):
+    """Drops tokens FCM reported as UNREGISTERED and marks their devices as
+    uninstalled, which is the only uninstall signal a server can get."""
     if not tokens:
         return
+    now = utc_now_iso()
     async with aiosqlite.connect(DB_PATH) as db:
+        await db.executemany(
+            "UPDATE devices SET uninstalled_at = ? WHERE COALESCE(uninstalled_at, '') = '' "
+            "AND device_id IN (SELECT device_id FROM push_tokens WHERE token = ?)",
+            [(now, t) for t in tokens],
+        )
         await db.executemany("DELETE FROM push_tokens WHERE token = ?", [(t,) for t in tokens])
         await db.commit()
+
+
+async def get_all_push_tokens() -> List[str]:
+    """Every stored token, including ones whose owner muted notifications."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT token FROM push_tokens") as cur:
+            return [r[0] for r in await cur.fetchall()]
 
 
 def _push_audience_filter(

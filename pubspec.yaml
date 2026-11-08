@@ -1,7 +1,7 @@
 name: nitya_aarti
 description: "BhaktiDhara: Aarti Sangrah"
 publish_to: 'none'
-version: 1.2.2+13
+version: 1.2.5+27
 
 environment:
   sdk: ^3.12.2
@@ -9,9 +9,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # Smooth auto-scrolling synced lyrics list
-  scrollable_positioned_list: ^0.3.8
 
   # Keep screen awake during pooja (WakelockPlus.enable/disable)
   wakelock_plus: ^1.2.0
@@ -51,7 +48,7 @@ dependencies:
   url_launcher: ^6.3.2
   in_app_purchase: ^3.3.1
   in_app_purchase_android: ^0.5.3
-  in_app_review: ^2.0.9
+  in_app_review: ^2.0.12
   clarity_flutter: ^1.10.0
   android_id: ^0.5.2+1
   flutter_secure_storage: ^11.2.0
@@ -72,6 +69,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_driver:
+    sdk: flutter
   flutter_lints: ^6.0.0
   flutter_native_splash: ^2.4.8
   flutter_launcher_icons: ^0.14.4
@@ -82,7 +83,6 @@ flutter:
   generate: true
   assets:
     - assets/devotional_catalog.json
-    - assets/app_logo/logo.png
     - assets/decorations/
     - assets/aarti_screen/
     - assets/aarti_list/

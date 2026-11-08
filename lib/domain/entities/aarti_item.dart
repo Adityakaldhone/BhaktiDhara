@@ -123,11 +123,21 @@ class AartiItem {
   /// Returns the canonical collection title for the deity, e.g. "Shri Gondavlekar Maharaj Aarti",
   /// "श्री गोंदवलेकर महाराज आरती", "Shri Swami Samarth Aarti", "Shri Gajanan Maharaj Aarti".
   String deityAartiTitle(String localeCode) {
-    return getDeityAartiTitle(deity, localeCode);
+    final name = localizedDeity(localeCode);
+    return getDeityAartiTitle(
+      deity,
+      localeCode,
+      localizedName: name == deity ? null : name,
+    );
   }
 
   /// Static helper returning the canonical Deity Aarti collection title based on locale.
-  static String getDeityAartiTitle(String deity, String localeCode) {
+  /// [localizedName] is used for deities without a dedicated title below.
+  static String getDeityAartiTitle(
+    String deity,
+    String localeCode, {
+    String? localizedName,
+  }) {
     final clean = deity.trim();
     switch (clean) {
       case 'Lord Ganesha':
@@ -235,6 +245,9 @@ class AartiItem {
       case 'Goddess Narmada':
       case 'Narmada':
         return localeCode == 'en' ? 'Shri Narmada Mata Aarti' : 'श्री नर्मदा माता आरती';
+      case 'Goddess Ganga':
+      case 'Ganga':
+        return localeCode == 'en' ? 'Shri Ganga Mata Aarti' : 'श्री गंगा माता आरती';
       case 'Surya Dev':
       case 'Surya':
         return localeCode == 'en' ? 'Shri Surya Dev Aarti' : 'श्री सूर्य देव आरती';
@@ -250,7 +263,8 @@ class AartiItem {
       case 'Mahakaleshwar':
         return localeCode == 'en' ? 'Shri Mahakal Aarti' : 'श्री महाकाल आरती';
       default:
-        return localeCode == 'en' ? '$deity Aarti' : 'श्री $deity आरती';
+        if (localeCode == 'en') return '$deity Aarti';
+        return localizedName != null ? '$localizedName आरती' : 'श्री $deity आरती';
     }
   }
 }

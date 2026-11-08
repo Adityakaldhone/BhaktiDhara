@@ -50,6 +50,20 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-2701330811649318~3629395379"/>
+        <!-- Run AdMob init and ad loading off the main thread (WebView ANRs) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_INITIALIZATION"
+            android:value="true"/>
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
+            android:value="true"/>
+
+        <!-- Impeller's OpenGLES path crashes in PowerVR drivers (libIMGegl.so
+             IMGeglMakeCurrent) and hangs the main thread waiting on the raster
+             thread. Skia is stable on those GPUs. -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false"/>
 
         <!-- Firebase Cloud Messaging: channel & icon used for background notifications -->
         <meta-data

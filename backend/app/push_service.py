@@ -156,6 +156,35 @@ async def _post_message(client: httpx.AsyncClient, message: Dict[str, Any]) -> D
     }
 
 
+async def find_unregistered_tokens(tokens: List[str]) -> List[str]:
+    """Sends an invisible data-only message to each token and returns the ones
+    FCM rejects as UNREGISTERED, i.e. the app was uninstalled from that phone."""
+    _load_credentials()
+    if not tokens:
+        return []
+    sem = asyncio.Semaphore(MAX_CONCURRENT_SENDS)
+    dead: List[str] = []
+
+    async with httpx.AsyncClient() as client:
+        async def check_one(tok: str) -> None:
+            message = {
+                "token": tok,
+                "data": {"type": "install_check"},
+                "android": {"priority": "normal", "ttl": "60s"},
+                "apns": {
+                    "headers": {"apns-push-type": "background", "apns-priority": "5"},
+                    "payload": {"aps": {"content-available": 1}},
+                },
+            }
+            async with sem:
+                result = await _post_message(client, message)
+            if not result["ok"] and result.get("unregistered"):
+                dead.append(tok)
+
+        await asyncio.gather(*(check_one(t) for t in tokens))
+    return dead
+
+
 async def subscribe_token_to_topics(token: str, topics: List[str]) -> None:
     """Server-side topic subscription so a device can't silently miss broadcast topics,
     e.g. when an older app build skipped subscribing. Never raises."""

@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1466,29 +1464,23 @@ class _PinnedBarDelegate extends SliverPersistentHeaderDelegate {
     final floating = (shrinkOffset > 0 || overlapsContent) && !solid;
     final overlapping = shrinkOffset > 0 || overlapsContent;
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(
-          sigmaX: floating ? 20 : 0,
-          sigmaY: floating ? 20 : 0,
-        ),
-        child: AnimatedContainer(
-          duration: AppMotion.state,
-          curve: AppMotion.ease,
-          decoration: BoxDecoration(
-            color: MandirTheme.backgroundCream.withValues(alpha: floating ? 0.82 : 1),
+    // Keep this a plain fill: a full-width BackdropFilter here re-runs on
+    // every scroll frame.
+    return AnimatedContainer(
+      duration: AppMotion.state,
+      curve: AppMotion.ease,
+      decoration: BoxDecoration(
+        color: MandirTheme.backgroundCream.withValues(alpha: floating ? 0.96 : 1),
+      ),
+      foregroundDecoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: overlapping ? _G.hairline : Colors.transparent,
+            width: 0.5,
           ),
-          foregroundDecoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: overlapping ? _G.hairline : Colors.transparent,
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: child,
         ),
       ),
+      child: child,
     );
   }
 

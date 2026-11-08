@@ -19,6 +19,7 @@ import '../../domain/entities/app_remote_config.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/bhakti_darshan_providers.dart';
+import '../providers/deity_affinity_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/premium_provider.dart';
 import '../providers/remote_config_provider.dart';
@@ -71,10 +72,17 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   /// Held back briefly so it doesn't stack on the startup permission prompts.
   bool _festivePopupReady = false;
   Timer? _festivePopupTimer;
+  late final AppLifecycleListener _lifecycleListener;
+  Timer? _searchDebounce;
+  Timer? _deityWarmupTimer;
+  bool _deityImagesWarmed = false;
 
   @override
   void initState() {
     super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onResume: () => ref.read(deityAffinityProvider.notifier).refreshTop(),
+    );
     _homeScrollController.addListener(_onHomeScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Speech is initialized on the first mic tap: initializing here shows the
@@ -101,6 +109,24 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     );
   }
 
+
+  /// Decodes the card thumbnails at their display size ahead of time so the
+  /// first scroll through the Sacred Collection doesn't stall on decoding.
+  void _scheduleDeityImageWarmup(List<AartiItem> catalog) {
+    if (_deityImagesWarmed || catalog.isEmpty) return;
+    _deityImagesWarmed = true;
+    final assets = {for (final item in catalog) _getDeityImageAsset(item.deity)};
+    _deityWarmupTimer = Timer(const Duration(seconds: 2), () async {
+      for (final asset in assets) {
+        if (!mounted) return;
+        await precacheImage(
+          ResizeImage.resizeIfNeeded(null, 240, AssetImage(asset)),
+          context,
+          onError: (_, _) {},
+        );
+      }
+    });
+  }
 
   void _onHomeScroll() {
     final show = _homeScrollController.hasClients &&
@@ -141,6 +167,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
   @override
   void dispose() {
+    _lifecycleListener.dispose();
+    _searchDebounce?.cancel();
+    _deityWarmupTimer?.cancel();
     _festivePopupTimer?.cancel();
     _homeScrollController.removeListener(_onHomeScroll);
     _searchController.dispose();
@@ -164,6 +193,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final catalogAsync = ref.watch(filteredCatalogProvider);
+    _scheduleDeityImageWarmup(catalogAsync.valueOrNull ?? const []);
     final l10n = AppLocalizations.of(context)!;
     final localeCode = ref.watch(localeProvider).languageCode;
 
@@ -181,19 +211,35 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     final tabStack = IndexedStack(
       index: currentTab.index,
       children: [
-        _buildHomeTab(catalogAsync, l10n, localeCode),
-        _visitedTabs.contains(_DashTab.bhajan) && tabs.contains(_DashTab.bhajan)
-            ? const BhajanScreen()
-            : const SizedBox.shrink(),
-        _visitedTabs.contains(_DashTab.horoscope) && tabs.contains(_DashTab.horoscope)
-            ? const HoroscopeScreen()
-            : const SizedBox.shrink(),
-        _visitedTabs.contains(_DashTab.panchang) && tabs.contains(_DashTab.panchang)
-            ? const PanchangScreen()
-            : const SizedBox.shrink(),
-        _visitedTabs.contains(_DashTab.more)
-            ? const MoreScreen()
-            : const SizedBox.shrink(),
+        for (final (tab, child) in [
+          (_DashTab.home, _buildHomeTab(catalogAsync, l10n, localeCode)),
+          (
+            _DashTab.bhajan,
+            _visitedTabs.contains(_DashTab.bhajan) && tabs.contains(_DashTab.bhajan)
+                ? const BhajanScreen()
+                : const SizedBox.shrink(),
+          ),
+          (
+            _DashTab.horoscope,
+            _visitedTabs.contains(_DashTab.horoscope) && tabs.contains(_DashTab.horoscope)
+                ? const HoroscopeScreen()
+                : const SizedBox.shrink(),
+          ),
+          (
+            _DashTab.panchang,
+            _visitedTabs.contains(_DashTab.panchang) && tabs.contains(_DashTab.panchang)
+                ? const PanchangScreen()
+                : const SizedBox.shrink(),
+          ),
+          (
+            _DashTab.more,
+            _visitedTabs.contains(_DashTab.more)
+                ? const MoreScreen()
+                : const SizedBox.shrink(),
+          ),
+        ])
+          // IndexedStack keeps hidden tabs' animations ticking; mute them.
+          TickerMode(enabled: tab == currentTab, child: child),
       ],
     );
 
@@ -224,6 +270,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
         // 2. If search has text, clear search first
         if (_searchController.text.trim().isNotEmpty) {
+          _searchDebounce?.cancel();
           setState(() {
             _searchController.clear();
           });
@@ -554,6 +601,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () {
+                  _searchDebounce?.cancel();
                   _searchController.clear();
                   ref.read(searchQueryProvider.notifier).state = '';
                   setState(() {});
@@ -802,7 +850,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     ignoring: expandRatio < 0.5,
                     child: Opacity(
                       opacity: expandedOpacity,
-                      child: _buildHeader(l10n),
+                      child: RepaintBoundary(child: _buildHeader(l10n)),
                     ),
                   ),
                 ),
@@ -816,7 +864,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   height: _collapsedHeaderHeight,
                   child: Opacity(
                     opacity: collapsedOpacity,
-                    child: _buildCollapsedHeader(l10n),
+                    child: RepaintBoundary(
+                      child: _buildCollapsedHeader(l10n),
+                    ),
                   ),
                 ),
             ],
@@ -860,12 +910,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         children: [
           // ── Header Background Decoration ────────────────────────────────
           Positioned.fill(
-            child: Opacity(
-              opacity: 0.15,
-              child: Image.asset(
-                'assets/decorations/corner_mandala.png',
-                fit: BoxFit.cover,
-              ),
+            child: Image.asset(
+              'assets/decorations/corner_mandala.webp',
+              fit: BoxFit.cover,
+              opacity: const AlwaysStoppedAnimation(0.15),
             ),
           ),
 
@@ -1772,8 +1820,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             color: MandirTheme.textDark,
           ),
           onChanged: (value) {
-            ref.read(searchQueryProvider.notifier).state = value;
-            setState(() {});
+            _searchDebounce?.cancel();
+            _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+              if (mounted) ref.read(searchQueryProvider.notifier).state = value;
+            });
           },
           decoration: InputDecoration(
             hintText: l10n.searchHint,
@@ -1800,6 +1850,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     tooltip: l10n.clearSearch,
                     splashRadius: 18,
                     onPressed: () {
+                      _searchDebounce?.cancel();
                       _searchController.clear();
                       ref.read(searchQueryProvider.notifier).state = '';
                       setState(() {});
@@ -2155,7 +2206,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     AppLocalizations l10n,
     String localeCode,
   ) {
-    final query = ref.watch(searchQueryProvider).trim();
+    final query = ref.read(searchQueryProvider).trim();
     final bool isSearch = query.isNotEmpty;
 
     // In Sacred Collection browsing:
@@ -2205,14 +2256,13 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 Positioned(
                   right: -20,
                   bottom: -20,
-                  child: Opacity(
-                    opacity: 0.22,
-                    child: Image.asset(
-                      'assets/decorations/card_right_design.png',
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.contain,
-                    ),
+                  child: Image.asset(
+                    'assets/decorations/card_right_design.webp',
+                    width: 100,
+                    height: 100,
+                    cacheWidth: 300,
+                    fit: BoxFit.contain,
+                    opacity: const AlwaysStoppedAnimation(0.22),
                   ),
                 ),
 
@@ -2230,27 +2280,24 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                           color: MandirTheme.imageSurface,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: Image.asset(
-                              _getDeityImageAsset(item.deity),
-                              fit: BoxFit.contain,
-                              cacheHeight: 240,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  'assets/decorations/om.png',
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (_, _, _) => Center(
-                                    child: Text(
-                                      item.deityEmoji,
-                                      style: const TextStyle(fontSize: 34),
-                                    ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Image.asset(
+                            _getDeityImageAsset(item.deity),
+                            fit: BoxFit.contain,
+                            cacheHeight: 240,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/decorations/om.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, _, _) => Center(
+                                  child: Text(
+                                    item.deityEmoji,
+                                    style: const TextStyle(fontSize: 34),
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -2304,15 +2351,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                     decoration: BoxDecoration(
                                       color: MandirTheme.cardPrimaryButton,
                                       borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.10,
-                                          ),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 1),
-                                        ),
-                                      ],
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -2340,18 +2378,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                     width: 30,
                                     height: 30,
                                     margin: const EdgeInsets.only(right: 4),
-                                    decoration: BoxDecoration(
+                                    decoration: const BoxDecoration(
                                       color: MandirTheme.arrowBackground,
                                       shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.04,
-                                          ),
-                                          blurRadius: 3,
-                                          offset: const Offset(0, 1),
-                                        ),
-                                      ],
                                     ),
                                     child: const Icon(
                                       Icons.chevron_right,
@@ -2484,11 +2513,15 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   // ═══════════════════════════════════════════════════════════════════════════
   //  DEITY IMAGE ASSETS
   // ═══════════════════════════════════════════════════════════════════════════
+  static final Map<String, String> _deityImageCache = {};
+
   String _getDeityImageAsset(String deity) {
-    for (final bhaktiDeity in kBhaktiDeities) {
-      if (bhaktiDeity.matches(deity)) return bhaktiDeity.imageAsset;
-    }
-    return MandirTheme.getDeityImageAsset(deity);
+    return _deityImageCache.putIfAbsent(deity, () {
+      for (final bhaktiDeity in kBhaktiDeities) {
+        if (bhaktiDeity.matches(deity)) return bhaktiDeity.imageAsset;
+      }
+      return MandirTheme.getDeityImageAsset(deity);
+    });
   }
 }
 

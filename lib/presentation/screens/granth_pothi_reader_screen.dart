@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -647,9 +646,7 @@ class _GranthPothiReaderScreenState
                     borderRadius: BorderRadius.circular(8),
                     color: Colors.black.withValues(alpha: 0.85),
                   ),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Center(
+                  child: Center(
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 24),
                         padding: const EdgeInsets.all(22),
@@ -768,7 +765,6 @@ class _GranthPothiReaderScreenState
                     ),
                   ),
                 ),
-              ),
           ],
         ),
       ),
