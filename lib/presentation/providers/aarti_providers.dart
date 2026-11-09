@@ -23,6 +23,31 @@ final selectedDeityFilterProvider = StateProvider<String?>((ref) => null);
 /// StateProvider for the active search query.
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
+/// States with their own regional deity catalog, identified by item id prefix.
+enum AartiRegion {
+  gujarat('guj_', 'Gujarat', 'गुजरात', 'गुजरात'),
+  rajasthan('rj_', 'Rajasthan', 'राजस्थान', 'राजस्थान'),
+  uttarakhand('uk_', 'Uttarakhand', 'उत्तराखंड', 'उत्तराखंड');
+
+  const AartiRegion(this.idPrefix, this.nameEn, this.nameHi, this.nameMr);
+
+  final String idPrefix;
+  final String nameEn;
+  final String nameHi;
+  final String nameMr;
+
+  bool contains(AartiItem item) => item.id.startsWith(idPrefix);
+
+  String label(String localeCode) => switch (localeCode) {
+        'hi' => nameHi,
+        'mr' => nameMr,
+        _ => nameEn,
+      };
+}
+
+/// Sacred Collection state filter; null means All.
+final selectedRegionProvider = StateProvider<AartiRegion?>((ref) => null);
+
 /// Checks if an Aarti item matches the search query.
 /// Supports multi-lingual search in English, Hindi, and Marathi,
 /// matching titles, deities, singers, tags, lyrics (Devanagari and transliteration),
@@ -166,8 +191,13 @@ final filteredCatalogProvider = Provider<AsyncValue<List<AartiItem>>>((ref) {
   final catalogAsync = ref.watch(aartiCatalogProvider);
   final filter = ref.watch(selectedDeityFilterProvider);
   final query = ref.watch(searchQueryProvider).trim();
+  final region = ref.watch(selectedRegionProvider);
 
-  return catalogAsync.whenData((catalog) {
+  return catalogAsync.whenData((fullCatalog) {
+    final catalog = region == null
+        ? fullCatalog
+        : fullCatalog.where(region.contains).toList();
+
     if (query.isNotEmpty) {
       // 1. Filter by search query across all localized titles, lyrics, and synonyms
       final searched = catalog.where((item) => matchAartiSearch(item, query)).toList();

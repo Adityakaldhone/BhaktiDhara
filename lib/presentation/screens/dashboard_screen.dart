@@ -505,6 +505,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   ),
                 ),
 
+                // ── State Filter Chips ───────────────────────────────────
+                SliverToBoxAdapter(child: _buildRegionChips(localeCode)),
+
                 // ── Catalog List ─────────────────────────────────────────
                 ...catalogAsync.when(
                   loading: () => [
@@ -570,6 +573,68 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               child: AdWidget(ad: _bannerAd!),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRegionChips(String localeCode) {
+    final selected = ref.watch(selectedRegionProvider);
+    final allLabel = switch (localeCode) {
+      'hi' => 'सभी',
+      'mr' => 'सर्व',
+      _ => 'All',
+    };
+    final options = <(AartiRegion?, String)>[
+      (null, allLabel),
+      for (final region in AartiRegion.values)
+        (region, region.label(localeCode)),
+    ];
+
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+        itemCount: options.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final (region, label) = options[index];
+          final isSelected = region == selected;
+          return GestureDetector(
+            onTap: () {
+              if (isSelected) return;
+              HapticFeedback.selectionClick();
+              ref.read(selectedRegionProvider.notifier).state = region;
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: ShapeDecoration(
+                color: isSelected
+                    ? MandirTheme.primarySaffron
+                    : MandirTheme.surfaceWhite,
+                shape: StadiumBorder(
+                  side: BorderSide(
+                    color: isSelected
+                        ? MandirTheme.primarySaffron
+                        : const Color(0xFFE2B04F).withValues(alpha: 0.5),
+                    width: 1.1,
+                  ),
+                ),
+              ),
+              child: Text(
+                label,
+                style: GoogleFonts.mukta(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : MandirTheme.textDark,
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
