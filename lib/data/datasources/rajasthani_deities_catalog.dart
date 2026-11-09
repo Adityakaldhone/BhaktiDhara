@@ -1,5 +1,6 @@
 import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/lyric_stanza.dart';
+import 'regional_lyrics_catalog.dart';
 
 /// Aartis, chalisas, mantras and stotras for the Rajasthan temple and folk
 /// deities (Salasar Balaji, Shrinathji, Karni Mata, Ramdevji, ...) shown in
@@ -29,13 +30,14 @@ AartiItem _buildItem(_RjRow row) {
     about: '${row.title} — devotion to ${row.deity}.',
     aboutHi: '${row.titleHi} — ${deity.nameHi} की भक्ति।',
     aboutMr: '${row.titleHi} — ${deity.nameMr} यांची भक्ती.',
-    lyrics: [
-      LyricStanza(
-        startTimeMs: 0,
-        devanagari: row.devanagari,
-        transliteration: row.transliteration,
-      ),
-    ],
+    lyrics: kRegionalLyricsByVideo[row.videoId] ??
+        [
+          LyricStanza(
+            startTimeMs: 0,
+            devanagari: row.devanagari,
+            transliteration: row.transliteration,
+          ),
+        ],
   );
 }
 

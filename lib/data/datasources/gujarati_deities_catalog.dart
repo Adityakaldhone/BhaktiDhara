@@ -2,6 +2,7 @@ import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/lyric_stanza.dart';
 import 'bhajan_catalog.dart';
 import 'catalog.dart';
+import 'regional_lyrics_catalog.dart';
 
 /// Aartis, chalisas, mantras and stotras for the Gujarat temple deities
 /// (Somnath, Dwarkadhish, Ambaji, Khodiyar, ...) shown in the Bhakti darshan.
@@ -32,13 +33,14 @@ AartiItem _buildItem(String deityKey, _GujDeity deity, String videoKey, _GujVide
     aboutMr: '${video.titleHi} — ${deity.nameMr} यांची भक्ती.',
     lyrics: video.lyricsFromId != null
         ? _lyricsOf(video.lyricsFromId!)
-        : [
-            LyricStanza(
-              startTimeMs: 0,
-              devanagari: video.devanagari,
-              transliteration: video.transliteration,
-            ),
-          ],
+        : kRegionalLyricsByVideo[video.videoId] ??
+            [
+              LyricStanza(
+                startTimeMs: 0,
+                devanagari: video.devanagari,
+                transliteration: video.transliteration,
+              ),
+            ],
   );
 }
 

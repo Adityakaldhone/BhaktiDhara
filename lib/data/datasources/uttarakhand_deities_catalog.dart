@@ -1,6 +1,7 @@
 import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/lyric_stanza.dart';
 import 'catalog.dart';
+import 'regional_lyrics_catalog.dart';
 
 /// Aartis, chalisas, mantras and stotras for the Uttarakhand Char Dham, temple
 /// and folk deities (Kedarnath, Badrinath, Golu Devta, ...) shown in the
@@ -32,13 +33,14 @@ AartiItem _buildItem(_UkRow row) {
     aboutMr: '${row.titleHi} — ${deity.nameMr} यांची भक्ती.',
     lyrics: row.lyricsFromId != null
         ? kDevotionalCatalog.firstWhere((i) => i.id == row.lyricsFromId).lyrics
-        : [
-            LyricStanza(
-              startTimeMs: 0,
-              devanagari: row.devanagari,
-              transliteration: row.transliteration,
-            ),
-          ],
+        : kRegionalLyricsByVideo[row.videoId] ??
+            [
+              LyricStanza(
+                startTimeMs: 0,
+                devanagari: row.devanagari,
+                transliteration: row.transliteration,
+              ),
+            ],
   );
 }
 
