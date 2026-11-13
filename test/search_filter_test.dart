@@ -34,8 +34,8 @@ void main() {
     expect(matchAartiSearch(hanuman, 'पवन कुमार'), isTrue);
   });
 
-  test('Device locale detection defaults gracefully', () {
+  test('Device locale detection defaults to Hindi or Marathi, never English', () {
     final locale = getInitialDeviceLocale();
-    expect(['mr', 'hi', 'en'], contains(locale.languageCode));
+    expect(['mr', 'hi'], contains(locale.languageCode));
   });
 }

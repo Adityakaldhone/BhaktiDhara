@@ -93,12 +93,14 @@ void main() {
       // 1st visit: 1 open
       await service.trackAppOpen();
       expect(storage.appOpenCount, equals(1));
+      expect(service.isFirstSession, isTrue);
       expect(service.isSecondTimeOrMore, isFalse);
       expect(service.isEligibleForAartiExitPrompt(), isFalse);
 
       // 2nd visit: 2nd open
       await service.trackAppOpen();
       expect(storage.appOpenCount, equals(2));
+      expect(service.isFirstSession, isFalse);
       expect(service.isSecondTimeOrMore, isTrue);
       // Eligible because user hasn't rated yet
       expect(service.isEligibleForAartiExitPrompt(), isTrue);

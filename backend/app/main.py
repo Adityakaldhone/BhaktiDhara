@@ -34,6 +34,7 @@ from app.database import (
     get_retention,
     list_users,
     export_users,
+    get_uninstalls_by_day,
     get_user_detail,
     update_user,
     delete_user,
@@ -315,7 +316,7 @@ class PushCampaignCreate(PushTarget):
     title: str
     body: str
     imageUrl: str = ""
-    route: str = Field("", description="'', aarti, panchang, jaap, horoscope, bhajan")
+    route: str = Field("", description="'', aarti, panchang, jaap, horoscope, bhajan, mandir")
     aartiId: str = ""
     sendAt: Optional[str] = Field(None, description="ISO datetime; omit to send immediately")
     repeat: str = Field("none", description="none, daily")
@@ -725,11 +726,19 @@ async def admin_users_endpoint(
     locale: str = "",
     tier: str = Query("", description="vip, paid, granted, free"),
     status_filter: str = Query("", alias="status", description="active7d, dormant, new7d, blocked"),
-    sort: str = Query("last_seen", description="last_seen, first_seen, pings, name"),
+    sort: str = Query("last_seen", description="last_seen, first_seen, pings, name, uninstalled"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
+    uninstalled_on: str = Query("", pattern=r"^(\d{4}-\d{2}-\d{2})?$", description="IST date YYYY-MM-DD"),
 ):
-    return await list_users(search.strip(), platform, locale, tier, status_filter, sort, page, page_size)
+    return await list_users(
+        search.strip(), platform, locale, tier, status_filter, sort, page, page_size, uninstalled_on
+    )
+
+
+@app.get("/api/v1/admin/uninstalls/daily", dependencies=admin)
+async def admin_uninstalls_daily_endpoint(days: int = Query(30, ge=7, le=180)):
+    return await get_uninstalls_by_day(days)
 
 
 @app.get("/api/v1/admin/users/export.csv", dependencies=admin)
@@ -739,13 +748,15 @@ async def admin_users_export_endpoint(
     locale: str = "",
     tier: str = "",
     status_filter: str = Query("", alias="status"),
+    uninstalled_on: str = Query("", pattern=r"^(\d{4}-\d{2}-\d{2})?$"),
 ):
     users = await export_users(
-        search=search.strip(), platform=platform, locale=locale, tier=tier, status=status_filter
+        search=search.strip(), platform=platform, locale=locale, tier=tier, status=status_filter,
+        uninstalled_on=uninstalled_on,
     )
     buf = io.StringIO()
     columns = ["deviceId", "userName", "city", "state", "country", "platform", "appVersion", "deviceModel", "osVersion", "locale",
-               "isVip", "vipGranted", "blocked", "firstSeen", "lastSeen", "pingCount", "notes"]
+               "isVip", "vipGranted", "blocked", "firstSeen", "lastSeen", "uninstalledAt", "pingCount", "notes"]
     writer = csv.DictWriter(buf, fieldnames=columns, extrasaction="ignore")
     writer.writeheader()
     for user in users:
@@ -883,7 +894,7 @@ async def admin_cache_clear_endpoint(
 
 # ── Push notifications ───────────────────────────────────────────────────────
 
-PUSH_ROUTES = {"", "aarti", "panchang", "jaap", "horoscope", "bhajan"}
+PUSH_ROUTES = {"", "aarti", "panchang", "jaap", "horoscope", "bhajan", "mandir"}
 PUSH_AUDIENCES = {"all", "vip", "free", "dormant", "user"}
 
 

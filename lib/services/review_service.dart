@@ -51,6 +51,9 @@ class ReviewService {
   bool get isSecondTimeOrMore =>
       _storage.appOpenCount >= 2 || _storage.distinctOpenDays >= 2;
 
+  /// First process after install — no paywall / review popups yet.
+  bool get isFirstSession => !isSecondTimeOrMore;
+
   /// Returns `true` when user opens an aarti and presses back, provided they
   /// haven't given a review previously and are on their 2nd+ visit.
   bool isEligibleForAartiExitPrompt() {

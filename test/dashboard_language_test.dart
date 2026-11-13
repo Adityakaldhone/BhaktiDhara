@@ -47,12 +47,13 @@ void main() {
       expect(navBar.items[0].icon, isA<Icon>());
       expect((navBar.items[0].icon as Icon).icon, Icons.home_filled);
       expect(navBar.items[1].icon, isA<Icon>());
-      expect((navBar.items[1].icon as Icon).icon, Icons.library_music_rounded);
+      expect((navBar.items[1].icon as Icon).icon, Icons.temple_hindu_rounded);
+      expect(navBar.items[1].label, 'मंदिर');
       expect(navBar.items[2].icon, isA<Icon>());
       expect((navBar.items[2].icon as Icon).icon, Icons.auto_awesome);
       expect(navBar.items[3].icon, isA<Icon>());
       expect((navBar.items[3].icon as Icon).icon, Icons.calendar_month_rounded);
-      expect((navBar.items[4].icon as Icon).icon, Icons.grid_view_rounded);
+      expect((navBar.items[4].icon as Icon).icon, Icons.dashboard_customize_outlined);
 
       // Verify "See All" button is gone
       expect(find.text('सर्व पहा'), findsNothing);

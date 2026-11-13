@@ -13,25 +13,25 @@ const _userLanguageKey = 'user_selected_language';
 /// Install time (ms) of the app install on which the language was picked.
 const _userLanguageInstallKey = 'user_selected_language_install_ms';
 
-/// Detects and returns the best matching initial locale from the user's mobile device settings.
-Locale getInitialDeviceLocale() {
-  // 1. Check preferred device locales in order of user priority
-  final deviceLocales = PlatformDispatcher.instance.locales;
-  for (final loc in deviceLocales) {
-    if (_supportedLanguageCodes.contains(loc.languageCode)) {
-      return Locale(loc.languageCode);
-    }
-  }
-
-  // 2. Check primary device locale
-  final primaryCode = PlatformDispatcher.instance.locale.languageCode;
-  if (_supportedLanguageCodes.contains(primaryCode)) {
-    return Locale(primaryCode);
-  }
-
-  // 3. Fallback default
-  return const Locale('en');
+/// Hindi, unless the phone itself is set to Marathi.
+///
+/// English is never auto-selected: most Indian Android devices report `en`
+/// even when the devotee reads Hindi or Marathi. They can still pick English
+/// on the first-launch screen.
+String preferredFirstLaunchLanguageCode({
+  List<Locale>? deviceLocales,
+  Locale? deviceLocale,
+}) {
+  bool isMarathi(Locale loc) => loc.languageCode == 'mr';
+  final preferred = deviceLocales ?? PlatformDispatcher.instance.locales;
+  final primary = deviceLocale ?? PlatformDispatcher.instance.locale;
+  if (preferred.any(isMarathi)) return 'mr';
+  if (isMarathi(primary)) return 'mr';
+  return 'hi';
 }
+
+/// Startup / picker default: Marathi on Marathi devices, otherwise Hindi.
+Locale getInitialDeviceLocale() => Locale(preferredFirstLaunchLanguageCode());
 
 /// The language the user explicitly picked in the app, or null if they never
 /// have. Loaded before `runApp` so the first frame is already in that language.

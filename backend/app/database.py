@@ -144,6 +144,12 @@ async def init_db():
         await db.execute("CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_events_name ON events(name, created_at)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_events_device ON events(device_id, created_at)")
+        # daily_active's primary key is (date_str, device_id), which can't serve
+        # per-device lookups; the user drawer and retention need device first.
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_daily_active_device ON daily_active(device_id, date_str)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_devices_last_seen ON devices(last_seen)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_devices_first_seen ON devices(first_seen)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_devices_uninstalled ON devices(uninstalled_at)")
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS api_stats (
@@ -194,6 +200,7 @@ async def init_db():
                 updated_at TIMESTAMP NOT NULL
             )
         """)
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_token ON push_tokens(token)")
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS push_campaigns (
@@ -882,6 +889,7 @@ _USER_SORTS = {
     "first_seen": "first_seen DESC",
     "pings": "ping_count DESC",
     "name": "user_name COLLATE NOCASE ASC",
+    "uninstalled": "uninstalled_at DESC",
 }
 
 
@@ -914,6 +922,7 @@ def _build_user_filters(
     locale: str = "",
     tier: str = "",
     status: str = "",
+    uninstalled_on: str = "",
 ):
     where, params = [], []
     if search:
@@ -947,6 +956,9 @@ def _build_user_filters(
         where.append("blocked = 1")
     elif status == "uninstalled":
         where.append("COALESCE(uninstalled_at, '') != ''")
+    if uninstalled_on:
+        where.append(f"uninstalled_at != '' AND date(uninstalled_at, '{IST_SQL_MODIFIER}') = ?")
+        params.append(uninstalled_on)
     clause = ("WHERE " + " AND ".join(where)) if where else ""
     return clause, params
 
@@ -960,10 +972,11 @@ async def list_users(
     sort: str = "last_seen",
     page: int = 1,
     page_size: int = 25,
+    uninstalled_on: str = "",
 ) -> Dict[str, Any]:
     page = max(1, page)
     page_size = max(1, min(page_size, 200))
-    clause, params = _build_user_filters(search, platform, locale, tier, status)
+    clause, params = _build_user_filters(search, platform, locale, tier, status, uninstalled_on)
     order = _USER_SORTS.get(sort, _USER_SORTS["last_seen"])
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -987,6 +1000,26 @@ async def export_users(**filters) -> List[Dict[str, Any]]:
         db.row_factory = aiosqlite.Row
         async with db.execute(f"SELECT * FROM devices {clause} ORDER BY last_seen DESC", tuple(params)) as cur:
             return [_device_row_to_dict(r) for r in await cur.fetchall()]
+
+
+async def get_uninstalls_by_day(days: int = 30) -> Dict[str, Any]:
+    """Uninstalls per IST day, dated by when the daily check detected them."""
+    days = max(7, min(days, 180))
+    series_days = _day_series(days)
+    # Stored in UTC; an IST day starts at 18:30 UTC the day before.
+    utc_start = (datetime.fromisoformat(series_days[0]) - timedelta(days=1)).strftime("%Y-%m-%d")
+    async with aiosqlite.connect(DB_PATH) as db:
+        counts = await _fetch_map(
+            db,
+            f"SELECT date(uninstalled_at, '{IST_SQL_MODIFIER}') AS d, COUNT(*) FROM devices "
+            f"WHERE uninstalled_at != '' AND uninstalled_at >= ? GROUP BY d",
+            (utc_start,),
+        )
+        total = await _fetch_scalar(db, "SELECT COUNT(*) FROM devices WHERE uninstalled_at != ''")
+    return {
+        "days": [{"date": d, "count": counts.get(d, 0)} for d in series_days],
+        "total": total,
+    }
 
 
 async def get_user_detail(device_id: str) -> Optional[Dict[str, Any]]:

@@ -18,7 +18,12 @@ enum FunnelEvent {
   rewardedAdEarned('rewarded_ad_earned'),
   trialStart('trial_start'),
   retainedD1('retained_d1'),
-  retainedD7('retained_d7');
+  retainedD7('retained_d7'),
+  ishtaSelected('ishta_selected'),
+  nityaPinned('nitya_pinned'),
+  reminderEnabled('reminder_enabled'),
+  diyaLit('diya_lit'),
+  diyaRefilled('diya_refilled');
 
   const FunnelEvent(this.name);
   final String name;

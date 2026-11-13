@@ -11,7 +11,6 @@ import '../providers/panchang_provider.dart';
 import 'panchang_strings.dart';
 
 const _verifiedColor = Color(0xFF2E7D32);
-const _cardBorder = Color(0xFFEDDBC2);
 
 String _digits(String s, String lang) {
   if (lang == 'en') return s;
@@ -161,84 +160,140 @@ class UpcomingObservancesCard extends ConsumerWidget {
 
     return Container(
       key: const Key('panchang-upcoming-card'),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: MandirTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.event_note_rounded,
-                  color: MandirTheme.primarySaffron, size: 22),
-              const SizedBox(width: 8),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDE8D4),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  color: Color(0xFFBA471A),
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   s.upcomingTitle,
-                  style: GoogleFonts.mukta(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                    color: MandirTheme.textDark,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF2C1E14),
+                    letterSpacing: -0.3,
                   ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 3),
           Text(
             s.upcomingHint,
-            style: GoogleFonts.mukta(fontSize: 13.5, color: MandirTheme.textMuted),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF8C7565),
+            ),
           ),
-          const SizedBox(height: 8),
-          if (itemsAsync.isLoading && items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: MandirTheme.primarySaffron,
-                  ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFF0E4D4), width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
-              ),
+              ],
             ),
-          for (final fd in items)
-            _ObservanceRow(
-              fd: fd,
-              label: names.observance(fd.id, fd.name),
-              tithi: names.tithiLabel(engine.displayInfo(fd, system)),
-              muhurta: fd.muhurtaStart == null || fd.muhurtaEnd == null
-                  ? null
-                  : '${names.muhurtaRule(fd.muhurta)}: '
-                      '${_clock(fd.muhurtaStart!.add(engine.offsetOf(city)), s.lang)} – '
-                      '${_clock(fd.muhurtaEnd!.add(engine.offsetOf(city)), s.lang)}',
-              days: fd.date.difference(from).inDays,
-              s: s,
-              onTap: () => ref.read(selectedPanchangDateProvider.notifier).state =
-                  DateTime(fd.date.year, fd.date.month, fd.date.day),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Column(
+              children: [
+                if (itemsAsync.isLoading && items.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFBA471A),
+                        ),
+                      ),
+                    ),
+                  ),
+                for (int i = 0; i < items.length; i++) ...[
+                  if (i > 0)
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 52,
+                      endIndent: 4,
+                      color: Color(0xFFF6ECE0),
+                    ),
+                  _ObservanceRow(
+                    fd: items[i],
+                    label: names.observance(items[i].id, items[i].name),
+                    tithi: names.tithiLabel(engine.displayInfo(items[i], system)),
+                    muhurta: items[i].muhurtaStart == null || items[i].muhurtaEnd == null
+                        ? null
+                        : '${names.muhurtaRule(items[i].muhurta)}: '
+                            '${_clock(items[i].muhurtaStart!.add(engine.offsetOf(city)), s.lang)} – '
+                            '${_clock(items[i].muhurtaEnd!.add(engine.offsetOf(city)), s.lang)}',
+                    days: items[i].date.difference(from).inDays,
+                    s: s,
+                    onTap: () => ref.read(selectedPanchangDateProvider.notifier).state =
+                        DateTime(items[i].date.year, items[i].date.month, items[i].date.day),
+                  ),
+                ],
+              ],
             ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
+          ),
+          const SizedBox(height: 14),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
               key: const Key('panchang-tithi-finder-button'),
-              onPressed: () => showTithiFinderSheet(context, s.lang),
-              icon: const Icon(Icons.manage_search_rounded, size: 20),
-              label: Text(
-                s.tithiFinder,
-                style: GoogleFonts.mukta(
-                    fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: MandirTheme.secondaryMaroon,
-                side: const BorderSide(color: Color(0xFFD4AF37)),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+              onTap: () => showTithiFinderSheet(context, s.lang),
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFF1D7BD), width: 1.1),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.search_rounded,
+                      size: 18,
+                      color: Color(0xFF8D3F1B),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      s.tithiFinder,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF8D3F1B),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -269,93 +324,105 @@ class _ObservanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final soon = days <= 1;
+    final monthStr =
+        engineDateLabel(fd.date, s.lang).split(' ')[1].replaceAll(',', '');
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
         child: Row(
           children: [
             Container(
-              width: 50,
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               decoration: BoxDecoration(
-                color: fd.recurring
-                    ? const Color(0xFFF5EBE1)
-                    : const Color(0xFFFFE9C7),
-                borderRadius: BorderRadius.circular(10),
+                color: const Color(0xFFFDECDD),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     _digits('${fd.date.day}', s.lang),
-                    style: GoogleFonts.mukta(
-                      fontSize: 20,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w800,
-                      color: MandirTheme.secondaryMaroon,
+                      color: const Color(0xFF6D3214),
                       height: 1.1,
                     ),
                   ),
                   Text(
-                    engineDateLabel(fd.date, s.lang).split(' ')[1].replaceAll(',', ''),
-                    style: GoogleFonts.mukta(
-                        fontSize: 12, color: MandirTheme.textMuted, height: 1.1),
+                    monthStr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF8C5332),
+                      height: 1.1,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    spacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        label,
-                        style: GoogleFonts.mukta(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.bold,
-                          color: MandirTheme.textDark,
-                          height: 1.2,
-                        ),
-                      ),
-                      if (fd.recurring)
-                        Text(
-                          '• ${s.monthly}',
-                          style: GoogleFonts.mukta(
-                              fontSize: 12.5, color: MandirTheme.textMuted),
-                        ),
-                    ],
-                  ),
                   Text(
-                    tithi,
-                    style: GoogleFonts.mukta(
-                        fontSize: 13.5, color: const Color(0xFF755034)),
+                    label,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF2C1E14),
+                      height: 1.2,
+                    ),
                   ),
-                  if (muhurta != null)
+                  const SizedBox(height: 2),
+                  Text(
+                    fd.recurring ? '$tithi • ${s.monthly}' : tithi,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF8C7565),
+                      height: 1.2,
+                    ),
+                  ),
+                  if (muhurta != null) ...[
+                    const SizedBox(height: 1),
                     Text(
                       muhurta!,
-                      style: GoogleFonts.mukta(
-                        fontSize: 13,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: _verifiedColor,
+                        color: const Color(0xFFBA471A),
+                        height: 1.2,
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
             const SizedBox(width: 6),
-            Text(
-              s.inDays(days),
-              style: GoogleFonts.mukta(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-                color: soon ? MandirTheme.primarySaffron : MandirTheme.textMuted,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  s.inDays(days),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF8C7565),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: Color(0xFFB5A495),
+                ),
+              ],
             ),
           ],
         ),

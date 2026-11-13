@@ -33,8 +33,10 @@ class AartiFavoritesNotifier extends StateNotifier<List<String>> {
   final AartiFavoritesRepository _repo;
 
   AartiFavoritesNotifier(this._repo) : super(const []) {
-    _init();
+    _loaded = _init();
   }
+
+  late final Future<void> _loaded;
 
   Future<void> _init() async {
     final loaded = await _repo.loadFavorites();
@@ -42,12 +44,33 @@ class AartiFavoritesNotifier extends StateNotifier<List<String>> {
   }
 
   Future<void> toggle(String id) async {
+    await _loaded;
     final current = [...state];
     if (current.contains(id)) {
       current.remove(id);
     } else {
       current.insert(0, id);
     }
+    state = current;
+    await _repo.saveFavorites(current);
+  }
+
+  /// Adds [id] to the front of the shelf; no-op if already pinned.
+  Future<void> pin(String id) async {
+    await _loaded;
+    if (state.contains(id)) return;
+    final current = [id, ...state];
+    state = current;
+    await _repo.saveFavorites(current);
+  }
+
+  /// Puts [id] at the front of the shelf in place of [previousId].
+  Future<void> replace(String? previousId, String id) async {
+    await _loaded;
+    final current = [
+      id,
+      ...state.where((e) => e != id && e != previousId),
+    ];
     state = current;
     await _repo.saveFavorites(current);
   }

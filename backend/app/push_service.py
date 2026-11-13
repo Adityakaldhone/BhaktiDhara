@@ -13,6 +13,9 @@ logger = logging.getLogger("bhaktidhara.push")
 SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT", "/app/data/firebase-service-account.json")
 FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 ANDROID_CHANNEL_ID = "bhaktidhara_general"
+# Created by the app with the `mandir_bell` sound; Mandir pushes ring the temple bell.
+MANDIR_CHANNEL_ID = "akhand_jyot"
+MANDIR_SOUND = "mandir_bell"
 MAX_CONCURRENT_SENDS = 20
 
 _credentials = None
@@ -109,6 +112,7 @@ def _build_message(campaign: Dict[str, Any], target: Dict[str, str]) -> Dict[str
     if image:
         notification["image"] = image
 
+    mandir = campaign.get("route") == "mandir"
     message: Dict[str, Any] = {
         **target,
         "notification": notification,
@@ -116,9 +120,9 @@ def _build_message(campaign: Dict[str, Any], target: Dict[str, str]) -> Dict[str
         "android": {
             "priority": "HIGH",
             "notification": {
-                "channel_id": ANDROID_CHANNEL_ID,
+                "channel_id": MANDIR_CHANNEL_ID if mandir else ANDROID_CHANNEL_ID,
                 "color": "#FF9933",
-                "sound": "default",
+                "sound": MANDIR_SOUND if mandir else "default",
             },
         },
         "apns": {

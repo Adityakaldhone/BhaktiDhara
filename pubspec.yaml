@@ -1,7 +1,7 @@
 name: nitya_aarti
 description: "BhaktiDhara: Aarti Sangrah"
 publish_to: 'none'
-version: 1.2.6+28
+version: 1.2.11+33
 
 environment:
   sdk: ^3.12.2
@@ -65,7 +65,6 @@ dependencies:
   astronomia: ^1.1.1
   pdfrx: ^2.4.8
   device_info_plus: ^13.3.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -88,6 +87,8 @@ flutter:
     - assets/aarti_list/
     - assets/bhakti/
     - assets/sounds/
+    # 3D Garbhagriha layers; painted fallbacks cover any missing file
+    - assets/mandir/
     # One repetition per mantra for chant-along (currently TTS placeholders)
     - assets/sounds/jaap/
     # Bundled so status cards render offline with identical typography

@@ -10,6 +10,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 // ignore: depend_on_referenced_packages
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
+import '../../core/youtube_embed_guard.dart';
 import '../../domain/entities/devotional_song_item.dart';
 
 const String _kYoutubeEmbedOrigin = 'https://com.kaldhone.bhaktidhara';
@@ -165,6 +166,9 @@ class _DeityVideoWatchScreenState extends State<DeityVideoWatchScreen>
             onPageFinished: (_) {
               if (mounted) setState(() => _isLoading = false);
             },
+            onNavigationRequest: (request) => isSignInUrl(request.url)
+                ? NavigationDecision.prevent
+                : NavigationDecision.navigate,
           ),
         )
         ..loadHtmlString(embedHtml, baseUrl: _kYoutubeEmbedOrigin);

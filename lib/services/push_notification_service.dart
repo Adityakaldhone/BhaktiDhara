@@ -10,10 +10,14 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../data/datasources/bhajan_catalog.dart';
 import '../data/datasources/catalog.dart';
+import '../data/datasources/gujarati_deities_catalog.dart';
 import '../data/datasources/marathi_aarti_catalog.dart';
+import '../data/datasources/rajasthani_deities_catalog.dart';
+import '../data/datasources/uttarakhand_deities_catalog.dart';
 import '../domain/entities/aarti_item.dart';
 import '../domain/entities/app_remote_config.dart';
 import '../domain/entities/horoscope.dart';
+import '../features/mandir/screens/real_garbhagriha_screen.dart';
 import '../firebase_options.dart';
 import '../presentation/screens/altar_screen.dart';
 import '../presentation/screens/bhajan_screen.dart';
@@ -43,6 +47,16 @@ class PushNotificationService {
     'BhaktiDhara updates',
     description: 'Aarti reminders, festival alerts and announcements',
     importance: Importance.high,
+  );
+
+  /// Channel sounds are fixed once created on the device, so the bell lives on
+  /// its own channel rather than changing [_channel].
+  static const _jyotChannel = AndroidNotificationChannel(
+    'akhand_jyot',
+    'Akhand Jyot',
+    description: 'Reminders before your Akhand Jyot runs out of ghee',
+    importance: Importance.high,
+    sound: RawResourceAndroidNotificationSound('mandir_bell'),
   );
 
   static const _topicsKey = 'push_subscribed_topics';
@@ -87,6 +101,9 @@ class PushNotificationService {
       await _local
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(_channel);
+      await _local
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(_jyotChannel);
 
       // Check current permission status non-intrusively without showing a system prompt
       await checkPermissionGranted();
@@ -236,17 +253,20 @@ class PushNotificationService {
     if (defaultTargetPlatform != TargetPlatform.android) return;
     final notification = message.notification;
     if (notification == null) return;
+    // Mandir pushes ring the temple bell, like the Akhand Jyot reminders.
+    final channel = message.data['route'] == 'mandir' ? _jyotChannel : _channel;
     await _local.show(
       id: notification.hashCode,
       title: notification.title,
       body: notification.body,
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
-          _channel.id,
-          _channel.name,
-          channelDescription: _channel.description,
+          channel.id,
+          channel.name,
+          channelDescription: channel.description,
           importance: Importance.high,
           priority: Priority.high,
+          sound: channel.sound,
           color: const Color(0xFFFF9933),
           styleInformation: BigTextStyleInformation(notification.body ?? ''),
         ),
@@ -287,6 +307,8 @@ class PushNotificationService {
         return config.isEnabled(AppRemoteConfig.bhajan) ? const BhajanScreen() : null;
       case 'grahan':
         return const GrahanScreen();
+      case 'mandir':
+        return const RealGarbhagrihaScreen();
       case 'aarti':
         final aarti = _findAarti(data['aartiId']?.toString());
         return aarti == null ? null : AartiAltarScreen(aarti: aarti);
@@ -300,19 +322,68 @@ class PushNotificationService {
 
   /// Schedules a one-off local notification at [atUtc]; returns false when
   /// unsupported or the time has passed. [payload] is routed like a push tap.
+  /// [templeBell] rings `mandir_bell` on Android instead of the default tone.
   static Future<bool> scheduleReminder({
     required int id,
     required DateTime atUtc,
     required String title,
     required String body,
     Map<String, dynamic> payload = const {},
+    bool templeBell = false,
   }) async {
     if (!canScheduleReminders || !atUtc.isAfter(DateTime.now())) return false;
+    final channel = templeBell ? _jyotChannel : _channel;
     try {
       await _local.zonedSchedule(
         id: id,
         scheduledDate: tz.TZDateTime.from(atUtc.toUtc(), tz.UTC),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        title: title,
+        body: body,
+        payload: jsonEncode(payload),
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            channel.id,
+            channel.name,
+            channelDescription: channel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+            sound: channel.sound,
+            color: const Color(0xFFFF9933),
+            styleInformation: BigTextStyleInformation(body),
+          ),
+          iOS: const DarwinNotificationDetails(presentAlert: true, presentSound: true),
+        ),
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Reminder scheduling failed: $e');
+      return false;
+    }
+  }
+
+  /// Schedules a notification that repeats every day at [hour]:[minute] device
+  /// time. Survives reboots via the plugin's boot receiver.
+  static Future<bool> scheduleDailyReminder({
+    required int id,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+    Map<String, dynamic> payload = const {},
+  }) async {
+    if (!canScheduleReminders) return false;
+    final now = DateTime.now();
+    var next = DateTime(now.year, now.month, now.day, hour, minute);
+    if (!next.isAfter(now)) next = next.add(const Duration(days: 1));
+    try {
+      await _local.zonedSchedule(
+        id: id,
+        // Repeats at the same UTC time daily; India has no DST so the local
+        // time stays fixed.
+        scheduledDate: tz.TZDateTime.from(next.toUtc(), tz.UTC),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
         title: title,
         body: body,
         payload: jsonEncode(payload),
@@ -331,7 +402,7 @@ class PushNotificationService {
       );
       return true;
     } catch (e) {
-      debugPrint('Reminder scheduling failed: $e');
+      debugPrint('Daily reminder scheduling failed: $e');
       return false;
     }
   }
@@ -384,9 +455,19 @@ class PushNotificationService {
     );
   }
 
-  static AartiItem? _findAarti(String? id) {
+  static AartiItem? _findAarti(String? id) => findAartiById(id);
+
+  /// Looks [id] up across every bundled catalog, including regional ones.
+  static AartiItem? findAartiById(String? id) {
     if (id == null || id.isEmpty) return null;
-    for (final item in [...kDevotionalCatalog, ...kMarathiAartiCatalog, ...kBhajanCatalog]) {
+    for (final item in [
+      ...kDevotionalCatalog,
+      ...kMarathiAartiCatalog,
+      ...kBhajanCatalog,
+      ...kGujaratiDeitiesCatalog,
+      ...kRajasthaniDeitiesCatalog,
+      ...kUttarakhandDeitiesCatalog,
+    ]) {
       if (item.id == id) return item;
     }
     return null;

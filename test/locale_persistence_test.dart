@@ -13,6 +13,33 @@ void main() {
     expect(resolveStartupLocale(null), getInitialDeviceLocale());
   });
 
+  test('never auto-selects English; Hindi unless the device is Marathi', () {
+    expect(
+      preferredFirstLaunchLanguageCode(
+        deviceLocales: const [Locale('en', 'US')],
+        deviceLocale: const Locale('en', 'US'),
+      ),
+      'hi',
+    );
+    expect(
+      preferredFirstLaunchLanguageCode(
+        deviceLocales: const [Locale('mr'), Locale('en')],
+        deviceLocale: const Locale('mr'),
+      ),
+      'mr',
+    );
+    expect(
+      preferredFirstLaunchLanguageCode(
+        deviceLocales: const [Locale('hi')],
+        deviceLocale: const Locale('hi'),
+      ),
+      'hi',
+    );
+    final code = getInitialDeviceLocale().languageCode;
+    expect(code == 'hi' || code == 'mr', isTrue);
+    expect(code, isNot('en'));
+  });
+
   test('a saved user choice wins over the device language', () async {
     SharedPreferences.setMockInitialValues({'user_selected_language': 'mr'});
     final code = await loadUserLanguageCode();

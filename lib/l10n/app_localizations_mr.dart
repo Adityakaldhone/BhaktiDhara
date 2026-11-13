@@ -108,7 +108,7 @@ class AppLocalizationsMr extends AppLocalizations {
   String get deityDurga => 'दुर्गा देवी';
 
   @override
-  String get navBhajan => 'भक्ती';
+  String get navMandir => 'मंदिर';
 
   @override
   String get navGranth => 'ग्रंथ';

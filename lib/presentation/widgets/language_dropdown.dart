@@ -10,8 +10,8 @@ class LanguageDropdown extends ConsumerWidget {
   const LanguageDropdown({super.key});
 
   static const _languages = [
-    ('मराठी', Locale('mr')),
     ('हिंदी', Locale('hi')),
+    ('मराठी', Locale('mr')),
     ('English', Locale('en')),
   ];
 
@@ -67,39 +67,42 @@ class LanguageDropdown extends ConsumerWidget {
           ),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFD4AF37), width: 1.2),
+          border: Border.all(color: const Color(0xFFD4AF37), width: 1.3),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
-              offset: const Offset(0, 1),
+              offset: const Offset(0, 1.5),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Icon(
               Icons.language,
-              size: 16,
+              size: 18,
               color: MandirTheme.primarySaffron,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
               currentName,
               style: GoogleFonts.mukta(
-                fontSize: 14,
+                fontSize: 15.5,
                 fontWeight: FontWeight.bold,
                 color: MandirTheme.secondaryMaroon,
               ),
             ),
+            const SizedBox(width: 4),
             const Icon(
               Icons.keyboard_arrow_down_rounded,
-              size: 18,
+              size: 20,
               color: MandirTheme.primarySaffron,
             ),
           ],

@@ -7,6 +7,7 @@ import '../../domain/entities/subscription_plan.dart';
 import '../../services/backend_service.dart';
 import '../../services/subscription_service.dart';
 import '../providers/remote_config_provider.dart';
+import '../providers/review_provider.dart';
 import 'premium_blurred_gate.dart';
 
 /// Admin-controlled festive offer popup on the home screen.
@@ -26,6 +27,13 @@ class FestiveOfferPopup {
 
   static bool _handledThisLaunch = false;
 
+  @visibleForTesting
+  static void resetForTest() => _handledThisLaunch = false;
+
+  /// First session is language → aarti only; the offer waits for a return visit.
+  @visibleForTesting
+  static bool deferForFirstSession(bool isFirstSession) => isFirstSession;
+
   static Future<void> maybeShow(
     BuildContext context,
     WidgetRef ref,
@@ -34,6 +42,11 @@ class FestiveOfferPopup {
     if (_handledThisLaunch) return;
     final config = ref.read(remoteConfigProvider);
     if (!config.showFestivePopup || ref.read(premiumAccessProvider)) return;
+    // First session is language → aarti only. Do not burn a show-count slot.
+    if (deferForFirstSession(ref.read(reviewServiceProvider).isFirstSession)) {
+      _handledThisLaunch = true;
+      return;
+    }
 
     _handledThisLaunch = true;
     final campaign = config.festivePopupCampaign;

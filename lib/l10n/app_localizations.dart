@@ -292,11 +292,11 @@ abstract class AppLocalizations {
   /// **'Durga'**
   String get deityDurga;
 
-  /// No description provided for @navBhajan.
+  /// No description provided for @navMandir.
   ///
   /// In en, this message translates to:
-  /// **'Bhakti'**
-  String get navBhajan;
+  /// **'Mandir'**
+  String get navMandir;
 
   /// No description provided for @navGranth.
   ///

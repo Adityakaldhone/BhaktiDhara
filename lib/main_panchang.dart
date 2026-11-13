@@ -176,7 +176,7 @@ class _PanchangStartupGateState extends State<_PanchangStartupGate> {
           return const Scaffold(backgroundColor: MandirTheme.backgroundCream);
         }
         return snapshot.data!
-            ? const LanguageSelectionScreen()
+            ? const LanguageSelectionScreen(askIshtaDevta: false)
             : const PanchangAppDashboardScreen();
       },
     );

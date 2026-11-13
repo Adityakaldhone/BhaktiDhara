@@ -41,17 +41,31 @@ final currentHoroscopeReadingProvider =
 });
 
 /// Notifier for toggling the daily 6:00 AM Horoscope Curiosity Push notification.
+///
+/// Opt-in: new installs start off. Devotees already subscribed by an earlier
+/// version (default was on) stay subscribed.
 class MorningReminderNotifier extends StateNotifier<bool> {
   static const _prefKey = 'morning_horoscope_push_enabled';
+  static const _subscribedTopicsKey = 'push_subscribed_topics';
 
-  MorningReminderNotifier() : super(true) {
+  MorningReminderNotifier() : super(false) {
     _loadState();
   }
+
+  /// Saved choice wins; otherwise keep whatever FCM subscription exists.
+  static bool resolveInitial({bool? saved, List<String>? subscribedTopics}) =>
+      saved ?? (subscribedTopics?.contains('morning_horoscope') ?? false);
 
   Future<void> _loadState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      state = prefs.getBool(_prefKey) ?? true;
+      final saved = prefs.getBool(_prefKey);
+      final value = resolveInitial(
+        saved: saved,
+        subscribedTopics: prefs.getStringList(_subscribedTopicsKey),
+      );
+      if (saved == null) await prefs.setBool(_prefKey, value);
+      if (mounted) state = value;
     } catch (_) {}
   }
 

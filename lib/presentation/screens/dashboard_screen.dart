@@ -26,12 +26,12 @@ import '../providers/remote_config_provider.dart';
 import '../providers/review_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../widgets/app_banner_ad.dart';
+import '../widgets/akhand_jyot_bar.dart';
 import '../widgets/festive_offer_popup.dart';
 import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/remote_notices.dart';
-import 'bhajan_screen.dart';
 import 'deity_aarti_list_screen.dart';
 import 'horoscope_screen.dart';
 import 'more_screen.dart';
@@ -43,7 +43,8 @@ import '../widgets/nitya_aarti_shelf.dart';
 import 'granth_chapter_list_screen.dart';
 
 /// Order must match the [IndexedStack] children in the dashboard.
-enum _DashTab { home, bhajan, horoscope, panchang, more }
+/// [mandir] never becomes the current tab: tapping it opens the Garbhagriha.
+enum _DashTab { home, mandir, horoscope, panchang, more }
 
 /// Screen 1 — BhaktiDhara Dashboard (pixel-perfect match to UI mockup)
 class MandirDashboardScreen extends ConsumerStatefulWidget {
@@ -88,7 +89,13 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       // Speech is initialized on the first mic tap: initializing here shows the
       // microphone prompt at launch, and Android then drops the notification prompt.
       _loadBannerAd();
-      AppPermissionService.checkAndRequestStartupPermissions(ref);
+      if (kIsWeb || !Platform.environment.containsKey('FLUTTER_TEST')) {
+        AppPermissionService.checkAndRequestStartupPermissions(ref)
+            .whenComplete(_maybeShowFirstLight);
+      }
+      // Record the session now so first-launch paywall gating is accurate
+      // before the festive popup timer fires.
+      ref.read(reviewServiceProvider);
     });
     if (kIsWeb || !Platform.environment.containsKey('FLUTTER_TEST')) {
       _festivePopupTimer = Timer(const Duration(seconds: 4), () {
@@ -97,6 +104,12 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       });
     }
     ref.listenManual(remoteConfigProvider, (_, _) => _maybeShowFestivePopup());
+  }
+
+  Future<void> _maybeShowFirstLight() async {
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    if (!mounted || _tab != _DashTab.home) return;
+    await FirstLightDialog.maybeShow(context, ref);
   }
 
   void _maybeShowFestivePopup() {
@@ -200,7 +213,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     bool on(String flag) => ref.watch(featureEnabledProvider(flag));
     final tabs = [
       _DashTab.home,
-      if (on(AppRemoteConfig.bhajan)) _DashTab.bhajan,
+      _DashTab.mandir,
       if (on(AppRemoteConfig.horoscope)) _DashTab.horoscope,
       if (on(AppRemoteConfig.panchang)) _DashTab.panchang,
       _DashTab.more,
@@ -213,12 +226,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       children: [
         for (final (tab, child) in [
           (_DashTab.home, _buildHomeTab(catalogAsync, l10n, localeCode)),
-          (
-            _DashTab.bhajan,
-            _visitedTabs.contains(_DashTab.bhajan) && tabs.contains(_DashTab.bhajan)
-                ? const BhajanScreen()
-                : const SizedBox.shrink(),
-          ),
+          (_DashTab.mandir, const SizedBox.shrink()),
           (
             _DashTab.horoscope,
             _visitedTabs.contains(_DashTab.horoscope) && tabs.contains(_DashTab.horoscope)
@@ -245,7 +253,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
     // Hidden tabs stay alive in the IndexedStack, so their banner lives here
     // and only exists while the tab is on screen.
-    final showTabBanner = currentTab == _DashTab.panchang || currentTab == _DashTab.bhajan;
+    final showTabBanner = currentTab == _DashTab.panchang;
     final tabBody = Column(
       children: [
         Expanded(child: tabStack),
@@ -364,6 +372,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             currentIndex: navIndex,
             onTap: (index) {
               final tapped = tabs[index];
+              if (tapped == _DashTab.mandir) {
+                openGarbhagriha(context, ref, source: 'nav_tab');
+                return;
+              }
               // Re-tapping Home scrolls the collection back to the top
               if (tapped == _DashTab.home &&
                   currentTab == _DashTab.home &&
@@ -409,9 +421,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                       icon: const Icon(Icons.home_filled),
                       label: l10n.navHome,
                     ),
-                  _DashTab.bhajan => BottomNavigationBarItem(
-                      icon: const Icon(Icons.library_music_rounded),
-                      label: l10n.navBhajan,
+                  _DashTab.mandir => BottomNavigationBarItem(
+                      icon: const Icon(Icons.temple_hindu_rounded),
+                      label: l10n.navMandir,
                     ),
                   _DashTab.horoscope => BottomNavigationBarItem(
                       icon: const Icon(Icons.auto_awesome),
@@ -422,7 +434,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                       label: l10n.navPanchang,
                     ),
                   _DashTab.more => BottomNavigationBarItem(
-                      icon: const Icon(Icons.grid_view_rounded),
+                      icon: const Icon(Icons.dashboard_customize_outlined),
+                      activeIcon: const Icon(Icons.dashboard_customize_rounded),
                       label: l10n.navMore,
                     ),
                 },
@@ -453,6 +466,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               slivers: [
                 // ── Decorative Header (collapses to a compact bar) ───────
                 _buildSliverHeader(l10n),
+
+                // ── Akhand Jyot: Ishta Devta flame + ghee level ──────────
+                const SliverToBoxAdapter(child: AkhandJyotBar()),
 
                 // ── Search Bar (stays pinned under the header) ───────────
                 SliverPersistentHeader(
@@ -2495,45 +2511,47 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       elevation: 6,
       position: PopupMenuPosition.under,
       itemBuilder: (context) => [
-        _buildLanguagePopupItem('मराठी', const Locale('mr'), currentLocale),
         _buildLanguagePopupItem('हिंदी', const Locale('hi'), currentLocale),
+        _buildLanguagePopupItem('मराठी', const Locale('mr'), currentLocale),
         _buildLanguagePopupItem('English', const Locale('en'), currentLocale),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFD4AF37), width: 1.2),
+          border: Border.all(color: const Color(0xFFD4AF37), width: 1.3),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
-              offset: const Offset(0, 1),
+              offset: const Offset(0, 1.5),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Icon(
               Icons.language,
-              size: 16,
+              size: 18,
               color: MandirTheme.primarySaffron,
             ),
-            const SizedBox(width: 5),
+            const SizedBox(width: 6),
             Text(
               '$labelPrefix: $currentLangName',
               style: GoogleFonts.mukta(
-                fontSize: 14.5,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: MandirTheme.secondaryMaroon,
               ),
             ),
-            const SizedBox(width: 3),
+            const SizedBox(width: 4),
             const Icon(
               Icons.keyboard_arrow_down_rounded,
-              size: 19,
+              size: 20,
               color: MandirTheme.primarySaffron,
             ),
           ],

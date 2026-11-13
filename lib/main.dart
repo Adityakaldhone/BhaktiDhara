@@ -17,6 +17,8 @@ import 'presentation/providers/horoscope_provider.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'presentation/screens/language_selection_screen.dart';
 import 'presentation/widgets/remote_notices.dart';
+import 'services/aarti_reminder_service.dart';
+import 'services/akhand_diya_service.dart';
 import 'services/app_update_service.dart';
 import 'services/backend_service.dart';
 import 'services/interstitial_ad_service.dart';
@@ -85,6 +87,8 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
       await PushNotificationService.init();
       if (!mounted) return;
       _syncPushTopics();
+      AartiReminderService.reapply(ref.read(localeProvider).languageCode);
+      AkhandDiyaService.reapply(ref.read(localeProvider).languageCode);
       PushNotificationService.handlePendingTap();
 
       // 6. Google Play in-app update (background download, immediate if urgent/stale)

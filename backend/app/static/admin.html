@@ -221,8 +221,15 @@
     padding: 9px 16px; border-radius: 10px; font-weight: 600; font-size: 13px;
     cursor: pointer; white-space: nowrap;
     box-shadow: var(--shadow-sm);
-    transition: background .15s, box-shadow .15s, border-color .15s, color .15s;
+    position: relative; overflow: hidden;
+    transition: background .15s, box-shadow .15s, border-color .15s, color .15s, transform .1s;
   }
+  .btn .ripple {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    background: currentColor; opacity: .18; transform: scale(0);
+    animation: btnRipple .6s ease-out forwards;
+  }
+  @keyframes btnRipple { to { transform: scale(1); opacity: 0; } }
   .btn:hover { background: var(--saffron-hover); box-shadow: var(--shadow-md); }
   .btn:active { transform: scale(.98); }
   .btn.ghost { background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
@@ -273,6 +280,17 @@
   .gr-item.off img { opacity: .4; }
   .gr-meta { padding: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
   .gr-meta select.inp { padding: 4px 8px; font-size: 12px; }
+
+  /* ── Uninstalls per day ──────────────────────────────────── */
+  .un-days { display: flex; gap: 4px; align-items: flex-end; overflow-x: auto; padding: 12px 0 6px; min-height: 120px; }
+  .un-day { flex: 1 0 34px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px;
+            background: none; border: 1px solid transparent; border-radius: 8px; padding: 4px 2px; cursor: pointer; font: inherit; }
+  .un-day:hover { background: var(--red-bg); }
+  .un-day.on { background: var(--red-bg); border-color: var(--red-border); }
+  .un-day .bar { width: 16px; min-height: 2px; background: var(--red); opacity: .5; border-radius: 4px 4px 0 0; }
+  .un-day.on .bar { opacity: 1; }
+  .un-day .c { font-size: 11px; font-weight: 700; color: var(--red); }
+  .un-day .d { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
 
   /* ── Cards & Grid ────────────────────────────────────────── */
   .grid { display: grid; gap: 18px; }
@@ -734,8 +752,19 @@
           <select class="inp" id="u-locale"><option value="">All languages</option><option value="mr">Marathi</option><option value="hi">Hindi</option><option value="en">English</option></select>
           <select class="inp" id="u-tier"><option value="">All tiers</option><option value="vip">VIP (any)</option><option value="paid">VIP (paid)</option><option value="granted">VIP (granted)</option><option value="free">Free</option></select>
           <select class="inp" id="u-status"><option value="">Any status</option><option value="active7d">Active last 7d</option><option value="new7d">New last 7d</option><option value="dormant">Dormant 30d+</option><option value="uninstalled">Uninstalled</option><option value="blocked">Blocked</option></select>
-          <select class="inp" id="u-sort"><option value="last_seen">Sort: Last active</option><option value="first_seen">Sort: Newest install</option><option value="pings">Sort: Most sessions</option><option value="name">Sort: Name</option></select>
+          <select class="inp" id="u-sort"><option value="last_seen">Sort: Last active</option><option value="first_seen">Sort: Newest install</option><option value="pings">Sort: Most sessions</option><option value="name">Sort: Name</option><option value="uninstalled">Sort: Recently uninstalled</option></select>
         </div>
+      </div>
+      <div class="card" style="margin-bottom:18px;padding:14px 20px">
+        <div class="row" style="justify-content:space-between">
+          <b>🗑️ Uninstalls per day <span style="color:var(--text-dim);font-weight:400">· last 30 days · click a day to see those devices</span></b>
+          <div class="row">
+            <span id="u-un-summary" style="color:var(--text-muted);font-size:13px"></span>
+            <button type="button" class="btn ghost sm" id="u-un-clear" hidden>✕ Clear day</button>
+          </div>
+        </div>
+        <div id="u-un-days" class="un-days"></div>
+        <div style="font-size:12px;color:var(--text-dim)">Dated by when the daily 3 PM uninstall check detected it, so a day's count covers uninstalls since the previous check.</div>
       </div>
       <div class="card">
         <div class="scroll-x">
@@ -910,6 +939,7 @@
                 <option value="jaap">Jaap Mala</option>
                 <option value="horoscope">Horoscope</option>
                 <option value="bhajan">Bhajans</option>
+                <option value="mandir">Mandir (Garbhagriha) 🔔</option>
               </select>
             </label>
             <label class="f" data-show="route=aarti">Aarti ID
@@ -1361,6 +1391,7 @@
   }
   const dateIN = (iso) => iso ? new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
   const shortDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const istDay = (iso) => new Date(new Date(iso).getTime() + 5.5 * 3600e3).toISOString().slice(0, 10);
 
   function kpi(label, value, hint = '', color = '') {
     return `
@@ -1452,7 +1483,7 @@
     else if (u.vipGranted) out.push('<span class="pill granted">🎁 Granted</span>');
     else out.push('<span class="pill">Free</span>');
     if (u.blocked) out.push(' <span class="pill blocked">Blocked</span>');
-    if (u.uninstalledAt) out.push(' <span class="pill blocked">Uninstalled</span>');
+    if (u.uninstalledAt) out.push(` <span class="pill blocked" title="Detected ${esc(dateIN(u.uninstalledAt))}">Uninstalled ${esc(shortDay(istDay(u.uninstalledAt)))}</span>`);
     return out.join('');
   }
 
@@ -1567,17 +1598,52 @@
   $('#ov-days').addEventListener('change', () => loaders.overview());
 
   // ── users ──────────────────────────────────────────────────
-  const uState = { page: 1, pageSize: 25, total: 0 };
+  const uState = { page: 1, pageSize: 25, total: 0, uninstalledOn: '', rows: new Map(), seq: 0 };
   function userQuery() {
     return new URLSearchParams({
       search: $('#u-search').value.trim(), platform: $('#u-platform').value, locale: $('#u-locale').value,
       tier: $('#u-tier').value, status: $('#u-status').value, sort: $('#u-sort').value,
+      uninstalled_on: uState.uninstalledOn,
     });
   }
+  async function loadUninstallDays() {
+    const data = await api('/api/v1/admin/uninstalls/daily?days=30');
+    const max = Math.max(1, ...data.days.map(d => d.count));
+    const today = data.days[data.days.length - 1];
+    const last7 = data.days.slice(-7).reduce((s, d) => s + d.count, 0);
+    $('#u-un-summary').textContent = `Today ${fmt(today.count)} · last 7d ${fmt(last7)} · all time ${fmt(data.total)}`;
+    $('#u-un-days').innerHTML = data.days.map(d => `
+      <button type="button" class="un-day ${d.date === uState.uninstalledOn ? 'on' : ''}" data-un-day="${d.date}"
+              title="${shortDay(d.date)}: ${d.count} uninstalls detected">
+        <span class="c">${d.count || ''}</span>
+        <span class="bar" style="height:${Math.round(d.count / max * 70)}px"></span>
+        <span class="d">${shortDay(d.date)}</span>
+      </button>`).join('');
+    $('#u-un-clear').hidden = !uState.uninstalledOn;
+  }
+  function setUninstallDay(day) {
+    uState.uninstalledOn = day;
+    uState.page = 1;
+    if (day) { $('#u-status').value = 'uninstalled'; $('#u-sort').value = 'uninstalled'; }
+    $$('#u-un-days .un-day').forEach(b => b.classList.toggle('on', b.dataset.unDay === day));
+    $('#u-un-clear').hidden = !day;
+    loadUserRows();
+  }
+  $('#u-un-days').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-un-day]');
+    if (b) setUninstallDay(b.dataset.unDay === uState.uninstalledOn ? '' : b.dataset.unDay);
+  });
+  $('#u-un-clear').addEventListener('click', () => setUninstallDay(''));
   loaders.users = async () => {
+    await Promise.all([loadUserRows(), loadUninstallDays()]);
+  };
+  async function loadUserRows() {
+    const seq = ++uState.seq;
     const p = userQuery(); p.set('page', uState.page); p.set('page_size', uState.pageSize);
     const data = await api('/api/v1/admin/users?' + p);
+    if (seq !== uState.seq) return;
     uState.total = data.total;
+    uState.rows = new Map(data.users.map(u => [u.deviceId, u]));
     $('#u-rows').innerHTML = data.users.map(u => {
       const initial = (u.userName || 'D').slice(0, 1).toUpperCase();
       return `
@@ -1607,10 +1673,14 @@
     stamp();
   };
   let searchDebounce;
-  $('#u-search').addEventListener('input', () => { clearTimeout(searchDebounce); searchDebounce = setTimeout(() => { uState.page = 1; loaders.users(); }, 300); });
-  ['#u-platform', '#u-locale', '#u-tier', '#u-status', '#u-sort'].forEach(s => $(s).addEventListener('change', () => { uState.page = 1; loaders.users(); }));
-  $('#u-prev').addEventListener('click', () => { uState.page--; loaders.users(); });
-  $('#u-next').addEventListener('click', () => { uState.page++; loaders.users(); });
+  $('#u-search').addEventListener('input', () => { clearTimeout(searchDebounce); searchDebounce = setTimeout(() => { uState.page = 1; loadUserRows(); }, 300); });
+  ['#u-platform', '#u-locale', '#u-tier', '#u-sort'].forEach(s => $(s).addEventListener('change', () => { uState.page = 1; loadUserRows(); }));
+  $('#u-status').addEventListener('change', () => {
+    if ($('#u-status').value !== 'uninstalled' && uState.uninstalledOn) setUninstallDay('');
+    else { uState.page = 1; loadUserRows(); }
+  });
+  $('#u-prev').addEventListener('click', () => { uState.page--; loadUserRows(); });
+  $('#u-next').addEventListener('click', () => { uState.page++; loadUserRows(); });
   $('#u-rows').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) openUser(tr.dataset.id); });
   $('#u-export').addEventListener('click', async () => {
     const res = await api('/api/v1/admin/users/export.csv?' + userQuery());
@@ -1626,10 +1696,30 @@
   $('#drawer-bg').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
+  let drawerSeq = 0;
   async function openUser(id) {
-    const d = await api('/api/v1/admin/users/' + encodeURIComponent(id));
-    renderDrawer(d);
+    const seq = ++drawerSeq;
+    const u = uState.rows.get(id);
+    $('#drawer').innerHTML = `
+      <div class="row" style="justify-content:space-between">
+        <h2 style="font-size:22px;color:var(--text-primary)">${u ? esc(u.userName) || 'Anonymous Devotee' : 'Loading…'}</h2>
+        <button type="button" class="btn ghost sm" id="dr-close">✕</button>
+      </div>
+      ${u ? `<div style="margin-top:8px">${tierPills(u)}</div>
+      <div class="kv">
+        <div>Device ID</div><div class="mono" style="word-break:break-all">${esc(u.deviceId)}</div>
+        <div>Device Model</div><div>${esc(u.deviceModel) || '—'}</div>
+        <div>Last Active</div><div>${dateIN(u.lastSeen)}</div>
+      </div>` : ''}
+      <div class="empty">⏳ Loading activity…</div>`;
+    $('#dr-close').addEventListener('click', closeDrawer);
     $('#drawer').classList.add('open'); $('#drawer-bg').classList.add('open');
+    try {
+      const d = await api('/api/v1/admin/users/' + encodeURIComponent(id));
+      if (seq === drawerSeq) renderDrawer(d);
+    } catch (err) {
+      if (seq === drawerSeq) toast('⚠️ Could not load devotee: ' + (err.message || err));
+    }
   }
 
   function renderDrawer(d) {
@@ -1777,7 +1867,7 @@
 
   // ── push notifications ─────────────────────────────────────
   const AUDIENCE_LABELS = { all: 'Everyone', vip: 'VIP', free: 'Free users', dormant: 'Inactive', user: 'Single device' };
-  const ROUTE_LABELS = { '': 'Home', aarti: 'Aarti', panchang: 'Panchang', jaap: 'Jaap', horoscope: 'Horoscope', bhajan: 'Bhajans' };
+  const ROUTE_LABELS = { '': 'Home', aarti: 'Aarti', panchang: 'Panchang', jaap: 'Jaap', horoscope: 'Horoscope', bhajan: 'Bhajans', mandir: 'Mandir' };
   const pf = $('#push-form');
   const pe = pf.elements;
 
@@ -1792,6 +1882,7 @@
     { label: '🌅 Morning Aarti (Daily)', title: '🪔 सकाळची आरती', body: 'शुभ प्रभात! आजची आरती करूया — एका टॅपवर आरती सुरू करा 🙏', route: '', when: 'later', at: [6, 30], daily: true },
     { label: '📅 Daily Panchang', title: '📅 आजचे पंचांग', body: 'आजची तिथी, शुभ मुहूर्त आणि राहुकाल पहा.', route: 'panchang', when: 'later', at: [7, 0], daily: true },
     { label: '📿 Evening Jaap', title: '📿 आजचा जप पूर्ण झाला का?', body: 'फक्त ५ मिनिटे — १०८ जप पूर्ण करून आपली साखळी कायम ठेवा 🔥', route: 'jaap', when: 'later', at: [20, 0], daily: true },
+    { label: '🛕 Mandir — Ghee & Aarti', title: '🪔 तुमची अखंड ज्योत वाट पाहत आहे', body: 'मंदिरात या — ज्योतीत तूप अर्पण करा आणि आपल्या इष्ट देवाची आरती करा 🙏', route: 'mandir', when: 'now' },
     { label: '🎉 Festival Greeting', title: '🎉 गणेश चतुर्थीच्या हार्दिक शुभेच्छा!', body: 'गणपती बाप्पा मोरया! आजच्या खास आरत्या ऐका 🐘', route: '', when: 'now' },
     { label: '💤 Win-Back Inactive', title: '🙏 बाप्पा तुमची वाट पाहत आहेत', body: 'बऱ्याच दिवसांपासून आरती केली नाही — आज एक आरती करूया?', route: '', when: 'now', audience: 'dormant' },
   ];
@@ -2090,6 +2181,9 @@
           <select class="inp" data-gri-lang="${i.id}">
             ${['all', 'mr', 'hi', 'en'].map(l => `<option value="${l}" ${l === i.lang ? 'selected' : ''}>${l === 'all' ? 'Any lang' : LANG[l]}</option>`).join('')}
           </select>
+          <select class="inp" data-gri-cat="${i.id}" title="Move to category">
+            ${grCategories.map(c => `<option value="${esc(c.slug)}" ${c.slug === slug ? 'selected' : ''}>${esc(c.emoji)} ${esc(c.nameEn)}</option>`).join('')}
+          </select>
           <button type="button" class="btn ghost sm" data-gri-premium="${i.id}" data-v="${i.premium}">${i.premium ? 'Make free' : 'Make premium'}</button>
           <button type="button" class="btn ghost sm" data-gri-active="${i.id}" data-v="${i.active}">${i.active ? 'Hide' : 'Show'}</button>
           <button type="button" class="btn danger sm" data-gri-del="${i.id}">Delete</button>
@@ -2187,6 +2281,14 @@
     }
   });
   $('#gr-images').addEventListener('change', async (e) => {
+    const c = e.target.closest('[data-gri-cat]');
+    if (c) {
+      const target = grCategories.find(x => x.slug === c.value);
+      await api('/api/v1/admin/greetings/images/' + c.dataset.griCat, { method: 'PATCH', body: JSON.stringify({ categorySlug: c.value }) });
+      toast(`📂 Moved to ${target ? target.nameEn : c.value}`);
+      loaders.greetings();
+      return;
+    }
     const s = e.target.closest('[data-gri-lang]');
     if (!s) return;
     await api('/api/v1/admin/greetings/images/' + s.dataset.griLang, { method: 'PATCH', body: JSON.stringify({ lang: s.value }) });

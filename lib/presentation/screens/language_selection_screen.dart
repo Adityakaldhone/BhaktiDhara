@@ -5,11 +5,16 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/theme.dart';
 import '../providers/locale_provider.dart';
 import 'dashboard_screen.dart';
+import 'ishta_devta_screen.dart';
 
-/// First-launch language picker. English is preselected; the choice is saved
-/// on Continue so this screen is never shown again.
+/// First-launch language picker. Hindi is preselected (Marathi on `mr`
+/// devices); English is last. The choice is saved on Continue so this
+/// screen is never shown again.
 class LanguageSelectionScreen extends ConsumerStatefulWidget {
-  const LanguageSelectionScreen({super.key});
+  const LanguageSelectionScreen({super.key, this.askIshtaDevta = true});
+
+  /// Continue to the Ishta Devta picker instead of straight to the dashboard.
+  final bool askIshtaDevta;
 
   @override
   ConsumerState<LanguageSelectionScreen> createState() =>
@@ -28,9 +33,9 @@ class _LanguageOption {
 class _LanguageSelectionScreenState
     extends ConsumerState<LanguageSelectionScreen> {
   static const _languages = [
-    _LanguageOption('en', 'EN', 'English', 'English'),
     _LanguageOption('hi', 'HI', 'हिंदी', 'Hindi'),
     _LanguageOption('mr', 'MR', 'मराठी', 'Marathi'),
+    _LanguageOption('en', 'EN', 'English', 'English'),
   ];
 
   static const _strings = {
@@ -67,7 +72,7 @@ class _LanguageSelectionScreenState
   static const _border = MandirTheme.cardBorder;
 
   final _searchController = TextEditingController();
-  String _selectedCode = 'en';
+  late String _selectedCode = preferredFirstLaunchLanguageCode();
   String _query = '';
 
   @override
@@ -89,7 +94,11 @@ class _LanguageSelectionScreenState
   void _continue() {
     selectAppLanguage(ref, Locale(_selectedCode));
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const MandirDashboardScreen()),
+      MaterialPageRoute(
+        builder: (_) => widget.askIshtaDevta
+            ? const IshtaDevtaScreen()
+            : const MandirDashboardScreen(),
+      ),
     );
   }
 
