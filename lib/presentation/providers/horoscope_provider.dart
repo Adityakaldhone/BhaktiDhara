@@ -1,13 +1,32 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/horoscope.dart';
+import '../../services/backend_service.dart';
 import '../../services/gemini_horoscope_service.dart';
 import 'locale_provider.dart';
 import 'remote_config_provider.dart';
 
-/// Provider for the Gemini Horoscope Service singleton.
+/// Provider for the Gemini Horoscope Service singleton configured with backend loader.
 final geminiHoroscopeServiceProvider = Provider<GeminiHoroscopeService>((ref) {
-  return GeminiHoroscopeService();
+  return GeminiHoroscopeService(
+    backendLoader: ({
+      required rashi,
+      required period,
+      required langCode,
+      city,
+      required forceRefresh,
+    }) async {
+      return BackendService.fetchHoroscopeJson(
+        rashiId: rashi.id,
+        period: period,
+        langCode: langCode,
+        cityName: city?.name,
+        latitude: city?.latitude,
+        longitude: city?.longitude,
+        forceRefresh: forceRefresh,
+      );
+    },
+  );
 });
 
 /// Provider for the currently selected Rashi (defaults to Aries / Mesh).
@@ -15,29 +34,47 @@ final selectedRashiProvider = StateProvider<Rashi>((ref) {
   return kAllRashis.first;
 });
 
-/// Provider for the currently selected period ('today', 'weekly').
+/// Provider for the currently selected period ('today', 'weekly', 'tomorrow').
 final selectedHoroscopePeriodProvider = StateProvider<String>((ref) {
   return 'today';
+});
+
+/// Provider for the user's city for sunrise/sunset and Abhijit Muhurat calculation.
+final selectedHoroscopeCityProvider = StateProvider<HoroscopeCity?>((ref) {
+  return HoroscopeCity(
+    name: 'Pune',
+    latitude: 18.5204,
+    longitude: 73.8567,
+  );
 });
 
 /// Counter to force a refresh from Gemini AI when user taps 'Refresh'.
 final horoscopeRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
-/// Async provider that fetches the horoscope reading for the active Rashi, period, and language.
-final currentHoroscopeReadingProvider =
-    FutureProvider.autoDispose<HoroscopeReading>((ref) async {
+/// Async provider that fetches the structured HoroscopePage for the active Rashi, period, city, and language.
+final currentHoroscopePageProvider =
+    FutureProvider.autoDispose<HoroscopePage>((ref) async {
   final service = ref.watch(geminiHoroscopeServiceProvider);
   final rashi = ref.watch(selectedRashiProvider);
   final period = ref.watch(selectedHoroscopePeriodProvider);
+  final city = ref.watch(selectedHoroscopeCityProvider);
   final langCode = ref.watch(localeProvider).languageCode;
   final refreshCount = ref.watch(horoscopeRefreshTriggerProvider);
 
-  return service.getHoroscope(
+  return service.getHoroscopePage(
     rashi: rashi,
     period: period,
     langCode: langCode,
+    city: city,
     forceRefresh: refreshCount > 0,
   );
+});
+
+/// Async provider that fetches the horoscope reading for the active Rashi, period, and language.
+final currentHoroscopeReadingProvider =
+    FutureProvider.autoDispose<HoroscopeReading>((ref) async {
+  final page = await ref.watch(currentHoroscopePageProvider.future);
+  return page.reading;
 });
 
 /// Notifier for toggling the daily 6:00 AM Horoscope Curiosity Push notification.

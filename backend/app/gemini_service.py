@@ -3,14 +3,21 @@ import json
 import os
 import re
 from typing import Dict, Any, Optional
-import google.generativeai as genai
+
+if __package__:
+    from .horoscope_engine import configure_horoscope_gemini, generate_horoscope, get_cached_horoscope, horoscope_cache_key
+else:
+    from horoscope_engine import configure_horoscope_gemini, generate_horoscope, get_cached_horoscope, horoscope_cache_key
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite").strip()
 
-if GEMINI_API_KEY:
+if GEMINI_API_KEY and genai is not None:
     genai.configure(api_key=GEMINI_API_KEY)
-
 
 
 def _clean_json_markdown(text: str) -> str:
@@ -21,6 +28,8 @@ def _clean_json_markdown(text: str) -> str:
 
 
 def _generate_with_fallback(prompt: str) -> str:
+    if genai is None:
+        raise RuntimeError("Install the existing google-generativeai dependency to use Gemini")
     try:
         model = genai.GenerativeModel(GEMINI_MODEL)
         response = model.generate_content(prompt)
@@ -37,6 +46,9 @@ def _generate_with_fallback(prompt: str) -> str:
         raise e
 
 
+configure_horoscope_gemini(_generate_with_fallback if GEMINI_API_KEY and genai is not None else None)
+
+
 LANG_NAMES = {"mr": "Marathi (मराठी)", "hi": "Hindi (हिन्दी)", "en": "English"}
 
 # Common in Marathi, rare or absent in Hindi.
@@ -45,7 +57,10 @@ _DEVANAGARI = re.compile(r"[\u0900-\u097F]")
 
 
 def reading_matches_language(data: Dict[str, Any], lang_code: str) -> bool:
-    """False when Gemini answered (or the cache holds) a reading in the wrong language."""
+    """Check the response language before caching or serving a reading."""
+    lang_code = lang_code.strip().lower().replace("_", "-").split("-")[0]
+    if data.get("schemaVersion") == 2:
+        return data.get("langCode") == lang_code
     text = " ".join(str(data.get(k, "")) for k in ("summary", "career", "health", "love", "cautionTitle"))
     if not text.strip():
         return True
@@ -194,156 +209,6 @@ def _resolve_rashi_id(rashi_name: str, explicit_id: Optional[str] = None) -> str
         if k in name_lower:
             return v
     return "aries"
-
-
-async def generate_horoscope(
-    rashi_name: str,
-    period: str,
-    lang_code: str,
-    date_text: str,
-    rashi_id: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Generates authentic, nuanced Vedic Horoscope reading via Google Gemini."""
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY is not configured on the server")
-
-    clean_id = _resolve_rashi_id(rashi_name, rashi_id)
-    profile = RASHI_VEDIC_PROFILES.get(clean_id, RASHI_VEDIC_PROFILES["aries"])
-
-    lang_instruction = {
-        "mr": "Strictly respond in pure, authentic Marathi (मराठी) with proper Devanagari script, as written in respected Panchangs & newspapers.",
-        "hi": "Strictly respond in pure, dignified Hindi (हिन्दी) with authentic Vedic Devanagari terminology.",
-        "en": "Respond in English with authentic Vedic astrology principles and terminology."
-    }.get(lang_code, "Strictly respond in Marathi.")
-    lang_name = LANG_NAMES.get(lang_code, LANG_NAMES["mr"])
-
-    prompt = f"""
-You are an authentic, honest Vedic Astrologer (ज्येष्ठ ज्योतिषाचार्य) writing daily rashibhavishya (राशीभविष्य).
-Real Vedic astrology is balanced, pragmatic, and nuanced. NOT EVERY DAY IS "अत्यंत शुभ".
-Readers want TRUTHFUL, practical astrological guidance, NOT generic fake positivity!
-
-Target Rashi: {rashi_name} ({clean_id.upper()})
-Ruling Planet (राशी स्वामी): {profile['lord']}
-Vedic Element (तत्व): {profile['element']}
-Natural Strengths: {profile['strengths']}
-Vulnerabilities & Cautions: {profile['cautions']}
-Reference Date: {date_text}
-Period: {period} (today/tomorrow/weekly)
-Language Requirement: {lang_instruction}
-
-STRICT ASTROLOGICAL RULES - AVOID TOXIC POSITIVITY & REPETITION:
-1. TRUTHFUL & BALANCED REALISM:
-   - Provide a genuinely differentiated forecast: discuss real planetary transit energies including favorable opportunities alongside realistic challenges, cautions, delays, or stress.
-   - If the day has friction: explicitly warn the reader (उदा. "कामात विलंब संभवतो", "खर्चावर तातडीने नियंत्रण ठेवा", "वादविवादापासून लांब राहा", "कागदपत्रांची पडताळणी करा").
-   - DO NOT repeat generic cliché opening lines like "आजचा दिवस अत्यंत शुभ आणि फलदायी राहील".
-2. CAREER & FINANCE:
-   - Specific advice for jobs, business, investments, or office dealings. Mention whether decisions should be made today or postponed.
-3. HEALTH (आरोग्य):
-   - Specific bodily indicators matching {profile['cautions']} and {profile['element']} (उदा. डोकेदुखी, पित्त, सांधेदुखी, थकवा, पचनक्रिया, उष्णता).
-4. FAMILY & RELATIONSHIPS:
-   - Genuine guidance on where patience or restraint of speech is needed with spouse, elders, or colleagues.
-5. AUSPICIOUS PERCENTAGE (शुभ टक्केवारी):
-   - MUST vary realistically based on today's planetary transit between 42% and 94% (e.g. 52%, 64%, 78%, 86%, 58%, etc.). DO NOT default to 85%!
-6. LUCKY NUMBER & COLOR:
-   - Number: Choose an authentic Vedic number from: {profile['numbers']}.
-   - Color: Choose an authentic color from: {profile['colors']}.
-7. VEDIC REMEDY (उपाय):
-   - A specific sacred mantra, stotra, or deed honoring {profile['lord']}.
-8. CAUTION & AVOIDANCE (सावधगिरीचा इशारा - काय टाळावे?):
-   - cautionTitle: 1 punchy, attention-grabbing headline in {lang_name} (e.g. "दुपारी २:३० ते ५:०० दरम्यान वादाचे प्रसंग व मोठी खरेदी टाळा")
-   - cautionDetail: 1-2 practical sentences explaining planetary risk and specific trap/pitfall to avoid today.
-   - cautionWindow: Specific sensitive time window (e.g. "दुपारी १२:०० - ०३:३०" or "सकाळी १०:३० - १२:००")
-9. HOURLY TIME-SLOTS (वेळेनुसार ३-काळ):
-   - timeSlots: An object containing:
-     - morning: 1-2 practical sentences on morning mindset, worship, and priority tasks (06:00 AM - 12:00 PM)
-     - afternoon: 1-2 sentences on career decisions, trade, negotiation, and alertness (12:00 PM - 05:00 PM)
-     - evening: 1-2 sentences on relationships, health unwinding, and peaceful reflection (05:00 PM - 10:00 PM)
-10. DAILY COMPATIBILITY & DEITY (अनुकूल मैत्री रास व इष्टदेवता मंत्र):
-   - compatibleRashi: 1-2 signs favoring collaboration today in {lang_name} (e.g. "सिंह व धनु")
-   - cautionRashi: 1 sign where caution in communication is needed in {lang_name} (e.g. "वृश्चिक")
-   - compatibilityTip: 1-2 sentences on handling partnership and avoiding debate today
-   - rulingDeity: Divine deity for today's planetary transit in {lang_name}
-   - deityMantra: Sacred Beej Mantra with count in {lang_name} (e.g. "ॐ गं गणपतये नमः (२१ वेळा जप)")
-   - mantraBenefit: 1 sentence on the spiritual benefit of this mantra today
-
-Respond ONLY with a valid, raw JSON object (no markdown, no ```json tags, no explanations).
-JSON Schema:
-{{
-  "summary": "2-3 honest, realistic sentences discussing planetary transit energy, opportunities, and necessary cautions",
-  "career": "1-2 sentences with concrete guidance on work, trade, expenses, or dealings",
-  "health": "1 sentence on health caution and physical energy",
-  "love": "1 sentence on family harmony and where patience is required",
-  "cautionTitle": "1 short punchy alert on what to avoid today",
-  "cautionDetail": "1-2 sentences on specific planetary transit risk and avoidance advice",
-  "cautionWindow": "Specific hours of the day where caution is most required",
-  "timeSlots": {{
-    "morning": "Morning guidance in {lang_name}",
-    "afternoon": "Afternoon guidance in {lang_name}",
-    "evening": "Evening guidance in {lang_name}"
-  }},
-  "compatibleRashi": "1-2 compatible signs today in {lang_name}",
-  "cautionRashi": "1 sign to avoid conflict with today in {lang_name}",
-  "compatibilityTip": "Practical guidance on synergy and handling debate in {lang_name}",
-  "rulingDeity": "Sacred deity for today in {lang_name}",
-  "deityMantra": "Beej mantra with count in {lang_name}",
-  "mantraBenefit": "Spiritual benefit in {lang_name}",
-  "luckyNumber": "Auspicious numeral from {profile['numbers']}",
-  "luckyColor": "Auspicious color from {profile['colors']}",
-  "remedy": "Vedic remedy linked to {profile['lord']}",
-  "auspiciousPercentage": 65
-}}
-
-FINAL LANGUAGE RULE (overrides everything above):
-The Devanagari examples above are Marathi and only illustrate tone. Write EVERY string value
-(except the numeral in luckyNumber) entirely in {lang_name}. Do not mix in any other language.
-"""
-
-    data = None
-    for _attempt in range(2):
-        # The Gemini SDK call is blocking; run it off the event loop.
-        raw_text = await asyncio.to_thread(_generate_with_fallback, prompt)
-        try:
-            parsed = json.loads(_clean_json_markdown(raw_text))
-        except Exception:
-            continue
-        if reading_matches_language(parsed, lang_code):
-            data = parsed
-            data["isAiGenerated"] = True
-            break
-
-    if data is None and lang_code != "mr":
-        # The app has its own localized fallback; never hand Hindi/English users Marathi text.
-        raise ValueError(f"Gemini did not return a usable {lang_name} horoscope")
-
-    if data is None:
-        # Fallback dictionary if JSON parsing fails
-        data = {
-            "summary": f"{rashi_name} राशीच्या जातकांसाठी आज संयम आणि सावधगिरी बाळगण्याचा दिवस आहे. ग्रहांच्या स्थितीनुसार कामात नियोजित वेळेपेक्षा अधिक वेळ लागू शकतो.",
-            "career": "कामाच्या ठिकाणी वादाचे प्रसंग टाळा आणि वरिष्ठांच्या सूचनेनुसार वाटचाल करा. आर्थिक देवाणघेवाणीत दक्षता ठेवा.",
-            "health": "मानसिक थकवा जाणवू शकतो; ध्यानधारणा आणि संतुलित आहारावर भर द्या.",
-            "love": "कुटुंबात सामंजस्याने वागा, रागावर नियंत्रण ठेवल्यास कौटुंबिक सौख्य टिकून राहील.",
-            "cautionTitle": f"{rashi_name} राशीने आज दुपारी घाईगडबडीत आर्थिक निर्णय किंवा वादविवाद टाळावेत.",
-            "cautionDetail": f"{profile['lord']} च्या प्रभावामुळे आज {profile['cautions']} बाबत विशेष दक्षता बाळगणे गरजेचे आहे. कोणावरही आंधळा विश्वास ठेवू नका.",
-            "cautionWindow": "दुपारी १२:०० - ०३:३०",
-            "timeSlots": {
-                "morning": f"सकाळी ६ ते १२: दिवसाचा प्रारंभ ईष्टदेवतेच्या चिंतनाने करा. नवीन योजना आखण्यासाठी सकाळचा काळ शुभ आहे.",
-                "afternoon": f"दुपारी १२ ते ५: कामाच्या ठिकाणी संयम ठेवा. आर्थिक निर्णय व महत्त्वाच्या बैठकांमध्ये विचारपूर्वक बोला.",
-                "evening": f"संध्याकाळी ५ ते १०: कुटुंबासमवेत शांततेत वेळ घालवा. कामाचा ताण दूर ठेवून सात्त्विक आहाराला प्राधान्य द्या.",
-            },
-            "compatibleRashi": "सिंह व धनु",
-            "cautionRashi": "वृश्चिक",
-            "compatibilityTip": "सिंह व धनु राशीच्या सहकाऱ्यांशी कामात सहकार्य लाभेल. वृश्चिक राशीशी संवाद साधताना शांतता ठेवा.",
-            "rulingDeity": f"श्री {profile['lord'].split('(')[0].strip()}",
-            "deityMantra": "ॐ गं गणपतये नमः (२१ वेळा जप)",
-            "mantraBenefit": "या मंत्राने ग्रहांची अनिष्ट पीडा दूर होऊन आत्मविश्वासात वाढ होईल.",
-            "luckyNumber": profile['numbers'].split(',')[0].strip(),
-            "luckyColor": profile['colors'].split(',')[0].strip(),
-            "remedy": f"श्री {profile['lord'].split('(')[0].strip()} चे स्मरण किंवा जप करावा.",
-            "auspiciousPercentage": 62,
-            "isAiGenerated": False,
-        }
-
-    return data
 
 
 async def generate_panchang(city_name: str, date_str: str, lang_code: str) -> Dict[str, Any]:

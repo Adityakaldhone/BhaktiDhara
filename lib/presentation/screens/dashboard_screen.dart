@@ -73,6 +73,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   /// Held back briefly so it doesn't stack on the startup permission prompts.
   bool _festivePopupReady = false;
   Timer? _festivePopupTimer;
+  Timer? _bannerAdTimer;
   late final AppLifecycleListener _lifecycleListener;
   Timer? _searchDebounce;
   Timer? _deityWarmupTimer;
@@ -88,7 +89,12 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Speech is initialized on the first mic tap: initializing here shows the
       // microphone prompt at launch, and Android then drops the notification prompt.
-      _loadBannerAd();
+      // Delay banner initialization slightly to let frame 0 render and prevent WebView startup ANR
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        _bannerAdTimer = Timer(const Duration(milliseconds: 2000), () {
+          if (mounted) _loadBannerAd();
+        });
+      }
       if (kIsWeb || !Platform.environment.containsKey('FLUTTER_TEST')) {
         AppPermissionService.checkAndRequestStartupPermissions(ref)
             .whenComplete(_maybeShowFirstLight);
@@ -184,6 +190,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     _searchDebounce?.cancel();
     _deityWarmupTimer?.cancel();
     _festivePopupTimer?.cancel();
+    _bannerAdTimer?.cancel();
     _homeScrollController.removeListener(_onHomeScroll);
     _searchController.dispose();
     _homeScrollController.dispose();
@@ -253,7 +260,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
     // Hidden tabs stay alive in the IndexedStack, so their banner lives here
     // and only exists while the tab is on screen.
-    final showTabBanner = currentTab == _DashTab.panchang;
+    final showTabBanner =
+        currentTab == _DashTab.panchang || currentTab == _DashTab.horoscope;
     final tabBody = Column(
       children: [
         Expanded(child: tabStack),
@@ -1852,7 +1860,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               const SizedBox(height: 12),
               Center(
                 child: Text(
-                  'BhaktiDhara Aarti Sangrah v1.0.4\nHetzner Mandir Cloud • Powered by Gemini AI',
+                  'BhaktiDhara Aarti Sangrah v1.2.3\nHetzner Mandir Cloud • Powered by Gemini AI',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.mukta(
                     fontSize: 11,

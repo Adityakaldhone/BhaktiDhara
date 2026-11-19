@@ -4,3 +4,7 @@ analyzer:
   exclude:
     - build/**          # Suppress errors from package test stubs in build/ios/SourcePackages/
     - "**/*.g.dart"     # Generated files
+    - android/**
+    - ios/**
+    - web/**
+    - macos/**

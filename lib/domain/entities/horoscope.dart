@@ -323,7 +323,7 @@ class HoroscopeReading {
       mantraBenefit: json['mantraBenefit']?.toString() ?? '',
       auspiciousPercentage:
           (json['auspiciousPercentage'] is num)
-              ? (json['auspiciousPercentage'] as num).toInt()
+              ? (json['auspiciousPercentage'] as num).toInt().clamp(65, 96)
               : 85,
       isAiGenerated: isAiGenerated,
     );

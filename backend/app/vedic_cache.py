@@ -117,7 +117,7 @@ async def _generate_and_save(
     except Exception:
         await increment_api_stat("gemini_error")
         raise
-    if data.get("isAiGenerated"):
+    if data.get("schemaVersion") == 2 or data.get("isAiGenerated"):
         await save(data)
     await increment_api_stat(stat)
     return data
@@ -231,4 +231,4 @@ async def precache_item(
     await gemini_limiter.acquire()
     task = _inflight.get(key) or _start(key, lambda: _generate_and_save(generate, save, "precache_gemini"))
     data = await asyncio.shield(task)
-    return "generated" if data.get("isAiGenerated") else "fallback"
+    return "generated" if (data.get("schemaVersion") == 2 or data.get("isAiGenerated")) else "fallback"

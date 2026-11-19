@@ -427,10 +427,10 @@ class PushNotificationService {
             : '🚩 Daily Horoscope: Auspicious signs for $rashiName!');
 
     final body = langCode == 'mr'
-        ? 'आज धनलाभ व प्रगतीचे मोठे योग! पण दुपारी ही एक चूक टाळा... ➔ ॲपमध्ये पहा'
+        ? 'आज धनलाभ व प्रगतीचे शुभ योग! जाणून घ्या आजचा भाग्यशाली काळ व सिद्ध उपाय ➔ ॲपमध्ये पहा'
         : (langCode == 'hi'
-            ? 'आज धन लाभ व उन्नति के योग! लेकिन दोपहर बाद यह गलती न करें... ➔ ऐप में देखें'
-            : 'Planetary alignments favor progress today! But avoid this one mistake... ➔ Open');
+            ? 'आज धन लाभ व उन्नति के शुभ योग! जानें आज का शुभ समय व विशेष उपाय ➔ ऐप में देखें'
+            : 'Planetary alignments favor growth and blessings today! Discover your auspicious timing & remedy ➔ Open');
 
     await _local.show(
       id: 60000 + rashiId.hashCode.abs() % 1000,

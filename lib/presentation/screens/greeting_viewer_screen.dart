@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../domain/entities/greeting_image.dart';
 import '../../services/greeting_image_composer.dart';
+import '../../services/interstitial_ad_service.dart';
 import '../../services/rewarded_ad_service.dart';
 import '../greeting/greeting_share_flow.dart';
 import '../greeting/greeting_strings.dart';
@@ -34,6 +35,14 @@ class GreetingViewerScreen extends ConsumerStatefulWidget {
 class _GreetingViewerScreenState extends ConsumerState<GreetingViewerScreen> {
   late final PageController _controller = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    // On-demand lazy preloading: only when user enters greeting viewer
+    RewardedAdService.instance.preload();
+    InterstitialAdService.instance.preload();
+  }
 
   @override
   void dispose() {

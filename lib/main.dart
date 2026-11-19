@@ -21,9 +21,7 @@ import 'services/aarti_reminder_service.dart';
 import 'services/akhand_diya_service.dart';
 import 'services/app_update_service.dart';
 import 'services/backend_service.dart';
-import 'services/interstitial_ad_service.dart';
 import 'services/push_notification_service.dart';
-import 'services/rewarded_ad_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,11 +64,13 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
       // 2. Pre-warm remote config cache in background
       BackendService.loadCachedRemoteConfig();
 
-      // 3. Initialize AdMob and preload ads quietly in background without delaying frame 0
+      // 3. Initialize AdMob with a short delay so cold startup and frame 0 remain 100% responsive.
+      // This completely prevents Dynamite classloading (m2.au.loadClass) & Chromium WebView (J.N.IZ)
+      // from colliding with initial UI touch handling.
       if (!kIsWeb) {
-        MobileAds.instance.initialize();
-        RewardedAdService.instance.preload();
-        InterstitialAdService.instance.preload();
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          MobileAds.instance.initialize();
+        });
       }
 
       // 4. Background analytics ping & Clarity session tagging
@@ -91,8 +91,12 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindi
       AkhandDiyaService.reapply(ref.read(localeProvider).languageCode);
       PushNotificationService.handlePendingTap();
 
-      // 6. Google Play in-app update (background download, immediate if urgent/stale)
-      AppUpdateService.checkForUpdateAutomatically();
+      // 6. Google Play in-app update (staggered by 4s to prevent startup GMS Binder lock contention)
+      Future.delayed(const Duration(seconds: 4), () {
+        if (mounted) {
+          AppUpdateService.checkForUpdateAutomatically();
+        }
+      });
     });
   }
 

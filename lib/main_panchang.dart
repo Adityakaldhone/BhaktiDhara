@@ -18,9 +18,7 @@ import 'presentation/screens/panchang_app_dashboard_screen.dart';
 import 'presentation/widgets/remote_notices.dart';
 import 'services/app_update_service.dart';
 import 'services/backend_service.dart';
-import 'services/interstitial_ad_service.dart';
 import 'services/push_notification_service.dart';
-import 'services/rewarded_ad_service.dart';
 
 /// Entry point for the standalone "Sampurna Panchang & Rashifal" app.
 /// Package: com.kaldhone.panchang
@@ -63,11 +61,11 @@ class _SampurnaPanchangAppState extends ConsumerState<SampurnaPanchangApp>
       // 2. Pre-warm remote config cache in background
       BackendService.loadCachedRemoteConfig();
 
-      // 3. Initialize AdMob and preload ads quietly in background
+      // 3. Initialize AdMob with a short delay so cold startup and frame 0 remain 100% responsive
       if (!kIsWeb) {
-        MobileAds.instance.initialize();
-        RewardedAdService.instance.preload();
-        InterstitialAdService.instance.preload();
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          MobileAds.instance.initialize();
+        });
       }
 
       // 4. Background analytics ping & Clarity session tagging
@@ -86,8 +84,12 @@ class _SampurnaPanchangAppState extends ConsumerState<SampurnaPanchangApp>
       _syncPushTopics();
       PushNotificationService.handlePendingTap();
 
-      // 6. Google Play in-app update
-      AppUpdateService.checkForUpdateAutomatically();
+      // 6. Google Play in-app update (staggered by 4s to prevent startup GMS Binder lock contention)
+      Future.delayed(const Duration(seconds: 4), () {
+        if (mounted) {
+          AppUpdateService.checkForUpdateAutomatically();
+        }
+      });
     });
   }
 

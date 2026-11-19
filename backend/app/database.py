@@ -73,6 +73,14 @@ async def init_db():
         """)
 
         await db.execute("""
+            CREATE TABLE IF NOT EXISTS horoscope_payload_cache (
+                cache_key TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        await db.execute("""
             CREATE TABLE IF NOT EXISTS panchang_cache (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 date_str TEXT NOT NULL,
@@ -338,6 +346,48 @@ async def init_db():
 
 # ── Horoscope Cache Methods ──────────────────────────────────────────────────
 
+async def read_horoscope_payload(key: str) -> Optional[Dict[str, Any]]:
+    """Reads a versioned horoscope payload by its compound cache key."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT payload_json FROM horoscope_payload_cache WHERE cache_key = ?",
+            (key,),
+        ) as cur:
+            row = await cur.fetchone()
+            if row:
+                return json.loads(row[0])
+            return None
+
+
+async def upsert_horoscope_payload(key: str, payload: Dict[str, Any]) -> None:
+    """Atomically inserts or updates a versioned horoscope payload by key and mirrors to legacy cache."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO horoscope_payload_cache (cache_key, payload_json)
+            VALUES (?, ?)
+            ON CONFLICT(cache_key)
+            DO UPDATE SET payload_json = excluded.payload_json, created_at = CURRENT_TIMESTAMP
+            """,
+            (key, json.dumps(payload, ensure_ascii=False)),
+        )
+        forecast_date = payload.get("forecastDate")
+        rashi_id = payload.get("rashiId")
+        period = payload.get("period", "today")
+        lang_code = payload.get("langCode", "mr")
+        if forecast_date and rashi_id:
+            await db.execute(
+                """
+                INSERT INTO horoscope_cache (date_str, rashi_id, period, lang_code, data_json)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(date_str, rashi_id, period, lang_code)
+                DO UPDATE SET data_json = excluded.data_json, created_at = CURRENT_TIMESTAMP
+                """,
+                (forecast_date, rashi_id, period, lang_code, json.dumps(payload, ensure_ascii=False)),
+            )
+        await db.commit()
+
+
 async def get_cached_horoscope(date_str: str, rashi_id: str, period: str, lang_code: str) -> Optional[Dict[str, Any]]:
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(
@@ -402,10 +452,12 @@ async def clear_cache(older_than_days: Optional[int] = None) -> Dict[str, int]:
     """Deletes cached horoscope/panchang rows. `None` clears everything."""
     async with aiosqlite.connect(DB_PATH) as db:
         if older_than_days is None:
+            await db.execute("DELETE FROM horoscope_payload_cache")
             h = await db.execute("DELETE FROM horoscope_cache")
             p = await db.execute("DELETE FROM panchang_cache")
         else:
             cutoff = (datetime.now(timezone.utc) + IST_OFFSET - timedelta(days=older_than_days)).strftime("%Y-%m-%d")
+            await db.execute("DELETE FROM horoscope_payload_cache WHERE created_at < ?", (cutoff,))
             h = await db.execute("DELETE FROM horoscope_cache WHERE date_str < ?", (cutoff,))
             p = await db.execute("DELETE FROM panchang_cache WHERE date_str < ?", (cutoff,))
         await db.commit()

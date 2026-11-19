@@ -453,40 +453,72 @@ class BackendService {
     return const [];
   }
 
+  /// Fetches raw horoscope JSON payload from the backend.
+  static Future<Map<String, dynamic>?> fetchHoroscopeJson({
+    required String rashiId,
+    required String period,
+    required String langCode,
+    String? cityName,
+    double? latitude,
+    double? longitude,
+    bool forceRefresh = false,
+  }) async {
+    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode || _isFlutterTest) return null;
+
+    try {
+      final queryParams = <String, String>{
+        'rashi': rashiId,
+        'period': period,
+        'lang': langCode,
+        if (forceRefresh) 'force_refresh': 'true',
+        if (cityName != null && cityName.isNotEmpty) 'city': cityName,
+        if (latitude != null) 'lat': latitude.toString(),
+        if (longitude != null) 'lon': longitude.toString(),
+      };
+
+      final uri = Uri.parse('${backendUrl.trim()}/api/v1/horoscope').replace(
+        queryParameters: queryParams,
+      );
+
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          if (decoded.containsKey('reading') && decoded['reading'] is Map<String, dynamic>) {
+            return decoded['reading'] as Map<String, dynamic>;
+          }
+          if (decoded.containsKey('data') && decoded['data'] is Map<String, dynamic>) {
+            return decoded['data'] as Map<String, dynamic>;
+          }
+          return decoded;
+        }
+      }
+    } catch (_) {
+      // Server error or timeout -> fall back to offline client calculation
+    }
+    return null;
+  }
+
   /// Attempts to fetch cached horoscope reading from the Hetzner backend.
   static Future<HoroscopeReading?> fetchCachedHoroscope({
     required Rashi rashi,
     required String period,
     required String langCode,
   }) async {
-    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode) return null;
-
-    try {
-      final uri = Uri.parse('${backendUrl.trim()}/api/v1/horoscope').replace(
-        queryParameters: {
-          'rashi': rashi.id,
-          'period': period,
-          'lang': langCode,
-        },
+    final raw = await fetchHoroscopeJson(
+      rashiId: rashi.id,
+      period: period,
+      langCode: langCode,
+    );
+    if (raw != null) {
+      final dateText = raw['cachedDate']?.toString() ?? raw['dateText']?.toString() ?? '';
+      return HoroscopeReading.fromJson(
+        raw,
+        rashiId: rashi.id,
+        period: period,
+        dateText: dateText,
+        isAiGenerated: true,
       );
-
-      final response = await http.get(uri).timeout(const Duration(seconds: 5));
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        if (decoded is Map<String, dynamic> && decoded.containsKey('reading')) {
-          final readingMap = decoded['reading'] as Map<String, dynamic>;
-          final dateText = decoded['cachedDate']?.toString() ?? '';
-          return HoroscopeReading.fromJson(
-            readingMap,
-            rashiId: rashi.id,
-            period: period,
-            dateText: dateText,
-            isAiGenerated: true,
-          );
-        }
-      }
-    } catch (_) {
-      // Server error or timeout -> fall back to client calculation
     }
     return null;
   }
@@ -498,7 +530,7 @@ class BackendService {
     required String cityName,
     required String langCode,
   }) async {
-    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode) return null;
+    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode || _isFlutterTest) return null;
 
     try {
       final dateStr =
@@ -537,7 +569,7 @@ class BackendService {
     required String langCode,
     String? initial,
   }) async {
-    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode) return null;
+    if (backendUrl.trim().isEmpty || remoteConfig.maintenanceMode || _isFlutterTest) return null;
 
     try {
       final uri = Uri.parse('${backendUrl.trim()}/api/v1/vedic-ai/consult');

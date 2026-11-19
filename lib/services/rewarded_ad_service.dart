@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -16,6 +17,15 @@ class RewardedAdService {
   RewardedAdService._();
   static final RewardedAdService instance = RewardedAdService._();
 
+  static final bool _isFlutterTest = () {
+    if (kIsWeb) return false;
+    try {
+      return Platform.environment.containsKey('FLUTTER_TEST');
+    } catch (_) {
+      return false;
+    }
+  }();
+
   // ── Production Ad Unit ID ────────────────────────────────────────────────
   static const _adUnitId = 'ca-app-pub-2701330811649318/2339619579';
 
@@ -28,7 +38,7 @@ class RewardedAdService {
   /// Preload a rewarded ad. Safe to call multiple times (no-ops if already
   /// loading or loaded). Silently fails on web or in test environments.
   void preload() {
-    if (kIsWeb || _isLoading || _rewardedAd != null) return;
+    if (kIsWeb || _isFlutterTest || _isLoading || _rewardedAd != null) return;
 
     _isLoading = true;
     RewardedAd.load(

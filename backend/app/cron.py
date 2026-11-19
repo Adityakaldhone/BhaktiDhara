@@ -5,12 +5,14 @@ from app.database import (
     save_cached_horoscope,
     get_cached_panchang,
     save_cached_panchang,
+    read_horoscope_payload,
+    upsert_horoscope_payload,
     start_job_run,
     update_job_run_detail,
     finish_job_run,
     prune_old_events,
 )
-from app.gemini_service import generate_horoscope, generate_panchang
+from app.gemini_service import get_cached_horoscope, horoscope_cache_key, generate_horoscope, generate_panchang
 from app.vedic_cache import PRECACHE_RPM, lookup_horoscope, precache_item
 
 logger = logging.getLogger("bhaktidhara.cron")
@@ -61,14 +63,19 @@ def build_precache_items(date_str: str):
     for lang in PRECACHE_LANGS:
         for rashi_id, names in RASHI_NAMES.items():
             rashi_name = names.get(lang, names["mr"])
+            cache_key = horoscope_cache_key(
+                rashi_name=rashi_name, period="today", lang_code=lang, rashi_id=rashi_id, forecast_date=date_str
+            )
             items.append((
                 f"horoscope {rashi_id} [{lang}]",
                 ("horoscope", date_str, rashi_id, "today", lang),
-                lambda r=rashi_id, l=lang: lookup_horoscope(date_str, r, "today", l),
-                lambda r=rashi_id, n=rashi_name, l=lang: generate_horoscope(
-                    rashi_name=n, period="today", lang_code=l, date_text=date_str, rashi_id=r
+                lambda k=cache_key: read_horoscope_payload(k),
+                lambda r=rashi_id, n=rashi_name, l=lang: get_cached_horoscope(
+                    rashi_name=n, rashi_id=r, period="today", lang_code=l,
+                    read=read_horoscope_payload, upsert=upsert_horoscope_payload,
+                    forecast_date=date_str, force_refresh=True,
                 ),
-                lambda data, r=rashi_id, l=lang: save_cached_horoscope(date_str, r, "today", l, data),
+                lambda data, k=cache_key: upsert_horoscope_payload(k, data),
             ))
         for city in TOP_CITIES:
             city_name = city.get(f"name_{lang}", city["name_mr"])

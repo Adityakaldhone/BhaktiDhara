@@ -28,16 +28,16 @@ class AudioService {
   Future<void> toggleBell() =>
       _toggle(_bellPlayer ??= _createPlayer(bellPlaying), bellPlaying, _bellAsset);
 
-  /// Rings the short temple bell once on its own player.
+  static AudioPlayer? _templeBellPlayer;
+
+  /// Rings the short temple bell once on a reused audio player.
   static Future<void> ringTempleBell() async {
-    final player = AudioPlayer();
-    player.onPlayerComplete.listen((_) => player.dispose());
     try {
+      final player = _templeBellPlayer ??= AudioPlayer();
       await player.setAudioContext(_mixContext);
+      await player.stop();
       await player.play(AssetSource('sounds/ghanti.mp3'));
-    } catch (_) {
-      player.dispose();
-    }
+    } catch (_) {}
   }
 
   Future<void> toggleConch() => _toggle(

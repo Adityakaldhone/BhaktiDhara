@@ -78,10 +78,10 @@ class PersonalVedicService {
             : 'What to Do: Take confident initiative in key projects. Facing North or East during work enhances concentration and positive outcomes.');
 
     final donts = langCode == 'mr'
-        ? 'काय टाळावे: कोणाच्याही दबावाखाली घाईने आर्थिक करार करू नका. जुन्या मतभेदांना आज पुन्हा उकरून काढणे टाळावे.'
+        ? 'आज काय लक्षात ठेवावे: कोणाच्याही दबावाखाली घाईने निर्णय घेऊ नका. जुन्या गोष्टी बाजूला ठेवून सकारात्मक संधींवर लक्ष केंद्रित करा.'
         : (langCode == 'hi'
-            ? 'क्या न करें: किसी के दबाव में आकर जल्दबाजी में धन का फैसला न लें। पुराने मतभेदों को आज बढ़ावा न दें।'
-            : 'What to Avoid: Refrain from hasty financial commitments under pressure. Avoid rekindling old arguments or debates.');
+            ? 'आज क्या ध्यान रखें: किसी के दबाव में आकर जल्दबाजी में फैसला न लें। पुरानी बातों को पीछे छोड़ सकारात्मक अवसरों पर ध्यान दें।'
+            : 'Mindful Guidance: Take your time with financial decisions and avoid rush. Keep past differences aside and focus on positive opportunities.');
 
     final pillar = langCode == 'mr'
         ? 'ध्वनी कंपन: \'${rashi.planetShortName('mr')}\' ग्रहाचा शुभ प्रभाव'

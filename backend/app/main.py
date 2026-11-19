@@ -24,6 +24,8 @@ from app.database import (
     init_db,
     ist_today_str,
     clear_cache,
+    read_horoscope_payload,
+    upsert_horoscope_payload,
     increment_api_stat,
     record_device_ping,
     save_app_instance_id,
@@ -87,7 +89,7 @@ from app.push_service import (
     send_to_tokens,
     subscribe_token_to_topics,
 )
-from app.gemini_service import consult_vedic_ai
+from app.gemini_service import consult_vedic_ai, get_cached_horoscope
 from app.greetings import init_greetings_db, public_router as greetings_public_router, build_admin_router as build_greetings_admin_router
 from app.granth import router as granth_router
 
@@ -429,33 +431,48 @@ async def get_horoscope_endpoint(
     rashi: str = Query(..., description="Rashi ID e.g. aries, taurus, etc."),
     period: str = Query("today", description="today, tomorrow, weekly"),
     lang: str = Query("mr", description="mr, hi, en"),
+    city: Optional[str] = Query(None, description="City name"),
+    lat: Optional[float] = Query(None, description="Latitude"),
+    lon: Optional[float] = Query(None, description="Longitude"),
     force_refresh: bool = Query(False, description="Bypass cache"),
 ):
     """
-    Returns horoscope reading.
-    First checks SQLite cache (0ms). If missing, calls Gemini once, caches it, and returns.
+    Returns authentic versioned Vedic horoscope reading.
+    Uses versioned persistent cache and coalesces overlapping misses.
     """
-    ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
-    today_str = ist_now.strftime("%Y-%m-%d")
-    rashi_id, period_id, lang_id = rashi.lower(), period.lower(), lang.lower()
-    rashi_name = RASHI_NAMES.get(rashi_id, {}).get(lang_id, rashi.capitalize())
+    rashi_id = rashi.lower().strip()
+    rashi_name = RASHI_NAMES.get(rashi_id, {}).get(lang.lower().strip(), rashi.capitalize())
 
     try:
-        reading, source = await get_or_create_horoscope(
-            today_str, rashi_id, rashi_name, period_id, lang_id, force_refresh
+        payload = await get_cached_horoscope(
+            rashi_name=rashi_name,
+            rashi_id=rashi_id,
+            period=period.lower().strip(),
+            lang_code=lang.lower().strip(),
+            read=read_horoscope_payload,
+            upsert=upsert_horoscope_payload,
+            city_name=city,
+            latitude=lat,
+            longitude=lon,
+            force_refresh=force_refresh,
         )
-    except GeminiBusy as e:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+        await increment_api_stat("horoscope_cache_hit")
+        ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+        today_str = ist_now.strftime("%Y-%m-%d")
+        cached_date = payload.get("forecastDate", today_str)
+
+        return {
+            "source": "cache",
+            "cachedDate": cached_date,
+            "reading": payload,
+            **payload,
+        }
     except Exception as e:
-        logger.error(f"Failed to generate horoscope for {rashi}: {e}")
+        logger.error(f"Failed to get horoscope for {rashi}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unable to generate horoscope: {str(e)}",
         )
-
-    if source == "cache":
-        await increment_api_stat("horoscope_cache_hit")
-    return {"source": source, "cachedDate": today_str, "reading": reading}
 
 
 @app.get("/api/v1/panchang")
