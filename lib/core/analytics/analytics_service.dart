@@ -210,6 +210,15 @@ class AnalyticsService {
     );
   }
 
+  /// Logs a custom event to Firebase Analytics (e.g. `deity_requested`).
+  static Future<void> logCustomEvent(String name, {Map<String, Object>? parameters}) {
+    return _run(
+      name,
+      parameters ?? const {},
+      (fa) => fa.logEvent(name: name, parameters: parameters),
+    );
+  }
+
   /// Call once per app launch. Logs `retained_d1` / `retained_d7` the first
   /// time the user returns on day 1 / day 7+ after install.
   static Future<void> logAppLaunch() async {

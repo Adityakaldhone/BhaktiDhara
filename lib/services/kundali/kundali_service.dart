@@ -11,6 +11,7 @@ import 'vedic_astro_engine.dart';
 
 class KundaliService {
   static const _prefsKey = 'kundali_profiles_v1';
+  static const _userAgent = 'BhaktiDhara/1.2.16 (kundali-place-search)';
   static bool _tzReady = false;
 
   static void _ensureTimezones() {
@@ -48,39 +49,153 @@ class KundaliService {
         longitude: p.place.longitude,
       );
 
-  /// Town / city search via the free Open-Meteo geocoding API.
+  /// Town / village / city search. Prefers India, merges Open-Meteo + OSM
+  /// Nominatim so smaller birthplaces are easier to find.
   static Future<List<BirthPlace>> searchPlaces(String query, String langCode) async {
     final q = query.trim();
     if (q.length < 2) return const [];
-    final uri = Uri.https('geocoding-api.open-meteo.com', '/v1/search', {
-      'name': q,
-      'count': '15',
-      'language': langCode,
-      'format': 'json',
+
+    final openMeteo = await _searchOpenMeteo(q, langCode);
+    if (openMeteo.length >= 8) return _dedupe(openMeteo);
+
+    final nominatim = await _searchNominatim(q, langCode);
+    return _dedupe([...openMeteo, ...nominatim]);
+  }
+
+  static Future<List<BirthPlace>> _searchOpenMeteo(String q, String langCode) async {
+    Future<List<BirthPlace>> once({String? countryCode, String? language}) async {
+      final params = <String, String>{
+        'name': q,
+        'count': '25',
+        'language': language ?? langCode,
+        'format': 'json',
+      };
+      if (countryCode != null) params['countryCode'] = countryCode;
+      final uri = Uri.https('geocoding-api.open-meteo.com', '/v1/search', params);
+      try {
+        final res = await http.get(uri).timeout(const Duration(seconds: 8));
+        if (res.statusCode != 200) return const [];
+        final results = (jsonDecode(res.body) as Map<String, dynamic>)['results'];
+        if (results is! List) return const [];
+        return [
+          for (final r in results.cast<Map<String, dynamic>>())
+            ?_openMeteoPlace(r),
+        ];
+      } catch (e) {
+        debugPrint('Open-Meteo place search failed: $e');
+        return const [];
+      }
+    }
+
+    // India first (most users), then global + English spelling fallback.
+    final india = await once(countryCode: 'IN');
+    if (india.length >= 10) return india;
+
+    final global = await once();
+    final merged = _dedupe([...india, ...global]);
+    if (merged.length >= 8 || langCode == 'en') return merged;
+
+    final english = await once(countryCode: 'IN', language: 'en');
+    return _dedupe([...merged, ...english]);
+  }
+
+  static BirthPlace? _openMeteoPlace(Map<String, dynamic> r) {
+    final name = r['name'] as String?;
+    final lat = r['latitude'];
+    final lon = r['longitude'];
+    if (name == null || lat is! num || lon is! num) return null;
+
+    final countryCode = (r['country_code'] as String?)?.toUpperCase();
+    final timezone = (r['timezone'] as String?) ??
+        (countryCode == 'IN' ? 'Asia/Kolkata' : null);
+    if (timezone == null) return null;
+
+    final region = [
+      r['admin2'],
+      r['admin1'],
+      r['country'],
+    ].whereType<String>().where((s) => s.isNotEmpty).join(', ');
+
+    return BirthPlace(
+      name: name,
+      region: region,
+      latitude: lat.toDouble(),
+      longitude: lon.toDouble(),
+      timezone: timezone,
+    );
+  }
+
+  static Future<List<BirthPlace>> _searchNominatim(String q, String langCode) async {
+    final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+      'q': q,
+      'format': 'jsonv2',
+      'addressdetails': '1',
+      'limit': '20',
+      'countrycodes': 'in',
+      'accept-language': langCode == 'en' ? 'en' : '$langCode,en',
     });
     try {
-      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      final res = await http
+          .get(uri, headers: {'User-Agent': _userAgent})
+          .timeout(const Duration(seconds: 10));
       if (res.statusCode != 200) return const [];
-      final results = (jsonDecode(res.body) as Map<String, dynamic>)['results'];
+      final results = jsonDecode(res.body);
       if (results is! List) return const [];
       return [
-        for (final r in results.cast<Map<String, dynamic>>())
-          if (r['timezone'] != null)
-            BirthPlace(
-              name: r['name'] as String,
-              region: [r['admin1'], r['country']]
-                  .whereType<String>()
-                  .where((s) => s.isNotEmpty)
-                  .join(', '),
-              latitude: (r['latitude'] as num).toDouble(),
-              longitude: (r['longitude'] as num).toDouble(),
-              timezone: r['timezone'] as String,
-            ),
+        for (final raw in results)
+          if (raw is Map<String, dynamic>) ?_nominatimPlace(raw),
       ];
     } catch (e) {
-      debugPrint('Kundali place search failed: $e');
+      debugPrint('Nominatim place search failed: $e');
       return const [];
     }
+  }
+
+  static BirthPlace? _nominatimPlace(Map<String, dynamic> r) {
+    final lat = double.tryParse('${r['lat']}');
+    final lon = double.tryParse('${r['lon']}');
+    if (lat == null || lon == null) return null;
+
+    final address = r['address'];
+    final addr = address is Map<String, dynamic> ? address : const <String, dynamic>{};
+    String? pickName() {
+      final direct = (r['name'] as String?)?.trim();
+      if (direct != null && direct.isNotEmpty) return direct;
+      for (final key in ['village', 'town', 'city', 'suburb', 'hamlet', 'county']) {
+        final v = (addr[key] as String?)?.trim();
+        if (v != null && v.isNotEmpty) return v;
+      }
+      final display = (r['display_name'] as String?)?.split(',').first.trim();
+      return (display != null && display.isNotEmpty) ? display : null;
+    }
+
+    final name = pickName();
+    if (name == null) return null;
+
+    final region = [
+      addr['state_district'] ?? addr['county'],
+      addr['state'],
+      addr['country'],
+    ].whereType<String>().where((s) => s.isNotEmpty && s != name).join(', ');
+
+    return BirthPlace(
+      name: name,
+      region: region,
+      latitude: lat,
+      longitude: lon,
+      timezone: 'Asia/Kolkata',
+    );
+  }
+
+  static List<BirthPlace> _dedupe(List<BirthPlace> places) {
+    final seen = <String>{};
+    final out = <BirthPlace>[];
+    for (final p in places) {
+      final key =
+          '${p.name.toLowerCase()}|${p.latitude.toStringAsFixed(2)}|${p.longitude.toStringAsFixed(2)}';
+      if (seen.add(key)) out.add(p);
+    }
+    return out;
   }
 
   static Future<List<BirthProfile>> loadProfiles() async {

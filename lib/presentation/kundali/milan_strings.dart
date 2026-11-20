@@ -218,4 +218,16 @@ class MilanStrings {
         'गुण मिलान पारंपरिक मार्गदर्शन है। अंतिम निर्णय के लिए विद्वान ज्योतिषी से परामर्श करें।',
         'Guna milan is traditional guidance. Consult a learned astrologer before deciding.',
       );
+
+  String get download => _t('मिलन डाउनलोड करा', 'मिलान डाउनलोड करें', 'Download milan');
+  String get downloaded => _t(
+        'मिलन निकाल गॅलरीमध्ये सेव्ह झाला ✅',
+        'मिलान परिणाम गैलरी में सेव हो गया ✅',
+        'Milan result saved to gallery ✅',
+      );
+  String get downloadFailed => _t(
+        'डाउनलोड करता आले नाही. पुन्हा प्रयत्न करा.',
+        'डाउनलोड नहीं हो सका। फिर से कोशिश करें।',
+        'Could not download. Please try again.',
+      );
 }

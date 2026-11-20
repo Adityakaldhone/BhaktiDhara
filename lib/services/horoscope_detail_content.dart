@@ -243,7 +243,7 @@ class _NavyHeroCard extends StatelessWidget {
                   Text(
                     page.dateAndDay,
                     style: GoogleFonts.mukta(
-                      fontSize: 14,
+                      fontSize: 14.8,
                       fontWeight: FontWeight.w600,
                       color: _Tokens.goldOnNavy.withValues(alpha: 0.95),
                     ),
@@ -312,7 +312,7 @@ class _NavyHeroCard extends StatelessWidget {
                     child: Text(
                       attentionTag,
                       style: GoogleFonts.mukta(
-                        fontSize: 14.5,
+                        fontSize: 15.2,
                         fontWeight: FontWeight.w700,
                         color: _Tokens.goldOnNavy,
                         height: 1.25,
@@ -326,7 +326,7 @@ class _NavyHeroCard extends StatelessWidget {
                   Text(
                     page.headline,
                     style: GoogleFonts.tiroDevanagariMarathi(
-                      fontSize: 22,
+                      fontSize: 23,
                       fontWeight: FontWeight.w700,
                       color: _Tokens.ivorySurface,
                       height: 1.35,
@@ -360,7 +360,7 @@ class _NavyHeroCard extends StatelessWidget {
                         child: Text(
                           '${_formatScore(page.moodScore)}/5 · ${page.mood}',
                           style: GoogleFonts.mukta(
-                            fontSize: 14.5,
+                            fontSize: 15.5,
                             fontWeight: FontWeight.w700,
                             color: _Tokens.goldOnNavy,
                           ),
@@ -389,7 +389,7 @@ class _NavyHeroCard extends StatelessWidget {
                         child: Text(
                           page.sunSignDates,
                           style: GoogleFonts.mukta(
-                            fontSize: 13,
+                            fontSize: 13.8,
                             color: _Tokens.ivorySurface.withValues(alpha: 0.85),
                           ),
                           maxLines: 1,
@@ -400,7 +400,7 @@ class _NavyHeroCard extends StatelessWidget {
                       Text(
                         '${page.element} · ${page.rulingPlanet}',
                         style: GoogleFonts.mukta(
-                          fontSize: 13,
+                          fontSize: 13.8,
                           fontWeight: FontWeight.w600,
                           color: _Tokens.ivorySurface.withValues(alpha: 0.85),
                         ),
@@ -471,7 +471,7 @@ class _ForecastCard extends StatelessWidget {
                 child: Text(
                   cardTitle,
                   style: GoogleFonts.tiroDevanagariMarathi(
-                    fontSize: 21,
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.primaryInk,
                   ),
@@ -487,7 +487,7 @@ class _ForecastCard extends StatelessWidget {
                 child: Text(
                   badgeText,
                   style: GoogleFonts.mukta(
-                    fontSize: 12.5,
+                    fontSize: 13.2,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.bronzeAccent,
                   ),
@@ -502,7 +502,7 @@ class _ForecastCard extends StatelessWidget {
           Text(
             bodyText,
             style: GoogleFonts.mukta(
-              fontSize: 16.0,
+              fontSize: 17.2,
               color: _Tokens.primaryInk,
               height: 1.6,
             ),
@@ -535,18 +535,18 @@ class _ForecastCard extends StatelessWidget {
                     Text(
                       moonTransitLabel,
                       style: GoogleFonts.mukta(
-                        fontSize: 15.5,
+                        fontSize: 16.5,
                         fontWeight: FontWeight.w700,
                         color: _Tokens.primaryInk,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       page.transitNote,
                       style: GoogleFonts.mukta(
-                        fontSize: 14.5,
+                        fontSize: 15.5,
                         color: _Tokens.mutedText,
-                        height: 1.45,
+                        height: 1.5,
                       ),
                     ),
                   ],
@@ -640,7 +640,7 @@ class _ActionGuidanceCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: GoogleFonts.tiroDevanagariMarathi(
-                    fontSize: 21,
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.primaryInk,
                   ),
@@ -676,7 +676,7 @@ class _ActionGuidanceCard extends StatelessWidget {
                     Text(
                       doLabel,
                       style: GoogleFonts.mukta(
-                        fontSize: 16.0,
+                        fontSize: 17.0,
                         fontWeight: FontWeight.w700,
                         color: _Tokens.primaryInk,
                       ),
@@ -685,9 +685,9 @@ class _ActionGuidanceCard extends StatelessWidget {
                     Text(
                       doLine.text,
                       style: GoogleFonts.mukta(
-                        fontSize: 15.0,
+                        fontSize: 16.2,
                         color: _Tokens.primaryInk,
-                        height: 1.5,
+                        height: 1.55,
                       ),
                     ),
                   ],
@@ -723,7 +723,7 @@ class _ActionGuidanceCard extends StatelessWidget {
                     Text(
                       avoidLabel,
                       style: GoogleFonts.mukta(
-                        fontSize: 16.0,
+                        fontSize: 17.0,
                         fontWeight: FontWeight.w700,
                         color: _Tokens.primaryInk,
                       ),
@@ -732,9 +732,9 @@ class _ActionGuidanceCard extends StatelessWidget {
                     Text(
                       avoidLine.text,
                       style: GoogleFonts.mukta(
-                        fontSize: 15.0,
+                        fontSize: 16.2,
                         color: _Tokens.primaryInk,
-                        height: 1.5,
+                        height: 1.55,
                       ),
                     ),
                   ],
@@ -789,7 +789,7 @@ class _LifeAspectsSection extends StatelessWidget {
         Text(
           title,
           style: GoogleFonts.tiroDevanagariMarathi(
-            fontSize: 21,
+            fontSize: 22,
             fontWeight: FontWeight.w700,
             color: _Tokens.primaryInk,
           ),
@@ -864,7 +864,7 @@ class _AspectCard extends StatelessWidget {
                 child: Text(
                   aspectTitle,
                   style: GoogleFonts.mukta(
-                    fontSize: 16.5,
+                    fontSize: 17.5,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.primaryInk,
                   ),
@@ -880,7 +880,7 @@ class _AspectCard extends StatelessWidget {
                 child: Text(
                   '${_formatScore(score)}/5',
                   style: GoogleFonts.mukta(
-                    fontSize: 13,
+                    fontSize: 13.8,
                     fontWeight: FontWeight.w800,
                     color: _Tokens.bronzeAccent,
                   ),
@@ -910,7 +910,7 @@ class _AspectCard extends StatelessWidget {
             child: Text(
               verdict,
               style: GoogleFonts.mukta(
-                fontSize: 14.5,
+                fontSize: 15.8,
                 fontWeight: FontWeight.w700,
                 color: isLow ? const Color(0xFF8B2B1B) : _Tokens.primaryInk,
                 height: 1.35,
@@ -927,7 +927,7 @@ class _AspectCard extends StatelessWidget {
                 child: Text(
                   line.text,
                   style: GoogleFonts.mukta(
-                    fontSize: 15.0,
+                    fontSize: 16.2,
                     color: _Tokens.primaryInk,
                     height: 1.55,
                   ),
@@ -937,7 +937,7 @@ class _AspectCard extends StatelessWidget {
               Text(
                 line.text,
                 style: GoogleFonts.mukta(
-                  fontSize: 15.0,
+                  fontSize: 16.2,
                   color: _Tokens.primaryInk,
                   height: 1.55,
                 ),
@@ -1118,7 +1118,7 @@ class _LuckyElementsCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: GoogleFonts.tiroDevanagariMarathi(
-                    fontSize: 21,
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.primaryInk,
                   ),
@@ -1149,7 +1149,7 @@ class _LuckyElementsCard extends StatelessWidget {
                     Text(
                       colorLabel,
                       style: GoogleFonts.mukta(
-                        fontSize: 14.5,
+                        fontSize: 15.2,
                         color: _Tokens.mutedText,
                       ),
                     ),
@@ -1157,7 +1157,7 @@ class _LuckyElementsCard extends StatelessWidget {
                     Text(
                       colorVal,
                       style: GoogleFonts.mukta(
-                        fontSize: 17,
+                        fontSize: 18.2,
                         fontWeight: FontWeight.w800,
                         color: _Tokens.primaryInk,
                       ),
@@ -1176,7 +1176,7 @@ class _LuckyElementsCard extends StatelessWidget {
                     Text(
                       '#',
                       style: GoogleFonts.tiroDevanagariMarathi(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: _Tokens.bronzeAccent,
                         height: 1.1,
@@ -1186,7 +1186,7 @@ class _LuckyElementsCard extends StatelessWidget {
                     Text(
                       numberLabel,
                       style: GoogleFonts.mukta(
-                        fontSize: 14.5,
+                        fontSize: 15.2,
                         color: _Tokens.mutedText,
                       ),
                     ),
@@ -1194,7 +1194,7 @@ class _LuckyElementsCard extends StatelessWidget {
                     Text(
                       numberVal,
                       style: GoogleFonts.mukta(
-                        fontSize: 17,
+                        fontSize: 18.2,
                         fontWeight: FontWeight.w800,
                         color: _Tokens.primaryInk,
                       ),
@@ -1219,7 +1219,7 @@ class _LuckyElementsCard extends StatelessWidget {
                     Text(
                       directionLabel,
                       style: GoogleFonts.mukta(
-                        fontSize: 14.5,
+                        fontSize: 15.2,
                         color: _Tokens.mutedText,
                       ),
                     ),
@@ -1227,7 +1227,7 @@ class _LuckyElementsCard extends StatelessWidget {
                     Text(
                       directionVal,
                       style: GoogleFonts.mukta(
-                        fontSize: 17,
+                        fontSize: 18.2,
                         fontWeight: FontWeight.w800,
                         color: _Tokens.primaryInk,
                       ),
@@ -1347,7 +1347,7 @@ class _VedicRemediesCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: GoogleFonts.tiroDevanagariMarathi(
-                    fontSize: 21,
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.primaryInk,
                   ),
@@ -1373,7 +1373,7 @@ class _VedicRemediesCard extends StatelessWidget {
                 Text(
                   mantraLabel,
                   style: GoogleFonts.mukta(
-                    fontSize: 14,
+                    fontSize: 15.0,
                     color: _Tokens.mutedText,
                   ),
                 ),
@@ -1381,7 +1381,7 @@ class _VedicRemediesCard extends StatelessWidget {
                 Text(
                   mantraOnly,
                   style: GoogleFonts.tiroDevanagariMarathi(
-                    fontSize: 21,
+                    fontSize: 22.2,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.primaryInk,
                   ),
@@ -1390,7 +1390,7 @@ class _VedicRemediesCard extends StatelessWidget {
                 Text(
                   countOnly,
                   style: GoogleFonts.mukta(
-                    fontSize: 14,
+                    fontSize: 15.0,
                     fontWeight: FontWeight.w600,
                     color: _Tokens.bronzeAccent,
                   ),
@@ -1405,7 +1405,7 @@ class _VedicRemediesCard extends StatelessWidget {
           Text(
             simpleRemedyLabel,
             style: GoogleFonts.mukta(
-              fontSize: 16,
+              fontSize: 17.2,
               fontWeight: FontWeight.w700,
               color: _Tokens.primaryInk,
             ),
@@ -1414,9 +1414,9 @@ class _VedicRemediesCard extends StatelessWidget {
           Text(
             remedyRaw,
             style: GoogleFonts.mukta(
-              fontSize: 15.5,
+              fontSize: 16.7,
               color: _Tokens.primaryInk,
-              height: 1.5,
+              height: 1.55,
             ),
           ),
         ],

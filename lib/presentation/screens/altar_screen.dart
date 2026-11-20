@@ -20,11 +20,9 @@ import '../../domain/entities/aarti_item.dart';
 import '../../services/audio_service.dart';
 import '../../services/backend_service.dart';
 import '../providers/aarti_favorites_provider.dart';
-import '../providers/akhand_diya_provider.dart';
 import '../providers/deity_affinity_provider.dart';
 import '../providers/review_provider.dart';
 import '../widgets/devotional_review_dialog.dart';
-import '../widgets/ghee_offering.dart';
 import '../widgets/lyric_card.dart';
 import '../widgets/nitya_pin_sheet.dart';
 
@@ -66,15 +64,6 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
   Timer? _completionTimer;
   bool _completionLogged = false;
   late final DeityAffinityNotifier _affinity;
-
-  /// Akhand Jyot offering: seconds of aarti still owed, null when not offered.
-  static const _gheeSeconds = 45;
-  static const _gheeToolBonus = 10;
-  final ValueNotifier<int?> _gheeLeft = ValueNotifier(null);
-  final ValueNotifier<int> _gheeBonusTick = ValueNotifier(0);
-  final Set<String> _gheeBonusTools = {};
-  Timer? _gheeTimer;
-  bool _gheeSheetOpen = false;
 
   // Accessibility font scaler for 50+ demographic (1.0x, 1.25x, 1.5x)
   static const _fontScales = [1.0, 1.25, 1.5];
@@ -133,7 +122,6 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
       'deity': widget.aarti.deity,
     });
     _resumeCompletionTimer();
-    _initGheeOffering();
     try {
       WakelockPlus.enable();
     } catch (_) {}
@@ -452,98 +440,14 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
     });
   }
 
-  // ── Akhand Jyot ghee offering ────────────────────────────────────────────
-
-  Future<void> _initGheeOffering() async {
-    final saved = await ref.read(akhandDiyaProvider.notifier).ready;
-    if (!mounted) return;
-    final diya = ref.read(akhandDiyaProvider) ?? saved;
-    if (!diya.acceptsOffering(DateTime.now())) return;
-    _gheeLeft.value = _gheeSeconds;
-    final lifecycle = WidgetsBinding.instance.lifecycleState;
-    if (lifecycle == null || lifecycle == AppLifecycleState.resumed) {
-      _resumeGheeTimer();
-    }
-  }
-
-  void _resumeGheeTimer() {
-    final left = _gheeLeft.value;
-    if (left == null || left <= 0) return;
-    _gheeTimer?.cancel();
-    _gheeTimer = Timer.periodic(const Duration(seconds: 1), (_) => _advanceGhee(1));
-  }
-
-  void _pauseGheeTimer() {
-    _gheeTimer?.cancel();
-    _gheeTimer = null;
-  }
-
-  void _advanceGhee(int seconds) {
-    final left = _gheeLeft.value;
-    if (left == null || left <= 0) return;
-    final next = math.max(0, left - seconds);
-    _gheeLeft.value = next;
-    if (next == 0) {
-      _pauseGheeTimer();
-      _offerGhee();
-    }
-  }
-
-  /// Each pooja tool shortens the wait once per visit.
-  void _gheeToolTap(String tool) {
-    final left = _gheeLeft.value;
-    if (left == null || left <= 0 || !_gheeBonusTools.add(tool)) return;
-    _gheeBonusTick.value++;
-    _advanceGhee(_gheeToolBonus);
-  }
-
-  Future<void> _offerGhee() async {
-    if (_gheeSheetOpen || !mounted) return;
-    _gheeSheetOpen = true;
-    final lang = Localizations.localeOf(context).languageCode;
-    final diya = ref.read(akhandDiyaProvider);
-    final now = DateTime.now();
-    final poured = await showGheeRewardSheet(
-      context,
-      lang: lang,
-      savesStreakOf: diya != null && diya.canRevive(now) ? diya.streakDays : null,
-    );
-    _gheeSheetOpen = false;
-    if (!poured || !mounted) return;
-    _gheeLeft.value = null;
-    final next = await ref
-        .read(akhandDiyaProvider.notifier)
-        .refill(source: 'aarti', aartiId: widget.aarti.id);
-    if (!mounted) return;
-    final day = next.streakDays;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            switch (lang) {
-              'hi' => '🪔 अखंड ज्योत प्रज्वलित • दिन $day',
-              'mr' => '🪔 अखंड ज्योत प्रज्वलित • दिवस $day',
-              _ => '🪔 Akhand Jyot refilled • Day $day',
-            },
-            style: GoogleFonts.mukta(fontWeight: FontWeight.bold),
-          ),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _resumeCompletionTimer();
-      _resumeGheeTimer();
     }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       _pauseCompletionTimer();
-      _pauseGheeTimer();
       if (!kIsWeb && _webController != null) {
         _webController?.runJavaScript(
           'if(player && player.pauseVideo) player.pauseVideo();',
@@ -556,9 +460,6 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _completionTimer?.cancel();
-    _gheeTimer?.cancel();
-    _gheeLeft.dispose();
-    _gheeBonusTick.dispose();
     _affinity.recordSession(
       widget.aarti.deity,
       _dwell.elapsed,
@@ -592,12 +493,10 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
 
   void _onGhantiTap() {
     _audio.toggleBell();
-    _gheeToolTap('ghanti');
   }
 
   void _onShankhTap() {
     _audio.toggleConch();
-    _gheeToolTap('shankh');
   }
 
   void _syncToolAnimation(AnimationController controller, bool playing) {
@@ -612,7 +511,6 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
 
   void _onDeepakTap() {
     HapticFeedback.mediumImpact();
-    _gheeToolTap('deepak');
     setState(() {
       _isDeepakLit = !_isDeepakLit;
       if (_isDeepakLit) {
@@ -627,7 +525,6 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
   /// First tap starts a continuous flower shower, the next tap stops it.
   void _onPushpaTap() {
     HapticFeedback.mediumImpact();
-    _gheeToolTap('pushpa');
     if (_pushpaTimer != null) {
       _pushpaTimer!.cancel();
       _pushpaTimer = null;
@@ -821,22 +718,6 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
             ),
           ),
 
-          // 4. Akhand Jyot ghee offering countdown
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 14 + MediaQuery.of(context).padding.bottom,
-            child: Center(
-              child: GheeTimerPill(
-                secondsLeft: _gheeLeft,
-                totalSeconds: _gheeSeconds,
-                bonusTick: _gheeBonusTick,
-                bonusSeconds: _gheeToolBonus,
-                lang: locale,
-                onReady: _offerGhee,
-              ),
-            ),
-          ),
         ],
       ),
     ),

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/motion.dart';
 import '../../../presentation/providers/akhand_diya_provider.dart';
@@ -19,6 +20,9 @@ import '../widgets/mandir_aarti_session.dart';
 import '../widgets/mandir_deity_picker.dart';
 import '../widgets/mandir_painters.dart';
 import '../widgets/mandir_stage.dart';
+
+/// Shown once: the aarti thali demo-sweeps a half circle so devotees learn it moves.
+const _kThaliCoachSeenKey = 'mandir_thali_coach_seen';
 
 String _t(String lang, {required String en, required String hi, required String mr}) => switch (lang) {
   'hi' => hi,
@@ -175,12 +179,13 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
   late final AnimationController _rails = _controller(900);
 
   Timer? _railsDelay;
-  Timer? _hintTimer;
   Timer? _completeTimer;
   double _ratioBeforePour = 1;
   bool _streamHapticFired = false;
   bool _aarti = false;
-  bool _thaliHint = false;
+  bool _thaliCoach = false;
+  /// `null` until prefs load — coach only runs once we know it was never shown.
+  bool? _thaliCoachSeen;
   bool _aartiComplete = false;
   bool _tilakApplied = false;
   bool _naivedyaPlaced = false;
@@ -202,6 +207,10 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
     _railsDelay = Timer(const Duration(milliseconds: 1250), () {
       if (mounted) _rails.forward();
     });
+    SharedPreferences.getInstance().then((prefs) {
+      if (!mounted) return;
+      setState(() => _thaliCoachSeen = prefs.getBool(_kThaliCoachSeenKey) ?? false);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(akhandDiyaControllerProvider.notifier).ensureLit();
@@ -218,13 +227,27 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
   @override
   void dispose() {
     _railsDelay?.cancel();
-    _hintTimer?.cancel();
     _completeTimer?.cancel();
     _audio.dispose();
     for (final c in [_pour, _petals, _garland, _tilak, _blessing, _shankh, _naivedya, _bellLeft, _bellRight, _rails]) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _markThaliCoachSeen() async {
+    if (_thaliCoachSeen == true && !_thaliCoach) return;
+    if (mounted) {
+      setState(() {
+        _thaliCoachSeen = true;
+        _thaliCoach = false;
+      });
+    } else {
+      _thaliCoachSeen = true;
+      _thaliCoach = false;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kThaliCoachSeenKey, true);
   }
 
   void _track(String ritual) =>
@@ -251,18 +274,14 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
   }
 
   void _toggleAarti() {
-    _hintTimer?.cancel();
     _completeTimer?.cancel();
+    final next = !_aarti;
+    final showCoach = next && _thaliCoachSeen == false && !MediaQuery.disableAnimationsOf(context);
     setState(() {
-      _aarti = !_aarti;
-      _thaliHint = _aarti;
+      _aarti = next;
+      _thaliCoach = showCoach;
       _aartiComplete = false;
     });
-    if (_aarti) {
-      _hintTimer = Timer(const Duration(milliseconds: 3200), () {
-        if (mounted) setState(() => _thaliHint = false);
-      });
-    }
     HapticFeedback.mediumImpact();
     if (!_aarti) _onSingAlong(false);
     if (_aarti) _track('aarti');
@@ -431,7 +450,14 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
                       _altarLayer(l, dpr, diya),
                       _outerLayer(l, dpr),
                       if (_aarti)
-                        _AartiThali(start: l.thaliStart, width: l.thaliWidth, orbitCenter: l.murti.center, dpr: dpr),
+                        _AartiThali(
+                          start: l.thaliStart,
+                          width: l.thaliWidth,
+                          orbitCenter: l.murti.center,
+                          dpr: dpr,
+                          playCoach: _thaliCoach,
+                          onCoachFinished: _markThaliCoachSeen,
+                        ),
                     ],
                   ),
                 ),
@@ -455,7 +481,7 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
                   top: padding.top + 118,
                   child: IgnorePointer(
                     child: AnimatedOpacity(
-                      opacity: _thaliHint ? 1 : 0,
+                      opacity: _thaliCoach ? 1 : 0,
                       duration: AppMotion.entrance,
                       child: Center(
                         child: Container(
@@ -468,9 +494,9 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
                           child: Text(
                             _t(
                               lang,
-                              en: 'Move the thali freely with your finger',
-                              hi: 'थाली को उंगली से किसी भी दिशा में घुमाएं',
-                              mr: 'ताट बोटाने कोणत्याही दिशेने फिरवा',
+                              en: 'Try it — drag the thali like this',
+                              hi: 'ऐसे उंगली से थाली घुमाएं',
+                              mr: 'असे बोटाने ताट फिरवा',
                             ),
                             style: GoogleFonts.mukta(
                               fontSize: 12.5,
@@ -936,8 +962,18 @@ class _GoldShimmer extends StatelessWidget {
 /// Real brass aarti thali that follows the devotee's finger anywhere on
 /// screen. It carries weight (eases after the hand), tilts with the swing,
 /// and its flame trails the motion and sheds golden sparks.
+///
+/// On the devotee's first aarti, [playCoach] drives a half-circle sweep so
+/// the movable thali is obvious without relying on a dismissible tip.
 class _AartiThali extends StatefulWidget {
-  const _AartiThali({required this.start, required this.width, required this.orbitCenter, required this.dpr});
+  const _AartiThali({
+    required this.start,
+    required this.width,
+    required this.orbitCenter,
+    required this.dpr,
+    this.playCoach = false,
+    this.onCoachFinished,
+  });
 
   final Offset start;
   final double width;
@@ -945,12 +981,14 @@ class _AartiThali extends StatefulWidget {
   /// The murti; a soft haptic marks every quarter turn around it.
   final Offset orbitCenter;
   final double dpr;
+  final bool playCoach;
+  final VoidCallback? onCoachFinished;
 
   @override
   State<_AartiThali> createState() => _AartiThaliState();
 }
 
-class _AartiThaliState extends State<_AartiThali> {
+class _AartiThaliState extends State<_AartiThali> with SingleTickerProviderStateMixin {
   static const _follow = 0.28;
 
   final List<AartiSpark> _sparks = [];
@@ -965,10 +1003,22 @@ class _AartiThaliState extends State<_AartiThali> {
   int _sparkSeed = 0;
   ValueListenable<double>? _clock;
   double _lastT = 0;
+  late final AnimationController _coach;
+  bool _coaching = false;
+  bool _coachStarted = false;
+  Timer? _coachDelay;
 
   /// Plate centre within the thali box, as a share of its width.
   static const _plateCenterY = 0.56;
   static const _heightFactor = 0.85;
+
+  @override
+  void initState() {
+    super.initState();
+    _coach = AnimationController(vsync: this, duration: const Duration(milliseconds: 3200))
+      ..addListener(_onCoachTick)
+      ..addStatusListener(_onCoachStatus);
+  }
 
   @override
   void didChangeDependencies() {
@@ -980,12 +1030,83 @@ class _AartiThaliState extends State<_AartiThali> {
       _lastT = clock.value;
     }
     _orbitAngle = _angleAround(_pos);
+    _maybeStartCoach();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AartiThali oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.playCoach && !oldWidget.playCoach) {
+      _coachStarted = false;
+      _maybeStartCoach();
+    }
   }
 
   @override
   void dispose() {
+    _coachDelay?.cancel();
+    _coach
+      ..removeListener(_onCoachTick)
+      ..removeStatusListener(_onCoachStatus)
+      ..dispose();
     _clock?.removeListener(_step);
     super.dispose();
+  }
+
+  void _maybeStartCoach() {
+    if (_coachStarted || !widget.playCoach) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _coachStarted = true;
+      widget.onCoachFinished?.call();
+      return;
+    }
+    _coachStarted = true;
+    _coaching = true;
+    // Let the thali entrance finish, then demonstrate the half-circle.
+    _coachDelay?.cancel();
+    _coachDelay = Timer(const Duration(milliseconds: 420), () {
+      if (mounted && widget.playCoach && _coaching) _coach.forward(from: 0);
+    });
+  }
+
+  /// 0 at rest → 1 at far end of the half-circle → 0 back at start.
+  double _coachArc(double t) {
+    if (t < 0.1) return 0;
+    if (t < 0.52) return Curves.easeInOut.transform((t - 0.1) / 0.42);
+    if (t < 0.92) return 1 - Curves.easeInOut.transform((t - 0.52) / 0.4);
+    return 0;
+  }
+
+  Offset _coachPoint(double arc) {
+    final center = widget.orbitCenter;
+    final start = widget.start;
+    final radius = math.max((start - center).distance, widget.width * 1.15);
+    final startAngle = (start - center).direction;
+    // Sweep a half-circle clockwise (typical aarti motion).
+    final angle = startAngle + arc * math.pi;
+    return _clamp(Offset(center.dx + radius * math.cos(angle), center.dy + radius * math.sin(angle)));
+  }
+
+  void _onCoachTick() {
+    if (!_coaching) return;
+    _target = _coachPoint(_coachArc(_coach.value));
+  }
+
+  void _onCoachStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed || !_coaching) return;
+    _coaching = false;
+    _target = widget.start;
+    widget.onCoachFinished?.call();
+    if (mounted) setState(() {});
+  }
+
+  void _stopCoachForUser() {
+    if (!_coaching && !_coach.isAnimating) return;
+    _coachDelay?.cancel();
+    _coaching = false;
+    _coach.stop();
+    widget.onCoachFinished?.call();
+    if (mounted) setState(() {});
   }
 
   double _angleAround(Offset p) => (p - widget.orbitCenter).direction;
@@ -1024,7 +1145,7 @@ class _AartiThaliState extends State<_AartiThali> {
     }
     _sparks.removeWhere((s) => now - s.born > SparkTrailPainter.life);
 
-    if (speed > 0.05 || _tilt.abs() > 0.002 || _lean.abs() > 0.01) setState(() {});
+    if (speed > 0.05 || _tilt.abs() > 0.002 || _lean.abs() > 0.01 || _coaching) setState(() {});
   }
 
   Offset _clamp(Offset p) {
@@ -1038,6 +1159,7 @@ class _AartiThaliState extends State<_AartiThali> {
   }
 
   void _onStart(DragStartDetails d) {
+    _stopCoachForUser();
     final grabbed = (d.localPosition - _pos).distance < widget.width * 0.6;
     // Off the plate, the thali glides to the finger and rides just above it.
     _grab = grabbed ? _pos - d.localPosition : Offset(0, -widget.width * 0.28);
@@ -1057,6 +1179,7 @@ class _AartiThaliState extends State<_AartiThali> {
     final wickY = diyaTop + dH * 0.235;
     final fW = w * 0.22;
     final fH = w * 0.36;
+    final fingerPulse = _coaching ? (0.55 + 0.45 * math.sin(_coach.value * math.pi * 6)) : 0.0;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -1078,6 +1201,17 @@ class _AartiThaliState extends State<_AartiThali> {
                 painter: SparkTrailPainter(clock: clock, sparks: _sparks),
               ),
             ),
+            if (_coaching)
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: _ThaliCoachArcPainter(
+                    center: widget.orbitCenter,
+                    start: widget.start,
+                    radius: math.max((widget.start - widget.orbitCenter).distance, w * 1.15),
+                    progress: _coachArc(_coach.value),
+                  ),
+                ),
+              ),
             Positioned(
               left: _pos.dx - w / 2,
               top: _pos.dy - w * _plateCenterY,
@@ -1118,11 +1252,69 @@ class _AartiThaliState extends State<_AartiThali> {
                 ),
               ),
             ),
+            if (_coaching)
+              Positioned(
+                left: _pos.dx + w * 0.12,
+                top: _pos.dy + w * 0.08,
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: fingerPulse.clamp(0.35, 1),
+                    child: Icon(
+                      Icons.touch_app_rounded,
+                      size: w * 0.42,
+                      color: const Color(0xFFFFE9B0).withValues(alpha: 0.95),
+                      shadows: const [
+                        Shadow(color: Color(0x99000000), blurRadius: 8, offset: Offset(0, 2)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+}
+
+/// Soft gold arc under the first-time thali coach so the half-circle path reads clearly.
+class _ThaliCoachArcPainter extends CustomPainter {
+  _ThaliCoachArcPainter({
+    required this.center,
+    required this.start,
+    required this.radius,
+    required this.progress,
+  });
+
+  final Offset center;
+  final Offset start;
+  final double radius;
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final startAngle = (start - center).direction;
+    final track = Paint()
+      ..color = Brass.gold.withValues(alpha: 0.22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+    final drawn = Paint()
+      ..color = Brass.gold.withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    canvas.drawArc(rect, startAngle, math.pi, false, track);
+    if (progress > 0.01) {
+      canvas.drawArc(rect, startAngle, math.pi * progress, false, drawn);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThaliCoachArcPainter old) =>
+      old.progress != progress || old.center != center || old.radius != radius;
 }
 
 /// Top status: deity, live ghee level, streak and the ghee CTA.

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/theme.dart';
 import '../../domain/entities/birth_profile.dart';
+import '../../services/chart_export_service.dart';
 import '../../services/kundali/guna_milan.dart';
 import '../../services/kundali/kundali_service.dart';
 import '../kundali/milan_strings.dart';
@@ -26,6 +27,39 @@ class MilanScreen extends ConsumerStatefulWidget {
 class _MilanScreenState extends ConsumerState<MilanScreen> {
   String? _boyId;
   String? _girlId;
+  final GlobalKey _exportKey = GlobalKey();
+  bool _saving = false;
+
+  Future<void> _download(MilanStrings s, BirthProfile boy, BirthProfile girl) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final safe =
+          '${boy.name}_${girl.name}'.replaceAll(RegExp(r'[^\w\u0900-\u097F]+'), '_');
+      final ok = await ChartExportService.saveToGallery(
+        _exportKey,
+        fileName: 'milan_${safe}_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (!mounted) return;
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text(ok ? s.downloaded : s.downloadFailed, style: GoogleFonts.mukta()),
+          behavior: SnackBarBehavior.floating,
+        ));
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text(s.downloadFailed, style: GoogleFonts.mukta()),
+          behavior: SnackBarBehavior.floating,
+        ));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   Future<void> _choose({required bool groom, required MilanStrings s}) async {
     final profiles = ref.read(kundaliProfilesProvider) ?? const [];
@@ -118,21 +152,109 @@ class _MilanScreenState extends ConsumerState<MilanScreen> {
                 ),
               )
             else ...[
-              _ScoreCard(result: result, s: s),
-              const SizedBox(height: 22),
-              _SectionTitle(s.kootaDetails),
-              _KootaCard(result: result, s: s),
-              const SizedBox(height: 22),
-              _SectionTitle(s.doshas),
-              _DoshaCard(result: result, s: s),
-              const SizedBox(height: 22),
-              _SectionTitle(s.manglik),
-              _ManglikCard(result: result, boy: boy!, girl: girl!, s: s),
-              const SizedBox(height: 16),
-              Text(
-                s.disclaimer,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.mukta(fontSize: 13, color: MandirTheme.textMuted, height: 1.35),
+              Builder(
+                builder: (context) {
+                  final groom = boy!;
+                  final bride = girl!;
+                  final milan = result;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      RepaintBoundary(
+                        key: _exportKey,
+                        child: ColoredBox(
+                          color: MandirTheme.backgroundCream,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(2, 4, 2, 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  s.title,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.mukta(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: MandirTheme.textDark,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${groom.name}  •  ${bride.name}',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.mukta(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: MandirTheme.primarySaffron,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                _ScoreCard(result: milan, s: s),
+                                const SizedBox(height: 18),
+                                _SectionTitle(s.kootaDetails),
+                                _KootaCard(result: milan, s: s),
+                                const SizedBox(height: 18),
+                                _SectionTitle(s.doshas),
+                                _DoshaCard(result: milan, s: s),
+                                const SizedBox(height: 18),
+                                _SectionTitle(s.manglik),
+                                _ManglikCard(result: milan, boy: groom, girl: bride, s: s),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'BhaktiDhara',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.mukta(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: MandirTheme.primarySaffron,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 48,
+                        child: FilledButton.icon(
+                          onPressed: _saving ? null : () => _download(s, groom, bride),
+                          icon: _saving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.download_rounded),
+                          label: Text(
+                            s.download,
+                            style: GoogleFonts.mukta(fontSize: 16, fontWeight: FontWeight.w700),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: MandirTheme.primarySaffron,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        s.disclaimer,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.mukta(
+                          fontSize: 13,
+                          color: MandirTheme.textMuted,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ],

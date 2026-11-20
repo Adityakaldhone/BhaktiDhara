@@ -89,113 +89,152 @@ class KundaliScreen extends ConsumerWidget {
   }
 }
 
+Future<bool> confirmDeleteKundali(
+  BuildContext context, {
+  required KundaliStrings s,
+  required String name,
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: MandirTheme.surfaceWhite,
+      content: Text(s.deleteConfirm(name), style: GoogleFonts.mukta(fontSize: 16)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(s.cancel, style: GoogleFonts.mukta(color: MandirTheme.textMuted)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(
+            s.delete,
+            style: GoogleFonts.mukta(
+              color: MandirTheme.primarySaffron,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
+Future<void> openKundaliEditor(
+  BuildContext context, {
+  required BirthProfile profile,
+  bool replaceResult = false,
+}) async {
+  final updated = await Navigator.push<BirthProfile>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => KundaliFormScreen(initial: profile, popOnSave: true),
+    ),
+  );
+  if (updated == null || !context.mounted) return;
+  final route = MaterialPageRoute(builder: (_) => KundaliResultScreen(profile: updated));
+  if (replaceResult) {
+    await Navigator.pushReplacement(context, route);
+  } else {
+    await Navigator.push(context, route);
+  }
+}
+
 class _ProfileCard extends ConsumerWidget {
   const _ProfileCard({required this.profile, required this.s});
 
   final BirthProfile profile;
   final KundaliStrings s;
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: MandirTheme.surfaceWhite,
-        content: Text(s.deleteConfirm(profile.name), style: GoogleFonts.mukta(fontSize: 16)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(s.cancel, style: GoogleFonts.mukta(color: MandirTheme.textMuted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              s.delete,
-              style: GoogleFonts.mukta(
-                color: MandirTheme.primarySaffron,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) {
-      await ref.read(kundaliProfilesProvider.notifier).remove(profile.id);
-    }
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final ok = await confirmDeleteKundali(context, s: s, name: profile.name);
+    if (ok) await ref.read(kundaliProfilesProvider.notifier).remove(profile.id);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    void openResult() => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => KundaliResultScreen(profile: profile)),
+        );
+
     return KundaliFlatCard(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => KundaliResultScreen(profile: profile)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: MandirTheme.primarySaffron.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              profile.name.characters.first.toUpperCase(),
-              style: GoogleFonts.mukta(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: MandirTheme.primarySaffron,
-                height: 1.1,
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: openResult,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: MandirTheme.primarySaffron.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        profile.name.characters.first.toUpperCase(),
+                        style: GoogleFonts.mukta(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: MandirTheme.primarySaffron,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            profile.name,
+                            style: GoogleFonts.mukta(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: MandirTheme.cardTitle,
+                              height: 1.2,
+                            ),
+                          ),
+                          Text(
+                            '${s.date(profile.birthLocal)} • ${s.time(profile.birthLocal)}',
+                            style: GoogleFonts.mukta(
+                              fontSize: 13.5,
+                              color: MandirTheme.cardSubtitle,
+                            ),
+                          ),
+                          Text(
+                            profile.place.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.mukta(
+                              fontSize: 13.5,
+                              color: MandirTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profile.name,
-                  style: GoogleFonts.mukta(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: MandirTheme.cardTitle,
-                    height: 1.2,
-                  ),
-                ),
-                Text(
-                  '${s.date(profile.birthLocal)} • ${s.time(profile.birthLocal)}',
-                  style: GoogleFonts.mukta(fontSize: 13.5, color: MandirTheme.cardSubtitle),
-                ),
-                Text(
-                  profile.place.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.mukta(fontSize: 13.5, color: MandirTheme.textMuted),
-                ),
-              ],
-            ),
+          IconButton(
+            tooltip: s.edit,
+            onPressed: () => openKundaliEditor(context, profile: profile),
+            icon: const Icon(Icons.edit_outlined, color: MandirTheme.primarySaffron),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: MandirTheme.textMuted),
-            color: MandirTheme.surfaceWhite,
-            onSelected: (v) {
-              if (v == 'edit') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => KundaliFormScreen(initial: profile)),
-                );
-              } else {
-                _confirmDelete(context, ref);
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 'edit', child: Text(s.edit, style: GoogleFonts.mukta())),
-              PopupMenuItem(value: 'delete', child: Text(s.delete, style: GoogleFonts.mukta())),
-            ],
+          IconButton(
+            tooltip: s.delete,
+            onPressed: () => _delete(context, ref),
+            icon: const Icon(Icons.delete_outline_rounded, color: MandirTheme.textMuted),
           ),
         ],
       ),

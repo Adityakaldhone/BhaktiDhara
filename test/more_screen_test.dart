@@ -3,11 +3,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nitya_aarti/l10n/app_localizations.dart';
+import 'package:nitya_aarti/presentation/providers/remote_config_provider.dart';
 import 'package:nitya_aarti/presentation/screens/more_screen.dart';
 
 void main() {
   Widget buildMoreScreen({Locale locale = const Locale('en')}) {
     return ProviderScope(
+      overrides: [
+        appVersionProvider.overrideWith((ref) async => '1.2.3'),
+      ],
       child: MaterialApp(
         locale: locale,
         localizationsDelegates: const [
@@ -39,6 +43,11 @@ void main() {
 
     // Screen title
     expect(find.text('More'), findsOneWidget);
+    expect(find.byKey(const Key('more-feedback')), findsOneWidget);
+    expect(find.byKey(const Key('more-feedback-input')), findsOneWidget);
+    expect(find.byKey(const Key('more-feedback-submit')), findsOneWidget);
+    expect(find.byKey(const Key('more-app-version')), findsOneWidget);
+    expect(find.text('v1.2.3'), findsOneWidget);
 
     // Hero Card
     expect(find.byKey(const Key('more-ishta-devta')), findsOneWidget);

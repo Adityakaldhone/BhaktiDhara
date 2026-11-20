@@ -161,3 +161,35 @@ class AppAnnouncement {
     );
   }
 }
+
+/// Per-device inbox message from `/api/v1/notifications` (works without push permission).
+class InAppNotification {
+  const InAppNotification({
+    required this.id,
+    required this.title,
+    required this.body,
+    this.campaignId,
+    this.opened = false,
+  });
+
+  final int id;
+  final String title;
+  final String body;
+  final int? campaignId;
+  final bool opened;
+
+  static InAppNotification? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final id = json['id'];
+    final title = json['title']?.toString().trim() ?? '';
+    if (id is! int || title.isEmpty) return null;
+    final campaign = json['campaignId'];
+    return InAppNotification(
+      id: id,
+      title: title,
+      body: json['body']?.toString().trim() ?? '',
+      campaignId: campaign is int ? campaign : int.tryParse('$campaign'),
+      opened: json['opened'] == true,
+    );
+  }
+}

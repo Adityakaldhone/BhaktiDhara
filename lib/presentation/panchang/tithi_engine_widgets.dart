@@ -90,7 +90,7 @@ class PanchangEngineStatus extends StatelessWidget {
                   s.liveTithi(
                       '${names.pakshaShort(current.paksha)} ${names.tithi(current.tithiNumber)}'),
                   style: GoogleFonts.mukta(
-                    fontSize: 15,
+                    fontSize: 16.0,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF8D5A00),
                   ),
@@ -129,7 +129,7 @@ class _Chip extends StatelessWidget {
             child: Text(
               text,
               style: GoogleFonts.mukta(
-                fontSize: 13,
+                fontSize: 13.8,
                 fontWeight: FontWeight.w700,
                 color: color,
               ),
@@ -184,7 +184,7 @@ class UpcomingObservancesCard extends ConsumerWidget {
                 child: Text(
                   s.upcomingTitle,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 19,
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF2C1E14),
                     letterSpacing: -0.3,
@@ -197,7 +197,7 @@ class UpcomingObservancesCard extends ConsumerWidget {
           Text(
             s.upcomingHint,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 12.5,
+              fontSize: 13.5,
               fontWeight: FontWeight.w500,
               color: const Color(0xFF8C7565),
             ),
@@ -287,7 +287,7 @@ class UpcomingObservancesCard extends ConsumerWidget {
                     Text(
                       s.tithiFinder,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14.5,
+                        fontSize: 15.2,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF8D3F1B),
                       ),
@@ -347,7 +347,7 @@ class _ObservanceRow extends StatelessWidget {
                   Text(
                     _digits('${fd.date.day}', s.lang),
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.5,
+                      fontSize: 15.2,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF6D3214),
                       height: 1.1,
@@ -356,7 +356,7 @@ class _ObservanceRow extends StatelessWidget {
                   Text(
                     monthStr,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
+                      fontSize: 11.0,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF8C5332),
                       height: 1.1,
@@ -373,7 +373,7 @@ class _ObservanceRow extends StatelessWidget {
                   Text(
                     label,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15,
+                      fontSize: 16.2,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF2C1E14),
                       height: 1.2,
@@ -383,7 +383,7 @@ class _ObservanceRow extends StatelessWidget {
                   Text(
                     fd.recurring ? '$tithi • ${s.monthly}' : tithi,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
+                      fontSize: 13.2,
                       fontWeight: FontWeight.w500,
                       color: const Color(0xFF8C7565),
                       height: 1.2,
@@ -394,7 +394,7 @@ class _ObservanceRow extends StatelessWidget {
                     Text(
                       muhurta!,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
+                        fontSize: 12.8,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFFBA471A),
                         height: 1.2,
@@ -411,7 +411,7 @@ class _ObservanceRow extends StatelessWidget {
                 Text(
                   s.inDays(days),
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
+                    fontSize: 13.0,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF8C7565),
                   ),
@@ -516,14 +516,14 @@ class _TithiFinderSheetState extends ConsumerState<TithiFinderSheet> {
             Text(
               s.tithiFinder,
               style: GoogleFonts.mukta(
-                fontSize: 22,
+                fontSize: 23,
                 fontWeight: FontWeight.bold,
                 color: MandirTheme.textDark,
               ),
             ),
             Text(
               '${s.finderHint}\n${s.monthSystemNote(system)} • ${city.localizedName(widget.lang)}',
-              style: GoogleFonts.mukta(fontSize: 14, color: MandirTheme.textMuted),
+              style: GoogleFonts.mukta(fontSize: 14.8, color: MandirTheme.textMuted),
             ),
             const SizedBox(height: 14),
             _label(s.finderMonth),
@@ -605,7 +605,7 @@ class _TithiFinderSheetState extends ConsumerState<TithiFinderSheet> {
                                 _digits('$_year', widget.lang),
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.mukta(
-                                    fontSize: 17, fontWeight: FontWeight.bold),
+                                    fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                             ),
                             IconButton(
@@ -629,7 +629,7 @@ class _TithiFinderSheetState extends ConsumerState<TithiFinderSheet> {
               if (found.regular.isEmpty)
                 Text(s.finderNone,
                     style: GoogleFonts.mukta(
-                        fontSize: 15, color: MandirTheme.textMuted))
+                        fontSize: 15.8, color: MandirTheme.textMuted))
               else
                 for (final d in found.regular)
                   _ResultTile(
@@ -665,7 +665,7 @@ class _TithiFinderSheetState extends ConsumerState<TithiFinderSheet> {
         child: Text(
           text,
           style: GoogleFonts.mukta(
-            fontSize: 15,
+            fontSize: 15.8,
             fontWeight: FontWeight.w800,
             color: MandirTheme.primarySaffron,
           ),
@@ -720,7 +720,7 @@ class _ResultTile extends StatelessWidget {
             color: MandirTheme.primarySaffron),
         title: Text(
           engineDateLabel(date, lang, withYear: true),
-          style: GoogleFonts.mukta(fontSize: 17, fontWeight: FontWeight.bold),
+          style: GoogleFonts.mukta(fontSize: 17.8, fontWeight: FontWeight.bold),
         ),
         trailing: const Icon(Icons.chevron_right,
             color: MandirTheme.primarySaffron),

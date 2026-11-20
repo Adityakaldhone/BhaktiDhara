@@ -69,7 +69,7 @@ class _MalaPainter extends CustomPainter {
     final c = size.center(Offset.zero);
     final outerMargin = size.width * 0.09;
     final r = size.width / 2 - outerMargin;
-    final beadR = math.min(r * math.pi / _slots * 0.9, 7.0);
+    final beadR = math.min(r * math.pi / _slots * 0.9, 7.2);
     final step = 2 * math.pi / _slots;
     final dir = clockwise ? 1.0 : -1.0;
     const top = -math.pi / 2;
@@ -80,10 +80,10 @@ class _MalaPainter extends CustomPainter {
         c,
         r,
         Paint()
-          ..color = JaapColors.glowGold.withValues(alpha: 0.85 * g)
+          ..color = JaapColors.glowGold.withValues(alpha: 0.9 * g)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = beadR * 6
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
+          ..strokeWidth = beadR * 7
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20),
       );
     }
 
@@ -91,9 +91,9 @@ class _MalaPainter extends CustomPainter {
       c,
       r,
       Paint()
-        ..color = JaapColors.thread.withValues(alpha: 0.55)
+        ..color = JaapColors.thread.withValues(alpha: 0.4)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4,
+        ..strokeWidth = 1.05,
     );
 
     final current = beadIndex - 1;
@@ -104,13 +104,13 @@ class _MalaPainter extends CustomPainter {
       final counted = i < beadIndex;
       var radius = beadR;
       if (i == current) {
-        radius = beadR * (1.25 + 0.45 * math.sin(p * math.pi));
+        radius = beadR * (1.35 + 0.55 * math.sin(p * math.pi));
         canvas.drawCircle(
           pos,
-          radius * 2.2,
+          radius * 2.6,
           Paint()
-            ..color = JaapColors.glowGold.withValues(alpha: 0.55)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+            ..color = JaapColors.glowGold.withValues(alpha: 0.65)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
         );
       }
       _drawBead(
@@ -118,59 +118,91 @@ class _MalaPainter extends CustomPainter {
         pos,
         radius,
         counted ? JaapColors.beadDone : JaapColors.beadRudraksha,
+        warm: counted,
       );
     }
 
     _drawSumeru(canvas, c + Offset(0, -r), beadR);
   }
 
-  void _drawBead(Canvas canvas, Offset pos, double radius, Color base) {
+  void _drawBead(
+    Canvas canvas,
+    Offset pos,
+    double radius,
+    Color base, {
+    bool warm = false,
+  }) {
     final rect = Rect.fromCircle(center: pos, radius: radius);
+    if (warm) {
+      canvas.drawCircle(
+        pos,
+        radius * 1.55,
+        Paint()
+          ..color = JaapColors.glowGold.withValues(alpha: 0.22)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+      );
+    }
     canvas.drawCircle(
       pos,
       radius,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.4, -0.45),
-          radius: 1.0,
+          center: const Alignment(-0.35, -0.4),
+          radius: 1.05,
           colors: [
-            Color.lerp(base, Colors.white, 0.45)!,
+            Color.lerp(base, Colors.white, warm ? 0.55 : 0.4)!,
             base,
-            Color.lerp(base, Colors.black, 0.35)!,
+            Color.lerp(base, Colors.black, warm ? 0.28 : 0.38)!,
           ],
-          stops: const [0.0, 0.55, 1.0],
+          stops: const [0.0, 0.52, 1.0],
         ).createShader(rect),
+    );
+    // Specular highlight for a more physical bead.
+    canvas.drawCircle(
+      pos + Offset(-radius * 0.28, -radius * 0.32),
+      radius * 0.28,
+      Paint()..color = Colors.white.withValues(alpha: warm ? 0.45 : 0.28),
     );
   }
 
   void _drawSumeru(Canvas canvas, Offset pos, double beadR) {
     final tasselPaint = Paint()
-      ..color = JaapColors.thread
-      ..strokeWidth = 1.6
+      ..color = JaapColors.thread.withValues(alpha: 0.85)
+      ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
-    final knot = pos + Offset(0, -beadR * 2.6);
+    final knot = pos + Offset(0, -beadR * 2.7);
     for (var k = -3; k <= 3; k++) {
-      final end = knot + Offset(k * beadR * 0.55, -beadR * 3.2);
+      final end = knot + Offset(k * beadR * 0.55, -beadR * 3.3);
       canvas.drawLine(knot, end, tasselPaint);
     }
-    canvas.drawCircle(knot, beadR * 0.9, Paint()..color = JaapColors.sumeru);
+    canvas.drawCircle(
+      knot,
+      beadR * 0.95,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Color.lerp(JaapColors.sumeru, Colors.white, 0.25)!,
+            JaapColors.sumeru,
+          ],
+        ).createShader(Rect.fromCircle(center: knot, radius: beadR * 0.95)),
+    );
 
-    final radius = beadR * 2.1;
+    final radius = beadR * 2.25;
     canvas.drawCircle(
       pos,
-      radius * 1.5,
+      radius * 1.7,
       Paint()
-        ..color = JaapColors.glowGold.withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+        ..color = JaapColors.glowGold.withValues(alpha: 0.4)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
     );
-    _drawBead(canvas, pos, radius, JaapColors.sumeru);
+    _drawBead(canvas, pos, radius, JaapColors.sumeru, warm: true);
     canvas.drawCircle(
       pos,
       radius,
       Paint()
         ..color = JaapColors.thread
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
+        ..strokeWidth = 1.8,
     );
   }
 

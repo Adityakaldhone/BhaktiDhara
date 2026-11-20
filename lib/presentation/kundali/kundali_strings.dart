@@ -27,6 +27,17 @@ class KundaliStrings {
       );
   String get delete => _t('हटवा', 'हटाएँ', 'Delete');
   String get edit => _t('बदला', 'बदलें', 'Edit');
+  String get download => _t('डाउनलोड', 'डाउनलोड', 'Download');
+  String get downloaded => _t(
+        'कुंडली PDF तयार ✅ शेअर/सेव्ह करा',
+        'कुंडली PDF तैयार ✅ शेयर/सेव करें',
+        'Kundali PDF ready ✅ Share or save it',
+      );
+  String get downloadFailed => _t(
+        'डाउनलोड करता आले नाही. पुन्हा प्रयत्न करा.',
+        'डाउनलोड नहीं हो सका। फिर से कोशिश करें।',
+        'Could not download. Please try again.',
+      );
   String deleteConfirm(String name) => _t(
         '"$name" यांची कुंडली हटवायची?',
         '"$name" की कुंडली हटाएँ?',
@@ -44,14 +55,20 @@ class KundaliStrings {
   String get select => _t('निवडा', 'चुनें', 'Select');
   String get searchPlace =>
       _t('गाव / शहराचे नाव शोधा', 'गाँव / शहर का नाम खोजें', 'Search town or city');
+  String get searchPlaceHint => _t(
+        'उदा. पुणे, Manchar, Satara',
+        'जैसे पुणे, Manchar, Satara',
+        'e.g. Pune, Manchar, Satara',
+      );
   String get popularPlaces => _t('प्रमुख शहरे', 'प्रमुख शहर', 'Popular cities');
   String get searchResults => _t('शोध परिणाम', 'खोज परिणाम', 'Search results');
   String get noPlaceFound => _t(
-        'ठिकाण सापडले नाही. इंटरनेट तपासा किंवा दुसरे नाव वापरून पाहा.',
-        'स्थान नहीं मिला। इंटरनेट जाँचें या दूसरा नाम आज़माएँ।',
-        'No place found. Check your internet or try another spelling.',
+        'ठिकाण सापडले नाही. गावाचे / शहराचे इंग्रजी नाव किंवा जिल्ह्यासह शोधा (उदा. Manchar, Pune).',
+        'स्थान नहीं मिला। गाँव / शहर का अंग्रेज़ी नाम या ज़िले के साथ खोजें (जैसे Manchar, Pune).',
+        'No place found. Try the English spelling or add the district (e.g. Manchar, Pune).',
       );
   String get showKundali => _t('कुंडली पाहा', 'कुंडली देखें', 'Show Kundali');
+  String get saveChanges => _t('बदल जतन करा', 'बदलाव सहेजें', 'Save changes');
   String get fillAll => _t(
         'कृपया नाव, तारीख, वेळ व जन्मस्थान भरा.',
         'कृपया नाम, तिथि, समय और जन्म स्थान भरें।',

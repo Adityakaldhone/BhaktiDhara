@@ -40,6 +40,14 @@ const List<BhaktiDeity> kBhaktiDeities = [
     imageAsset: '$_dir/krishna.webp',
   ),
   BhaktiDeity(
+    key: 'Banke Bihari',
+    aliases: ['Shri Banke Bihari', 'बांके बिहारी', 'बांकेबिहारी', 'Vrindavan Bihari', 'ठाकुर जी'],
+    nameEn: 'Banke Bihari',
+    nameHi: 'श्री बांके बिहारी',
+    nameMr: 'श्री बांके बिहारी',
+    imageAsset: '$_dir/krishna.webp',
+  ),
+  BhaktiDeity(
     key: 'Lord Rama',
     nameEn: 'Prabhu Shri Ram',
     nameHi: 'प्रभु श्रीराम',
@@ -51,6 +59,14 @@ const List<BhaktiDeity> kBhaktiDeities = [
     nameEn: 'Durga Mata',
     nameHi: 'माँ दुर्गा',
     nameMr: 'दुर्गा माता',
+    imageAsset: '$_dir/durga.webp',
+  ),
+  BhaktiDeity(
+    key: 'Goddess Tuljabhavani',
+    aliases: ['Tuljabhavani', 'Bhavani Mata', 'तुळजाभवानी', 'भवानी माता', 'आई राजा उदो उदो', 'आई भवानी', 'कुलस्वामिनी'],
+    nameEn: 'Tuljabhavani',
+    nameHi: 'माँ तुलजा भवानी',
+    nameMr: 'आई तुळजाभवानी',
     imageAsset: '$_dir/durga.webp',
   ),
   BhaktiDeity(
@@ -103,6 +119,14 @@ const List<BhaktiDeity> kBhaktiDeities = [
     imageAsset: '$_dir/khandoba.webp',
   ),
   BhaktiDeity(
+    key: 'Lord Jyotiba',
+    aliases: ['Jyotiba', 'Jotiba', 'Kedarnath Jyotiba', 'जोतिबा', 'चांगभलं', 'केदारलिंग'],
+    nameEn: 'Shri Jyotiba',
+    nameHi: 'श्री जोतिबा',
+    nameMr: 'श्री जोतिबा',
+    imageAsset: '$_dir/siddhanth.webp',
+  ),
+  BhaktiDeity(
     key: 'Lord Shani',
     nameEn: 'Shani Dev',
     nameHi: 'शनि देव',
@@ -125,6 +149,7 @@ const List<BhaktiDeity> kBhaktiDeities = [
   ),
   BhaktiDeity(
     key: 'Radha',
+    aliases: ['Radha Rani', 'Shri Radha', 'राधा रानी', 'राधा राणी', 'राधा जी', 'Barsana'],
     nameEn: 'Radha Rani',
     nameHi: 'राधा रानी',
     nameMr: 'राधा राणी',
@@ -174,6 +199,7 @@ const List<BhaktiDeity> kBhaktiDeities = [
   ),
   BhaktiDeity(
     key: 'Lord Bhairavnath',
+    aliases: ['Kalbhairav', 'Batuk Bhairav', 'काळभैरव', 'कालभैरव', 'Bhairon Baba', 'भैरवनाथ', 'काळभैरवनाथ'],
     nameEn: 'Kalbhairav',
     nameHi: 'कालभैरव',
     nameMr: 'काळभैरवनाथ',

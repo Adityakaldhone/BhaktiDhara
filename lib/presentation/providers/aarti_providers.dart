@@ -122,12 +122,56 @@ List<String> _getSpiritualSynonyms(String aartiId) {
       'कैलाश', 'हर हर', 'आरती', 'गंगाधर', 'शिवशंकर'
     ];
   }
-  if (aartiId.startsWith('durga') || aartiId.startsWith('santoshi')) {
+  if (aartiId.startsWith('durga') || aartiId.startsWith('santoshi') || aartiId.startsWith('tulja')) {
     return const [
       'durga', 'ambe', 'ambey', 'mata', 'sherawali', 'bhavani', 'goddess',
       'jagjanani', 'gauri', 'aarti', 'arti', 'navratri', 'chandi', 'mahakali',
-      'santoshi', 'दुर्गा', 'अम्बे', 'अंबे', 'माता', 'शेरावाली', 'भवानी', 'गौरी',
-      'जगजननी', 'आरती', 'नवरात्रि', 'चंडी', 'महाकाली', 'संतोषी'
+      'santoshi', 'tulja', 'tuljabhavani', 'tuljapur', 'kuldevi',
+      'दुर्गा', 'अम्बे', 'अंबे', 'माता', 'शेरावाली', 'भवानी', 'गौरी',
+      'जगजननी', 'आरती', 'नवरात्रि', 'चंडी', 'महाकाली', 'संतोषी',
+      'तुळजाभवानी', 'तुळजापूर', 'आई भवानी', 'कुलस्वामिनी', 'उदो उदो'
+    ];
+  }
+  if (aartiId.startsWith('radha')) {
+    return const [
+      'radha', 'radharani', 'radha rani', 'barsana', 'kishori', 'vrishbhanu', 'radhe',
+      'राधा', 'राधा रानी', 'राधा राणी', 'बरसाना', 'किशोरी', 'राधे', 'वृषभानु'
+    ];
+  }
+  if (aartiId.startsWith('banke')) {
+    return const [
+      'banke', 'banke bihari', 'bihari', 'vrindavan', 'thakur ji', 'haridas', 'kunj bihari',
+      'बांके', 'बांके बिहारी', 'बांकेबिहारी', 'वृंदावन', 'ठाकुर जी', 'कुंज बिहारी'
+    ];
+  }
+  if (aartiId.startsWith('jyotiba')) {
+    return const [
+      'jyotiba', 'jotiba', 'kedarnath', 'ratnagiri', 'changbhala', 'kolhapur',
+      'जोतिबा', 'चांगभलं', 'केदारलिंग', 'कोल्हापूर', 'रत्नागिरी'
+    ];
+  }
+  if (aartiId.startsWith('kalbhairav') || aartiId.startsWith('bhairav')) {
+    return const [
+      'kalbhairav', 'bhairav', 'batuk', 'kashi', 'kotwal', 'bhairavnath',
+      'काळभैरव', 'कालभैरव', 'भैरव', 'काशी', 'कोतवाल', 'बटुक भैरव', 'भैरवनाथ'
+    ];
+  }
+  if (aartiId.startsWith('khandoba')) {
+    return const [
+      'khandoba', 'malhari', 'martand', 'jejuri', 'yelkot',
+      'खंडोबा', 'मल्हारी', 'जेजुरी', 'येळकोट'
+    ];
+  }
+  if (aartiId.startsWith('swami')) {
+    return const [
+      'swami', 'swami samarth', 'akkalkot', 'maharaj',
+      'स्वामी', 'स्वामी समर्थ', 'अक्कलकोट'
+    ];
+  }
+  if (aartiId.startsWith('gajanan')) {
+    return const [
+      'gajanan', 'gajanan maharaj', 'shegaon',
+      'गजानन', 'गजानन महाराज', 'शेगाव'
     ];
   }
   if (aartiId.startsWith('vitthal') || aartiId.startsWith('pasayadan')) {

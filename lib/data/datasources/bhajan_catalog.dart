@@ -6,96 +6,144 @@ import 'hanuman_stotras_catalog.dart';
 /// are matched to the primary [AartiItem.youtubeVideoId] for each entry.
 final List<AartiItem> kBhajanCatalog = [
   // ─────────────────────────────────────────────────────────────────────────
-  // 1. ACHYUTAM KESHAVAM — Vikram Hazra (Art of Living)
-  // Video: QyMZxGlXulY (~5:45)
+  // 1. ACHYUTAM KESHAVAM — Adidev Bhakti
+  // Video: fnZf62u0j5Q (~6:20) — timings matched to this upload
   // ─────────────────────────────────────────────────────────────────────────
   AartiItem(
     id: 'bhajan_achyutam_keshavam',
     title: 'Achyutam Keshavam',
-    titleHi: 'अच्युतम केशवम',
-    titleMr: 'अच्युतम केशवम',
+    titleHi: 'अच्युतम केशवं',
+    titleMr: 'अच्युतम केशवं',
     deity: 'Lord Krishna',
     deityHi: 'श्री कृष्ण',
     deityMr: 'श्री कृष्ण',
-    singer: 'Vikram Hazra',
+    singer: 'Adidev Bhakti',
     tags: const ['Popular', 'Bhajan', 'Krishna', 'Kirtan'],
-    youtubeVideoId: 'QyMZxGlXulY',
-    backupVideoIds: const ['Nil8W8XlJaE', 'fnZf62u0j5Q'],
-    durationText: '5:45',
+    youtubeVideoId: 'fnZf62u0j5Q',
+    backupVideoIds: const ['QyMZxGlXulY', 'Nil8W8XlJaE'],
+    durationText: '6:20',
     accentColorHex: '#1E88E5',
     deityEmoji: '🦚',
     aboutMr:
-        'अच्युतम केशवम हे भगवान श्रीकृष्णाचे अतिशय लोकप्रिय व मधुर भजन आहे. निष्काम भक्ती आणि श्रद्धेने देवाला हाक मारल्यास देव कसा धावून येतो याचे सुरेख वर्णन यात आहे.',
+        'अच्युतम केशवं हे भगवान श्रीकृष्णाचे अतिशय लोकप्रिय व मधुर भजन आहे. निष्काम भक्ती आणि श्रद्धेने देवाला हाक मारल्यास देव कसा धावून येतो याचे सुरेख वर्णन यात आहे.',
     aboutHi:
-        'अच्युतम केशवम भगवान श्री कृष्ण का अत्यंत मधुर एवं प्रिय भजन है। इसमें बताया गया है कि सच्चे प्रेम और निष्ठा से पुकारने पर प्रभु सदैव अपने भक्त के पास आते हैं।',
+        'अच्युतम केशवं भगवान श्री कृष्ण का अत्यंत मधुर एवं प्रिय भजन है। इसमें बताया गया है कि सच्चे प्रेम और निष्ठा से पुकारने पर प्रभु सदैव अपने भक्त के पास आते हैं।',
     about:
-        'Achyutam Keshavam is a beloved Art of Living bhajan by Vikram Hazra, praising Lord Krishna with the famous "Kaun kehte hain" verses.',
+        'Achyutam Keshavam praising Lord Krishna with the famous "Kaun kehte hain" verses — timed to the Adidev Bhakti video.',
     lyrics: const [
       LyricStanza(
-        startTimeMs: 14000,
-        devanagari: 'अच्युतं केशवं कृष्ण दामोदरं\nराम नारायणं जानकी वल्लभम् ॥',
+        startTimeMs: 9000,
+        devanagari: 'अच्युतं केशवं कृष्ण दामोदरम् ।\nअच्युतं केशवं कृष्ण दामोदरम् ॥\nराम नारायणं जानकी वल्लभम् ।\nराम नारायणं जानकी वल्लभम् ॥',
         transliteration:
-            'Achyutam Keshavam Krishna Damodaram,\nRama Narayanam Janaki Vallabham.',
+            'Achyutam Keshavam Krishna Damodaram,\nAchyutam Keshavam Krishna Damodaram.\nRama Narayanam Janaki Vallabham,\nRama Narayanam Janaki Vallabham.',
       ),
       LyricStanza(
-        startTimeMs: 42000,
-        devanagari: 'कौन कहते हैं भगवान आते नहीं\nतुम मीरा के जैसे बुलाते नहीं ॥',
+        startTimeMs: 29000,
+        devanagari: 'कौन कहते हैं भगवान आते नहीं ।\nकौन कहते हैं भगवान आते नहीं ॥\nतुम मीरा के जैसे बुलाते नहीं ।\nतुम मीरा के जैसे बुलाते नहीं ॥',
         transliteration:
-            'Kaun Kehte Hain Bhagwan Aate Nahin,\nTum Meera Ke Jaise Bulate Nahin.',
+            'Kaun Kehte Hain Bhagwan Aate Nahin,\nKaun Kehte Hain Bhagwan Aate Nahin.\nTum Meera Ke Jaise Bulate Nahin,\nTum Meera Ke Jaise Bulate Nahin.',
+      ),
+      LyricStanza(
+        startTimeMs: 55000,
+        devanagari: 'कृष्णा कृष्णा हरे कृष्णा कृष्णा ।\nकृष्णा कृष्णा राधे कृष्णा कृष्णा ॥',
+        transliteration:
+            'Krishna Krishna Hare Krishna Krishna,\nKrishna Krishna Radhe Krishna Krishna.',
       ),
       LyricStanza(
         startTimeMs: 70000,
-        devanagari: 'अच्युतं केशवं कृष्ण दामोदरं\nराम नारायणं जानकी वल्लभम् ॥',
+        devanagari: 'अच्युतं केशवं कृष्ण दामोदरम् ।\nअच्युतं केशवं कृष्ण दामोदरम् ॥\nराम नारायणं जानकी वल्लभम् ।\nराम नारायणं जानकी वल्लभम् ॥',
         transliteration:
-            'Achyutam Keshavam Krishna Damodaram,\nRama Narayanam Janaki Vallabham.',
+            'Achyutam Keshavam Krishna Damodaram,\nAchyutam Keshavam Krishna Damodaram.\nRama Narayanam Janaki Vallabham,\nRama Narayanam Janaki Vallabham.',
       ),
       LyricStanza(
-        startTimeMs: 98000,
-        devanagari: 'कौन कहते हैं भगवान खाते नहीं\nबेर शबरी के जैसे खिलाते नहीं ॥',
+        startTimeMs: 88000,
+        devanagari: 'कौन कहते हैं भगवान खाते नहीं ।\nकौन कहते हैं भगवान खाते नहीं ॥\nमेरे शबरी के जैसे खिलाते नहीं ।\nमेरे शबरी के जैसे खिलाते नहीं ॥',
         transliteration:
-            'Kaun Kehte Hain Bhagwan Khaate Nahin,\nBer Shabari Ke Jaise Khilate Nahin.',
+            'Kaun Kehte Hain Bhagwan Khaate Nahin,\nKaun Kehte Hain Bhagwan Khaate Nahin.\nMere Shabari Ke Jaise Khilate Nahin,\nMere Shabari Ke Jaise Khilate Nahin.',
       ),
       LyricStanza(
-        startTimeMs: 126000,
-        devanagari: 'अच्युतं केशवं कृष्ण दामोदरं\nराम नारायणं जानकी वल्लभम् ॥',
+        startTimeMs: 116000,
+        devanagari: 'कृष्णा कृष्णा राधे कृष्णा कृष्णा ।\nकृष्णा कृष्णा राधे कृष्णा कृष्णा ॥',
         transliteration:
-            'Achyutam Keshavam Krishna Damodaram,\nRama Narayanam Janaki Vallabham.',
+            'Krishna Krishna Radhe Krishna Krishna,\nKrishna Krishna Radhe Krishna Krishna.',
       ),
       LyricStanza(
-        startTimeMs: 154000,
-        devanagari: 'कौन कहते हैं भगवान सोते नहीं\nमाँ यशोदा के जैसे सुलाते नहीं ॥',
+        startTimeMs: 131000,
+        devanagari: 'अच्युतं केशवं कृष्ण दामोदरम् ।\nअच्युतं केशवं कृष्ण दामोदरम् ॥\nराम नारायणं जानकी वल्लभम् ।\nराम नारायणं जानकी वल्लभम् ॥',
         transliteration:
-            'Kaun Kehte Hain Bhagwan Sote Nahin,\nMaa Yashoda Ke Jaise Sulate Nahin.',
+            'Achyutam Keshavam Krishna Damodaram,\nAchyutam Keshavam Krishna Damodaram.\nRama Narayanam Janaki Vallabham,\nRama Narayanam Janaki Vallabham.',
       ),
       LyricStanza(
-        startTimeMs: 182000,
-        devanagari: 'अच्युतं केशवं कृष्ण दामोदरं\nराम नारायणं जानकी वल्लभम् ॥',
+        startTimeMs: 148000,
+        devanagari: 'कौन कहते हैं भगवान सोते नहीं ।\nकौन कहते हैं भगवान सोते नहीं ॥\nमाँ यशोदा के जैसे सुलाते नहीं ।\nमाँ यशोदा के जैसे सुलाते नहीं ॥',
         transliteration:
-            'Achyutam Keshavam Krishna Damodaram,\nRama Narayanam Janaki Vallabham.',
+            'Kaun Kehte Hain Bhagwan Sote Nahin,\nKaun Kehte Hain Bhagwan Sote Nahin.\nMaa Yashoda Ke Jaise Sulate Nahin,\nMaa Yashoda Ke Jaise Sulate Nahin.',
       ),
       LyricStanza(
-        startTimeMs: 210000,
-        devanagari: 'कौन कहते हैं भगवान नाचते नहीं\nगोपियों की तरह तुम नचाते नहीं ॥',
+        startTimeMs: 177000,
+        devanagari: 'कृष्णा कृष्णा राधे कृष्णा कृष्णा ।\nकृष्णा कृष्णा राधे कृष्णा कृष्णा ॥',
         transliteration:
-            'Kaun Kehte Hain Bhagwan Naachte Nahin,\nGopiyon Ki Tarah Tum Nachate Nahin.',
+            'Krishna Krishna Radhe Krishna Krishna,\nKrishna Krishna Radhe Krishna Krishna.',
+      ),
+      LyricStanza(
+        startTimeMs: 191000,
+        devanagari: 'अच्युतं केशवं कृष्ण दामोदरम् ।\nअच्युतं केशवं कृष्ण दामोदरम् ॥\nराम नारायणं जानकी वल्लभम् ।\nराम नारायणं जानकी वल्लभम् ॥',
+        transliteration:
+            'Achyutam Keshavam Krishna Damodaram,\nAchyutam Keshavam Krishna Damodaram.\nRama Narayanam Janaki Vallabham,\nRama Narayanam Janaki Vallabham.',
+      ),
+      LyricStanza(
+        startTimeMs: 209000,
+        devanagari: 'कौन कहते हैं भगवान नाचते नहीं ।\nकौन कहते हैं भगवान नाचते नहीं ॥\nगोपियों की तरह तुम नचाते नहीं ।\nगोपियों की तरह तुम नचाते नहीं ॥',
+        transliteration:
+            'Kaun Kehte Hain Bhagwan Naachte Nahin,\nKaun Kehte Hain Bhagwan Naachte Nahin.\nGopiyon Ki Tarah Tum Nachate Nahin,\nGopiyon Ki Tarah Tum Nachate Nahin.',
       ),
       LyricStanza(
         startTimeMs: 238000,
-        devanagari: 'अच्युतं केशवं कृष्ण दामोदरं\nराम नारायणं जानकी वल्लभम् ॥',
+        devanagari: 'कृष्णा कृष्णा राधे कृष्णा कृष्णा ।\nकृष्णा कृष्णा राधे कृष्णा कृष्णा ॥',
         transliteration:
-            'Achyutam Keshavam Krishna Damodaram,\nRama Narayanam Janaki Vallabham.',
+            'Krishna Krishna Radhe Krishna Krishna,\nKrishna Krishna Radhe Krishna Krishna.',
       ),
       LyricStanza(
-        startTimeMs: 266000,
-        devanagari: 'नाम जपते चलो काम करते चलो\nहर समय कृष्ण का नाम धरते चलो ॥',
+        startTimeMs: 245000,
+        devanagari: 'अच्युतं केशवं कृष्ण दामोदरम् ।\nअच्युतं केशवं कृष्ण दामोदरम् ॥\nराम नारायणं जानकी वल्लभम् ।\nराम नारायणं जानकी वल्लभम् ॥',
         transliteration:
-            'Naam Japte Chalo Kaam Karte Chalo,\nHar Samay Krishna Ka Naam Dharte Chalo.',
+            'Achyutam Keshavam Krishna Damodaram,\nAchyutam Keshavam Krishna Damodaram.\nRama Narayanam Janaki Vallabham,\nRama Narayanam Janaki Vallabham.',
       ),
       LyricStanza(
-        startTimeMs: 294000,
-        devanagari: 'अच्युतं केशवं कृष्ण दामोदरं\nराम नारायणं जानकी वल्लभम् ॥',
+        startTimeMs: 272000,
+        devanagari: 'नाम जपते चलो काम करते चलो ।\nनाम जपते चलो काम करते चलो ॥\nहर समय कृष्ण का ध्यान करते चलो ।\nहर समय कृष्ण का ध्यान करते चलो ॥',
         transliteration:
-            'Achyutam Keshavam Krishna Damodaram,\nRama Narayanam Janaki Vallabham.',
+            'Naam Japte Chalo Kaam Karte Chalo,\nNaam Japte Chalo Kaam Karte Chalo.\nHar Samay Krishna Ka Dhyan Karte Chalo,\nHar Samay Krishna Ka Dhyan Karte Chalo.',
+      ),
+      LyricStanza(
+        startTimeMs: 298000,
+        devanagari: 'कृष्णा कृष्णा राधे कृष्णा कृष्णा ।\nकृष्णा कृष्णा राधे कृष्णा कृष्णा ॥',
+        transliteration:
+            'Krishna Krishna Radhe Krishna Krishna,\nKrishna Krishna Radhe Krishna Krishna.',
+      ),
+      LyricStanza(
+        startTimeMs: 313000,
+        devanagari: 'अच्युतं केशवं कृष्ण दामोदरम् ।\nअच्युतं केशवं कृष्ण दामोदरम् ॥\nराम नारायणं जानकी वल्लभम् ।\nराम नारायणं जानकी वल्लभम् ॥',
+        transliteration:
+            'Achyutam Keshavam Krishna Damodaram,\nAchyutam Keshavam Krishna Damodaram.\nRama Narayanam Janaki Vallabham,\nRama Narayanam Janaki Vallabham.',
+      ),
+      LyricStanza(
+        startTimeMs: 331000,
+        devanagari: 'याद आएगी उनको कभी ना कभी ।\nयाद आएंगे उनको कभी ना कभी ॥\nकृष्ण दर्शन तो देंगे कभी ना कभी ।\nकृष्ण दर्शन कभी ना कभी ॥',
+        transliteration:
+            'Yaad Aayegi Unko Kabhi Na Kabhi,\nYaad Aayenge Unko Kabhi Na Kabhi.\nKrishna Darshan To Denge Kabhi Na Kabhi,\nKrishna Darshan Kabhi Na Kabhi.',
+      ),
+      LyricStanza(
+        startTimeMs: 348000,
+        devanagari: 'कृष्णा कृष्णा राधे कृष्णा कृष्णा ।\nकृष्णा कृष्णा राधे कृष्णा कृष्णा ॥',
+        transliteration:
+            'Krishna Krishna Radhe Krishna Krishna,\nKrishna Krishna Radhe Krishna Krishna.',
+      ),
+      LyricStanza(
+        startTimeMs: 364000,
+        devanagari: 'अच्युतं केशवं कृष्ण दामोदरम् ।\nअच्युतं केशवं कृष्ण दामोदरम् ॥\nराम नारायणं जानकी वल्लभम् ।\nराम नारायणं जानकी वल्लभम् ॥',
+        transliteration:
+            'Achyutam Keshavam Krishna Damodaram,\nAchyutam Keshavam Krishna Damodaram.\nRama Narayanam Janaki Vallabham,\nRama Narayanam Janaki Vallabham.',
       ),
     ],
   ),

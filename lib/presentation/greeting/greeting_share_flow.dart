@@ -16,11 +16,6 @@ import 'greeting_strings.dart';
 
 bool _busy = false;
 
-/// Full-screen ad once the user is back from sharing or saving, never for VIPs.
-void _maybeShowInterstitial(WidgetRef ref) {
-  if (ref.read(showAdsProvider)) InterstitialAdService.instance.maybeShow();
-}
-
 /// The image exactly as it will be sent: HD plus the user's photo circle.
 Future<GreetingExport> _export(WidgetRef ref, GreetingImage image) async {
   final stamp = ref.read(greetingPhotoEnabledProvider) ? ref.read(greetingPhotoProvider) : null;
@@ -29,6 +24,8 @@ Future<GreetingExport> _export(WidgetRef ref, GreetingImage image) async {
   return GreetingImageComposer.build(url, photo: photo);
 }
 
+/// Shows an interstitial first (for free users), then opens the share sheet
+/// once the ad closes — no second tap needed. VIP / ad-free users share immediately.
 Future<void> shareGreetingImage(
   BuildContext context,
   WidgetRef ref,
@@ -41,8 +38,20 @@ Future<void> shareGreetingImage(
   final s = GreetingStrings(ref.read(localeProvider).languageCode);
   final messenger = ScaffoldMessenger.maybeOf(context);
   try {
-    messenger?.showSnackBar(SnackBar(content: Text(s.preparing), duration: const Duration(seconds: 2)));
+    if (ref.read(showAdsProvider)) {
+      messenger?.showSnackBar(
+        SnackBar(content: Text(s.preparingAd), duration: const Duration(seconds: 2)),
+      );
+      await InterstitialAdService.instance.showBeforeAction();
+      messenger?.hideCurrentSnackBar();
+    }
+
+    if (!context.mounted) return;
+    messenger?.showSnackBar(
+      SnackBar(content: Text(s.preparing), duration: const Duration(seconds: 2)),
+    );
     final export = await _export(ref, image);
+    if (!context.mounted) return;
     messenger?.hideCurrentSnackBar();
     await CardShareService.share(
       bytes: export.bytes,
@@ -58,7 +67,6 @@ Future<void> shareGreetingImage(
       'photo': export.mimeType == 'image/png',
     });
     ref.read(reviewServiceProvider).trackCardShared();
-    _maybeShowInterstitial(ref);
   } catch (_) {
     messenger?.hideCurrentSnackBar();
     messenger?.showSnackBar(SnackBar(content: Text(s.shareFailed)));
@@ -67,6 +75,8 @@ Future<void> shareGreetingImage(
   }
 }
 
+/// Shows an interstitial first (for free users), then saves the image once the
+/// ad closes — no second tap needed. VIP / ad-free users save immediately.
 Future<void> saveGreetingImage(BuildContext context, WidgetRef ref, GreetingImage image) async {
   if (_busy || (image.hdUrl == null && image.thumbUrl.isEmpty)) return;
   _busy = true;
@@ -76,16 +86,30 @@ Future<void> saveGreetingImage(BuildContext context, WidgetRef ref, GreetingImag
     if (!await Gal.hasAccess(toAlbum: true) && !await Gal.requestAccess(toAlbum: true)) {
       throw StateError('Gallery access denied');
     }
+
+    if (ref.read(showAdsProvider)) {
+      messenger?.showSnackBar(
+        SnackBar(content: Text(s.preparingAd), duration: const Duration(seconds: 2)),
+      );
+      await InterstitialAdService.instance.showBeforeAction();
+      messenger?.hideCurrentSnackBar();
+    }
+
+    if (!context.mounted) return;
+    messenger?.showSnackBar(
+      SnackBar(content: Text(s.preparing), duration: const Duration(seconds: 2)),
+    );
     final export = await _export(ref, image);
     await Gal.putImageBytes(
       export.bytes,
       album: 'BhaktiDhara',
       name: 'bhaktidhara_${image.id}_${DateTime.now().millisecondsSinceEpoch}',
     );
+    messenger?.hideCurrentSnackBar();
     messenger?.showSnackBar(SnackBar(content: Text(s.saved)));
     BackendService.trackEvent('greeting_save', item: '${image.id}', props: {'category': image.category});
-    _maybeShowInterstitial(ref);
   } catch (_) {
+    messenger?.hideCurrentSnackBar();
     messenger?.showSnackBar(SnackBar(content: Text(s.saveFailed)));
   } finally {
     _busy = false;

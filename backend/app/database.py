@@ -181,6 +181,25 @@ async def init_db():
             )
         """)
 
+        # Per-device in-app inbox (works even when push permission is denied).
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS in_app_notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                campaign_id INTEGER,
+                request_event_id INTEGER,
+                created_at TIMESTAMP NOT NULL,
+                opened_at TIMESTAMP,
+                dismissed_at TIMESTAMP
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_in_app_notif_device "
+            "ON in_app_notifications(device_id, created_at DESC)"
+        )
+
         await db.execute("""
             CREATE TABLE IF NOT EXISTS app_config (
                 key TEXT PRIMARY KEY,
@@ -1197,6 +1216,439 @@ async def get_engagement(days: int = 7, event: str = "") -> Dict[str, Any]:
         },
         "funnel": {"paywall_views": paywall_views, "vip_unlocks": vip_unlocks},
     }
+
+
+async def create_in_app_notification(
+    device_id: str,
+    title: str,
+    body: str,
+    campaign_id: Optional[int] = None,
+    request_event_id: Optional[int] = None,
+) -> int:
+    """Creates a per-device in-app inbox message (visible without push permission)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "INSERT INTO in_app_notifications "
+            "(device_id, title, body, campaign_id, request_event_id, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                device_id[:64],
+                title.strip()[:200],
+                body.strip()[:1000],
+                campaign_id,
+                request_event_id,
+                utc_now_iso(),
+            ),
+        )
+        await db.commit()
+        return cur.lastrowid
+
+
+async def list_in_app_notifications(device_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+    """Active (not dismissed) in-app messages for a device, newest first."""
+    limit = max(1, min(limit, 50))
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT id, title, body, campaign_id, created_at, opened_at "
+            "FROM in_app_notifications "
+            "WHERE device_id = ? AND dismissed_at IS NULL "
+            "ORDER BY id DESC LIMIT ?",
+            (device_id[:64], limit),
+        ) as cur:
+            rows = await cur.fetchall()
+    return [
+        {
+            "id": r["id"],
+            "title": r["title"],
+            "body": r["body"],
+            "campaignId": r["campaign_id"],
+            "createdAt": r["created_at"],
+            "opened": bool(r["opened_at"]),
+            "openedAt": r["opened_at"] or "",
+        }
+        for r in rows
+    ]
+
+
+async def mark_in_app_notification_opened(notification_id: int, device_id: str) -> bool:
+    """Marks an in-app notification as opened by the devotee (for admin open tracking)."""
+    now = utc_now_iso()
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT campaign_id FROM in_app_notifications "
+            "WHERE id = ? AND device_id = ?",
+            (notification_id, device_id[:64]),
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return False
+        await db.execute(
+            "UPDATE in_app_notifications SET opened_at = COALESCE(opened_at, ?) WHERE id = ?",
+            (now, notification_id),
+        )
+        # Mirror as push_open so existing campaign open-rate logic stays consistent.
+        campaign_id = row["campaign_id"]
+        if campaign_id:
+            await db.execute(
+                "INSERT INTO events (device_id, name, item, props_json, created_at) "
+                "VALUES (?, 'push_open', ?, ?, ?)",
+                (
+                    device_id[:64],
+                    str(campaign_id),
+                    json.dumps({"source": "in_app", "notification_id": notification_id}),
+                    now,
+                ),
+            )
+        await db.commit()
+        return True
+
+
+async def dismiss_in_app_notification(notification_id: int, device_id: str) -> bool:
+    """Dismisses an in-app card; also marks opened if not already."""
+    now = utc_now_iso()
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "UPDATE in_app_notifications "
+            "SET dismissed_at = ?, opened_at = COALESCE(opened_at, ?) "
+            "WHERE id = ? AND device_id = ?",
+            (now, now, notification_id, device_id[:64]),
+        )
+        await db.commit()
+        return cur.rowcount > 0
+
+
+async def mark_event_notified(
+    event_id: int,
+    campaign_id: int,
+    *,
+    event_name: str,
+    title: str = "",
+    body: str = "",
+    create_inbox: bool = True,
+) -> bool:
+    """Stamps an event with the notify campaign and creates an in-app inbox item."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT device_id, props_json FROM events WHERE id = ? AND name = ?",
+            (event_id, event_name),
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return False
+        try:
+            props = json.loads(row["props_json"] or "{}")
+        except Exception:
+            props = {}
+        if not isinstance(props, dict):
+            props = {}
+        props["notify_campaign_id"] = int(campaign_id)
+        props["notified_at"] = utc_now_iso()
+        await db.execute(
+            "UPDATE events SET props_json = ? WHERE id = ?",
+            (json.dumps(props, ensure_ascii=False)[:2000], event_id),
+        )
+        device_id = row["device_id"]
+        await db.commit()
+
+    if create_inbox and device_id and (title.strip() or body.strip()):
+        await create_in_app_notification(
+            device_id=device_id,
+            title=title.strip() or "🙏 BhaktiDhara",
+            body=body.strip(),
+            campaign_id=campaign_id,
+            request_event_id=event_id,
+        )
+    return True
+
+
+async def mark_deity_request_notified(
+    event_id: int,
+    campaign_id: int,
+    *,
+    title: str = "",
+    body: str = "",
+    create_inbox: bool = True,
+) -> bool:
+    """Stamps a deity_requested event with the notify campaign and creates an in-app inbox item."""
+    return await mark_event_notified(
+        event_id,
+        campaign_id,
+        event_name="deity_requested",
+        title=title,
+        body=body,
+        create_inbox=create_inbox,
+    )
+
+
+async def mark_app_feedback_notified(
+    event_id: int,
+    campaign_id: int,
+    *,
+    title: str = "",
+    body: str = "",
+    create_inbox: bool = True,
+) -> bool:
+    """Stamps an app_feedback event with the notify campaign and creates an in-app inbox item."""
+    return await mark_event_notified(
+        event_id,
+        campaign_id,
+        event_name="app_feedback",
+        title=title,
+        body=body,
+        create_inbox=create_inbox,
+    )
+
+
+async def list_app_feedback(days: int = 30, limit: int = 100) -> Dict[str, Any]:
+    """Individual app_feedback events with device, language, notify + open status."""
+    days = max(1, min(days, 180))
+    limit = max(1, min(limit, 500))
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT e.id, e.device_id, e.item, e.props_json, e.created_at, "
+            "COALESCE(d.locale, '') AS locale "
+            "FROM events e LEFT JOIN devices d ON d.device_id = e.device_id "
+            "WHERE e.name = 'app_feedback' "
+            "AND datetime(e.created_at) >= datetime('now', ?) "
+            "ORDER BY e.created_at DESC LIMIT ?",
+            (f"-{days} day", limit),
+        ) as cur:
+            rows = await cur.fetchall()
+        total = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM events WHERE name = 'app_feedback' "
+            "AND datetime(created_at) >= datetime('now', ?)",
+            (f"-{days} day",),
+        )
+
+        device_ids = sorted({r["device_id"] for r in rows if r["device_id"]})
+        open_by_campaign: Dict[str, str] = {}
+        open_by_request: Dict[int, str] = {}
+        inbox_by_request: Dict[int, Any] = {}
+        if device_ids:
+            placeholders = ",".join("?" for _ in device_ids)
+            async with db.execute(
+                f"SELECT item, device_id, MIN(created_at) AS opened_at FROM events "
+                f"WHERE name = 'push_open' AND device_id IN ({placeholders}) "
+                f"GROUP BY item, device_id",
+                tuple(device_ids),
+            ) as cur:
+                for o in await cur.fetchall():
+                    open_by_campaign[f"{o['device_id']}:{o['item']}"] = o["opened_at"]
+            async with db.execute(
+                f"SELECT request_event_id, campaign_id, device_id, MIN(opened_at) AS opened_at "
+                f"FROM in_app_notifications "
+                f"WHERE device_id IN ({placeholders}) AND opened_at IS NOT NULL "
+                f"GROUP BY request_event_id, campaign_id, device_id",
+                tuple(device_ids),
+            ) as cur:
+                for o in await cur.fetchall():
+                    if o["request_event_id"] is not None:
+                        open_by_request[int(o["request_event_id"])] = o["opened_at"]
+                    if o["campaign_id"] is not None:
+                        open_by_campaign.setdefault(
+                            f"{o['device_id']}:{o['campaign_id']}", o["opened_at"]
+                        )
+            async with db.execute(
+                f"SELECT request_event_id, campaign_id, device_id, MIN(created_at) AS created_at "
+                f"FROM in_app_notifications "
+                f"WHERE device_id IN ({placeholders}) "
+                f"GROUP BY request_event_id, campaign_id, device_id",
+                tuple(device_ids),
+            ) as cur:
+                inbox_by_request = {
+                    int(o["request_event_id"]): o
+                    for o in await cur.fetchall()
+                    if o["request_event_id"] is not None
+                }
+
+    items = []
+    for r in rows:
+        props: Dict[str, Any] = {}
+        try:
+            props = json.loads(r["props_json"] or "{}")
+        except Exception:
+            props = {}
+        if not isinstance(props, dict):
+            props = {}
+
+        campaign_id = props.get("notify_campaign_id")
+        notified_at = str(props.get("notified_at") or "")
+        if campaign_id is not None:
+            try:
+                campaign_id = int(campaign_id)
+            except (TypeError, ValueError):
+                campaign_id = None
+
+        inbox = inbox_by_request.get(r["id"])
+        if campaign_id is None and inbox and inbox.get("campaign_id") is not None:
+            campaign_id = inbox["campaign_id"]
+            notified_at = notified_at or (inbox.get("created_at") or "")
+        if not notified_at and inbox:
+            notified_at = inbox.get("created_at") or ""
+
+        opened_at = open_by_request.get(r["id"], "") or ""
+        if not opened_at and campaign_id is not None:
+            opened_at = open_by_campaign.get(f"{r['device_id']}:{campaign_id}", "") or ""
+
+        notified = campaign_id is not None or inbox is not None
+        items.append({
+            "id": r["id"],
+            "deviceId": r["device_id"],
+            "at": r["created_at"],
+            "createdAt": r["created_at"],
+            "locale": r["locale"] or props.get("lang", ""),
+            "lang": str(props.get("lang") or props.get("locale") or r["locale"] or "").strip(),
+            "appVersion": str(props.get("app_version") or ""),
+            "message": str(props.get("message") or r["item"] or ""),
+            "notified": notified,
+            "notifyCampaignId": campaign_id,
+            "notifiedAt": notified_at,
+            "notificationOpened": bool(opened_at),
+            "openedAt": opened_at,
+        })
+    return {"days": days, "total": total, "items": items}
+
+
+async def list_deity_requests(days: int = 30, limit: int = 100) -> Dict[str, Any]:
+    """Individual deity_requested events with device, language, notify + open status."""
+    days = max(1, min(days, 180))
+    limit = max(1, min(limit, 500))
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT e.id, e.device_id, e.item, e.props_json, e.created_at, "
+            "COALESCE(d.locale, '') AS locale "
+            "FROM events e LEFT JOIN devices d ON d.device_id = e.device_id "
+            "WHERE e.name = 'deity_requested' "
+            "AND datetime(e.created_at) >= datetime('now', ?) "
+            "ORDER BY e.created_at DESC LIMIT ?",
+            (f"-{days} day", limit),
+        ) as cur:
+            rows = await cur.fetchall()
+        total = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM events WHERE name = 'deity_requested' "
+            "AND datetime(created_at) >= datetime('now', ?)",
+            (f"-{days} day",),
+        )
+
+        # Latest per-device notify campaign after each request (fallback when not stamped).
+        device_ids = sorted({r["device_id"] for r in rows if r["device_id"]})
+        campaigns_by_device: Dict[str, List[Dict[str, Any]]] = {d: [] for d in device_ids}
+        if device_ids:
+            placeholders = ",".join("?" for _ in device_ids)
+            async with db.execute(
+                f"SELECT id, target_device_id, created_at, last_sent_at FROM push_campaigns "
+                f"WHERE audience = 'user' AND target_device_id IN ({placeholders}) "
+                f"ORDER BY id DESC",
+                tuple(device_ids),
+            ) as cur:
+                for c in await cur.fetchall():
+                    campaigns_by_device.setdefault(c["target_device_id"], []).append(dict(c))
+
+        # Opens keyed by campaign id for these devices (push tap or in-app open).
+        open_by_campaign: Dict[str, str] = {}
+        open_by_request: Dict[int, str] = {}
+        if device_ids:
+            placeholders = ",".join("?" for _ in device_ids)
+            async with db.execute(
+                f"SELECT item, device_id, MIN(created_at) AS opened_at FROM events "
+                f"WHERE name = 'push_open' AND device_id IN ({placeholders}) "
+                f"GROUP BY item, device_id",
+                tuple(device_ids),
+            ) as cur:
+                for o in await cur.fetchall():
+                    open_by_campaign[f"{o['device_id']}:{o['item']}"] = o["opened_at"]
+            async with db.execute(
+                f"SELECT request_event_id, campaign_id, device_id, MIN(opened_at) AS opened_at "
+                f"FROM in_app_notifications "
+                f"WHERE device_id IN ({placeholders}) AND opened_at IS NOT NULL "
+                f"GROUP BY request_event_id, campaign_id, device_id",
+                tuple(device_ids),
+            ) as cur:
+                for o in await cur.fetchall():
+                    if o["request_event_id"] is not None:
+                        open_by_request[int(o["request_event_id"])] = o["opened_at"]
+                    if o["campaign_id"] is not None:
+                        key = f"{o['device_id']}:{o['campaign_id']}"
+                        open_by_campaign.setdefault(key, o["opened_at"])
+
+            # Also treat presence of an in-app row as "notified" even if push failed.
+            async with db.execute(
+                f"SELECT request_event_id, campaign_id, device_id, MIN(created_at) AS created_at "
+                f"FROM in_app_notifications "
+                f"WHERE device_id IN ({placeholders}) "
+                f"GROUP BY request_event_id, campaign_id, device_id",
+                tuple(device_ids),
+            ) as cur:
+                inbox_by_request = {
+                    int(o["request_event_id"]): o
+                    for o in await cur.fetchall()
+                    if o["request_event_id"] is not None
+                }
+        else:
+            inbox_by_request = {}
+
+    requests = []
+    for r in rows:
+        props = {}
+        try:
+            props = json.loads(r["props_json"] or "{}")
+        except Exception:
+            props = {}
+        lang = str(props.get("lang") or props.get("locale") or r["locale"] or "").strip()
+        campaign_id = props.get("notify_campaign_id")
+        notified_at = str(props.get("notified_at") or "")
+        if campaign_id is not None:
+            try:
+                campaign_id = int(campaign_id)
+            except (TypeError, ValueError):
+                campaign_id = None
+
+        inbox = inbox_by_request.get(r["id"])
+        if campaign_id is None and inbox and inbox.get("campaign_id") is not None:
+            campaign_id = inbox["campaign_id"]
+            notified_at = notified_at or (inbox.get("created_at") or "")
+
+        if campaign_id is None:
+            req_at = r["created_at"] or ""
+            for c in campaigns_by_device.get(r["device_id"], []):
+                sent_at = c.get("last_sent_at") or c.get("created_at") or ""
+                if sent_at >= req_at:
+                    campaign_id = c["id"]
+                    notified_at = notified_at or sent_at
+                    break
+
+        if not notified_at and inbox:
+            notified_at = inbox.get("created_at") or ""
+
+        opened_at = open_by_request.get(r["id"], "") or ""
+        if not opened_at and campaign_id is not None:
+            opened_at = open_by_campaign.get(f"{r['device_id']}:{campaign_id}", "") or ""
+
+        notified = campaign_id is not None or inbox is not None
+        requests.append({
+            "id": r["id"],
+            "deviceId": r["device_id"],
+            "deityName": r["item"] or props.get("deity_name") or "",
+            "lang": lang,
+            "source": str(props.get("source") or ""),
+            "youtubeUrl": str(props.get("youtube_url") or props.get("youtubeUrl") or ""),
+            "imageUrl": str(props.get("image_url") or props.get("imageUrl") or ""),
+            "at": r["created_at"],
+            "notified": notified,
+            "notifyCampaignId": campaign_id,
+            "notifiedAt": notified_at,
+            "notificationOpened": bool(opened_at),
+            "openedAt": opened_at,
+            "props": props,
+        })
+    return {"days": days, "total": total, "requests": requests}
 
 
 # ── Announcements ────────────────────────────────────────────────────────────

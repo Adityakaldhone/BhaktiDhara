@@ -30,6 +30,11 @@ class GreetingStrings {
         'Could not save. Please try again.',
       );
   String get preparing => _t('इमेज तयार होत आहे...', 'इमेज तैयार हो रही है...', 'Preparing image...');
+  String get preparingAd => _t(
+        'जाहिरात दाखवत आहोत...',
+        'विज्ञापन दिखा रहे हैं...',
+        'Showing a short ad...',
+      );
   String get shareFailed => _t(
         'इमेज पाठवता आली नाही. इंटरनेट तपासून पुन्हा प्रयत्न करा.',
         'इमेज नहीं भेजी जा सकी। इंटरनेट जाँचकर फिर कोशिश करें।',

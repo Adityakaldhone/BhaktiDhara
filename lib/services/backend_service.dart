@@ -357,6 +357,70 @@ class BackendService {
   static final List<Map<String, dynamic>> _pendingEvents = [];
   static Timer? _flushTimer;
 
+  /// Submits a problem / suggestion / deity-add request from the More tab.
+  /// Max 1000 characters (matches `/api/v1/feedback`).
+  static Future<void> submitFeedback({
+    required String message,
+    required String lang,
+  }) async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return;
+    final text = message.trim();
+    if (text.isEmpty) return;
+    if (text.length > 1000) {
+      throw Exception('feedback too long');
+    }
+    final deviceId = await getAnonymousDeviceId();
+    final version = await getAppDisplayVersion();
+    final response = await http
+        .post(
+          Uri.parse('${backendUrl.trim()}/api/v1/feedback'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'deviceId': deviceId,
+            'message': text,
+            'lang': lang,
+            'appVersion': version,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('feedback failed: ${response.statusCode}');
+    }
+  }
+
+  /// Submits a deity request (optional image + YouTube) to the backend and
+  /// records a `deity_requested` telemetry event for the admin panel.
+  static Future<void> submitDeityRequest({
+    required String deityName,
+    required String lang,
+    String source = '',
+    String youtubeUrl = '',
+    String? imagePath,
+  }) async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return;
+    final deviceId = await getAnonymousDeviceId();
+    final name = deityName.trim();
+    if (name.isEmpty) return;
+
+    final uri = Uri.parse('${backendUrl.trim()}/api/v1/deity-request');
+    final request = http.MultipartRequest('POST', uri)
+      ..fields['deviceId'] = deviceId
+      ..fields['deityName'] = name
+      ..fields['lang'] = lang
+      ..fields['source'] = source
+      ..fields['youtubeUrl'] = youtubeUrl.trim();
+
+    if (imagePath != null && imagePath.isNotEmpty) {
+      request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+    }
+
+    final streamed = await request.send().timeout(const Duration(seconds: 25));
+    await streamed.stream.drain<void>();
+    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
+      throw Exception('deity-request failed: ${streamed.statusCode}');
+    }
+  }
+
   /// Records an anonymous feature-usage event (e.g. `aarti_open`) for the admin dashboard.
   /// Events are batched and sent a few seconds later; failures are silently dropped.
   static void trackEvent(String name, {String? item, Map<String, dynamic>? props}) {
@@ -451,6 +515,53 @@ class BackendService {
       }
     } catch (_) {}
     return const [];
+  }
+
+  /// Per-device in-app inbox (visible even when push permission is denied).
+  static Future<List<InAppNotification>> fetchInAppNotifications() async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return const [];
+    try {
+      final deviceId = await getAnonymousDeviceId();
+      final uri = Uri.parse('${backendUrl.trim()}/api/v1/notifications')
+          .replace(queryParameters: {'deviceId': deviceId});
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        final list = decoded is Map ? decoded['notifications'] : null;
+        if (list is List) {
+          return list.map(InAppNotification.fromJson).whereType<InAppNotification>().toList();
+        }
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  static Future<void> openInAppNotification(int id) async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return;
+    try {
+      final deviceId = await getAnonymousDeviceId();
+      await http
+          .post(
+            Uri.parse('${backendUrl.trim()}/api/v1/notifications/$id/open'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'deviceId': deviceId}),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
+  }
+
+  static Future<void> dismissInAppNotification(int id) async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) return;
+    try {
+      final deviceId = await getAnonymousDeviceId();
+      await http
+          .post(
+            Uri.parse('${backendUrl.trim()}/api/v1/notifications/$id/dismiss'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'deviceId': deviceId}),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 
   /// Fetches raw horoscope JSON payload from the backend.

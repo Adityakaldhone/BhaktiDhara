@@ -14,9 +14,9 @@ class JaapMantraCatalog {
     JaapMantra(
       id: 'radha',
       deity: 'Radha',
-      devanagari: 'राधा राधा',
-      transliteration: 'Radha Radha',
-      name: {'mr': 'राधा राधा', 'hi': 'राधा राधा', 'en': 'Radha Radha'},
+      devanagari: 'राधा',
+      transliteration: 'Radha',
+      name: {'mr': 'राधा', 'hi': 'राधा', 'en': 'Radha'},
     ),
     JaapMantra(
       id: 'swami_samarth',

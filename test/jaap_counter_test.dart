@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:nitya_aarti/core/theme/theme.dart';
 import 'package:nitya_aarti/data/datasources/jaap_mantra_catalog.dart';
 import 'package:nitya_aarti/domain/entities/jaap_progress.dart';
@@ -79,6 +80,7 @@ void main() {
   late FakeChantEngine engine;
 
   setUp(() {
+    GoogleFonts.config.allowRuntimeFetching = false;
     SharedPreferences.setMockInitialValues({});
     clock = FakeClock(DateTime(2026, 9, 28, 7));
     feedback = SilentFeedback();
@@ -113,6 +115,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // Drop the tree before the binding tears down so a late system-font
+    // notification cannot schedule a frame on a disposed RenderObject
+    // (Flutter 3.50 + GoogleFonts / Noto Devanagari).
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
   }
 
   Future<void> tapBead(WidgetTester tester) async {
@@ -124,27 +133,33 @@ void main() {
   String countText(WidgetTester tester) =>
       tester.widget<Text>(find.byKey(const ValueKey('jaap-count'))).data!;
 
-  testWidgets('first-time user goes through onboarding then reaches the counter',
+  testWidgets('first-time user picks a deity sheet then reaches the counter',
       (tester) async {
     repo = InMemoryJaapRepository();
     await pumpScreen(tester, const JaapCounterScreen());
 
     expect(find.text('Welcome to Naam Jaap 🙏'), findsOneWidget);
     await tester.tap(find.text('Lord Ganesha'));
-    await tester.pump();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('How many malas each day?'), findsOneWidget);
-    await tester.tap(find.text('3 malas'));
-    await tester.pump();
-    await tester.tap(find.text('Begin 🙏'));
     await tester.pumpAndSettle();
 
     expect(repo.stored.mantraId, 'ganesha');
-    expect(repo.stored.dailyGoalMalas, 3);
+    expect(repo.stored.dailyGoalMalas, 1);
     expect(find.text('ॐ गं गणपतये नमः'), findsOneWidget);
     expect(find.text('Tap anywhere to begin'), findsOneWidget);
+    expect(countText(tester), '0');
+  });
+
+  testWidgets('first-time user can Continue with the default mantra',
+      (tester) async {
+    repo = InMemoryJaapRepository();
+    await pumpScreen(tester, const JaapCounterScreen());
+
+    expect(find.text('Welcome to Naam Jaap 🙏'), findsOneWidget);
+    await tester.tap(find.text('Begin 🙏'));
+    await tester.pumpAndSettle();
+
+    expect(repo.stored.mantraId, 'shri_ram');
+    expect(find.text('श्री राम जय राम जय जय राम'), findsOneWidget);
     expect(countText(tester), '0');
   });
 
@@ -201,6 +216,10 @@ void main() {
         ),
       ),
     );
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(countText(tester), '0');
@@ -224,8 +243,15 @@ void main() {
     repo = InMemoryJaapRepository(const JaapProgress(mantraId: 'shri_ram'));
     await pumpScreen(tester, const Scaffold(body: JaapDashboardCard()));
 
-    await tester.tap(find.byType(JaapDashboardCard));
-    await tester.pumpAndSettle();
+    Future<void> openCounterFromCard() async {
+      await tester.tap(find.byType(JaapDashboardCard));
+      await tester.pumpAndSettle();
+      // Entry sheet: Continue opens the counter with the current mantra.
+      await tester.tap(find.byKey(const ValueKey('jaap-entry-continue')));
+      await tester.pumpAndSettle();
+    }
+
+    await openCounterFromCard();
     for (var i = 0; i < 5; i++) {
       await tapBead(tester);
     }
@@ -233,8 +259,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(JaapDashboardCard));
-    await tester.pumpAndSettle();
+    await openCounterFromCard();
     expect(countText(tester), '0');
     expect(find.text('Tap anywhere to begin'), findsOneWidget);
 
@@ -243,6 +268,7 @@ void main() {
     }
     expect(countText(tester), '3');
 
+    // Change mantra from the counter chip → entry sheet.
     await tester.tap(find.text('Shri Ram'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Lord Shiva'));
@@ -337,7 +363,7 @@ void main() {
       lang: 'mr',
     );
 
-    expect(find.text('📿 नामजप'), findsOneWidget);
+    expect(find.text('नामजप'), findsOneWidget);
     expect(find.text('आज: 1 / 3 माळ'), findsOneWidget);
     expect(find.text('सलग 2 दिवस'), findsOneWidget);
     expect(find.text('जप सुरू ठेवा 🙏'), findsOneWidget);
@@ -393,8 +419,8 @@ void main() {
     }
 
     final radha = JaapMantraCatalog.byId('radha');
-    expect(radha.devanagari, 'राधा राधा');
-    expect(radha.transliteration, 'Radha Radha');
+    expect(radha.devanagari, 'राधा');
+    expect(radha.transliteration, 'Radha');
 
     final swami = JaapMantraCatalog.byId('swami_samarth');
     expect(swami.devanagari, 'श्री स्वामी समर्थ');

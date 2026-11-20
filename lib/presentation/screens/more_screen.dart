@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/theme/theme.dart';
 import '../../domain/entities/app_remote_config.dart';
 import '../../domain/entities/bhakti_deity.dart';
 import '../../domain/logic/ishta_devta.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/backend_service.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/nitya_onboarding_providers.dart';
 import '../providers/remote_config_provider.dart';
@@ -61,6 +63,7 @@ class MoreScreen extends ConsumerWidget {
     final lang = Localizations.localeOf(context).languageCode;
     final ishtaKey = ref.watch(ishtaDevtaProvider);
     final deity = ishtaOrDefault(ishtaKey);
+    final version = ref.watch(appVersionProvider).valueOrNull;
 
     // In English, display classical Narasimha Devta if Narsingh is selected,
     // otherwise the deity's localized name.
@@ -71,9 +74,11 @@ class MoreScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0),
       body: SafeArea(
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             // Screen Title
             Text(
               l10n.navMore,
@@ -285,6 +290,247 @@ class MoreScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+
+            const SizedBox(height: 28),
+            _FeedbackCard(lang: lang),
+
+            if (version != null && version.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Center(
+                child: Text(
+                  'v$version',
+                  key: const Key('more-app-version'),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF9E9D98),
+                  ),
+                ),
+              ),
+            ],
+          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Feedback / suggestion / deity-request note above the version footer.
+class _FeedbackCard extends StatefulWidget {
+  const _FeedbackCard({required this.lang});
+
+  final String lang;
+
+  static const int maxChars = 1000;
+
+  @override
+  State<_FeedbackCard> createState() => _FeedbackCardState();
+}
+
+class _FeedbackCardState extends State<_FeedbackCard> {
+  final _controller = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String get _title => switch (widget.lang) {
+        'hi' => 'अपनी समस्या बताएं / सुझाव दें',
+        'en' => 'Share feedback or a request',
+        _ => 'आपल्या समस्या सांगा / सूचना द्या',
+      };
+
+  String get _hint => switch (widget.lang) {
+        'hi' =>
+          'समस्या, सुझाव, या कोई आराध्य देव जोड़ने का अनुरोध लिखें…',
+        'en' =>
+          'Tell us a problem, suggestion, or request to add a deity…',
+        _ =>
+          'समस्या, सूचना किंवा आराध्या दैवत जोडण्यासाठी विनंती लिहा…',
+      };
+
+  String get _submitLabel => switch (widget.lang) {
+        'hi' => 'भेजें',
+        'en' => 'Submit',
+        _ => 'पाठवा',
+      };
+
+  String get _success => switch (widget.lang) {
+        'hi' => 'धन्यवाद! आपका संदेश मिल गया।',
+        'en' => 'Thank you! Your message was sent.',
+        _ => 'धन्यवाद! तुमचा संदेश मिळाला.',
+      };
+
+  String get _failed => switch (widget.lang) {
+        'hi' => 'भेज नहीं सके। फिर कोशिश करें।',
+        'en' => 'Could not send. Please try again.',
+        _ => 'पाठवता आले नाही. पुन्हा प्रयत्न करा.',
+      };
+
+  Future<void> _submit() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _submitting) return;
+    if (text.length > _FeedbackCard.maxChars) return;
+
+    setState(() => _submitting = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await BackendService.submitFeedback(message: text, lang: widget.lang);
+      if (!mounted) return;
+      _controller.clear();
+      setState(() {});
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_success),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: MandirTheme.secondaryMaroon,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_failed),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: MandirTheme.secondaryMaroon,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final length = _controller.text.characters.length;
+    final canSubmit =
+        !_submitting && length > 0 && length <= _FeedbackCard.maxChars;
+
+    return Material(
+      key: const Key('more-feedback'),
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFEFECE5), width: 1.2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1E1E1E),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              switch (widget.lang) {
+                'hi' =>
+                  'समस्या बताएं, सुझाव दें, या आराध्य देव जोड़ने का अनुरोध करें।',
+                'en' =>
+                  'Share a problem, suggestion, or request to add a deity.',
+                _ =>
+                  'समस्या सांगा, सूचना द्या, किंवा आराध्या दैवत जोडण्यासाठी विनंती करा.',
+              },
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF7D7A75),
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('more-feedback-input'),
+              controller: _controller,
+              minLines: 3,
+              maxLines: 6,
+              maxLength: _FeedbackCard.maxChars,
+              textInputAction: TextInputAction.newline,
+              onChanged: (_) => setState(() {}),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF1E1E1E),
+                height: 1.35,
+              ),
+              decoration: InputDecoration(
+                hintText: _hint,
+                hintStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFFB5B3AC),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFFBF9F4),
+                counterStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: length > _FeedbackCard.maxChars
+                      ? const Color(0xFFB3261E)
+                      : const Color(0xFF9E9D98),
+                ),
+                contentPadding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFE8E4DB)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFE8E4DB)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: MandirTheme.goldenAccent,
+                    width: 1.4,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                key: const Key('more-feedback-submit'),
+                onPressed: canSubmit ? _submit : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: MandirTheme.secondaryMaroon,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFFE8E4DB),
+                  disabledForegroundColor: const Color(0xFF9E9D98),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        _submitLabel,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
             ),
           ],

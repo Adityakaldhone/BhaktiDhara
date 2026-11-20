@@ -27,13 +27,21 @@ class JaapStatsScreen extends ConsumerWidget {
       backgroundColor: JaapColors.sandalStart,
       appBar: AppBar(
         backgroundColor: JaapColors.sandalStart,
+        elevation: 0,
         leading: IconButton(
           iconSize: 30,
           tooltip: s.back,
+          color: MandirTheme.secondaryMaroon,
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.maybePop(context),
         ),
-        title: Text(s.mySadhana),
+        title: Text(
+          s.mySadhana,
+          style: GoogleFonts.mukta(
+            fontWeight: FontWeight.w800,
+            color: MandirTheme.secondaryMaroon,
+          ),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -82,7 +90,11 @@ class JaapStatsScreen extends ConsumerWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _tile(
-            icon: const Text('📿', style: TextStyle(fontSize: 28)),
+            icon: Icon(
+              Icons.spa_rounded,
+              size: 28,
+              color: MandirTheme.secondaryMaroon.withValues(alpha: 0.85),
+            ),
             value: s.compact(jaap.progress.lifetimeCount),
             label: s.lifetime,
           ),
@@ -90,7 +102,11 @@ class JaapStatsScreen extends ConsumerWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _tile(
-            icon: const Text('🏆', style: TextStyle(fontSize: 28)),
+            icon: Icon(
+              Icons.emoji_events_rounded,
+              size: 28,
+              color: MandirTheme.goldenAccent.withValues(alpha: 0.95),
+            ),
             value: '${jaap.bestStreak}',
             label: s.bestStreak,
           ),
@@ -255,13 +271,30 @@ class JaapStatsScreen extends ConsumerWidget {
                       width: lifetime >= m ? 1.5 : 1,
                     ),
                   ),
-                  child: Text(
-                    '${lifetime >= m ? '✅' : '🔸'} ${s.compact(m)}',
-                    style: GoogleFonts.mukta(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: lifetime >= m ? MandirTheme.secondaryMaroon : MandirTheme.textMuted,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        lifetime >= m
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        size: 18,
+                        color: lifetime >= m
+                            ? MandirTheme.primarySaffron
+                            : MandirTheme.textMuted.withValues(alpha: 0.55),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        s.compact(m),
+                        style: GoogleFonts.mukta(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: lifetime >= m
+                              ? MandirTheme.secondaryMaroon
+                              : MandirTheme.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -351,14 +384,16 @@ class JaapStatsScreen extends ConsumerWidget {
 }
 
 BoxDecoration _cardDecoration() => BoxDecoration(
-      color: MandirTheme.cardBackground,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: MandirTheme.cardBorder),
+      color: Colors.white.withValues(alpha: 0.72),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: MandirTheme.goldenAccent.withValues(alpha: 0.35),
+      ),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF8A5A2B).withValues(alpha: 0.06),
-          blurRadius: 10,
-          offset: const Offset(0, 3),
+          color: const Color(0xFF8A5A2B).withValues(alpha: 0.05),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
         ),
       ],
     );
@@ -444,7 +479,11 @@ class _MonthCalendar extends StatelessWidget {
     if (completed) {
       content = const DiyaLamp(size: 26);
     } else if (protectedDay) {
-      content = const Text('🛡️', style: TextStyle(fontSize: 18));
+      content = Icon(
+        Icons.shield_rounded,
+        size: 18,
+        color: MandirTheme.goldenAccent.withValues(alpha: 0.9),
+      );
     } else {
       content = Text(
         '$day',

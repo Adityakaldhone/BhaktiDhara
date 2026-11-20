@@ -344,7 +344,7 @@ HoroscopePage _buildPage({
         for (final row in aspectRows)
           (label: row.label, text: '', score: row.score),
       ]),
-      action,
+      // action,
       HoroscopeSection(
         HoroscopeSectionKind.luckyElements,
         luckyTitle,

@@ -262,7 +262,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
             child: Text(
               '॥ शुभं भवतु • सर्वं श्रीकृष्णार्पणमस्तु ॥',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 14.5,
+                fontSize: 15.5,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF9E7B5A),
                 letterSpacing: 1.0,
@@ -386,7 +386,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                       Text(
                         s.location,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF8C7565),
                         ),
@@ -394,7 +394,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                       Text(
                         '${currentCity.localizedName(langCode)} (${currentCity.stateOrCountry})',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14.5,
+                          fontSize: 15.5,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF2C1E14),
                         ),
@@ -470,7 +470,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13,
+                                  fontSize: 14.0,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF5A3E2B),
                                 ),
@@ -508,7 +508,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                                 ? s.today
                                 : DateFormat('dd MMM').format(selectedDate),
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13.5,
+                              fontSize: 14.5,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
                               letterSpacing: 0.2,
@@ -540,7 +540,7 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13,
+                                  fontSize: 14.0,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF5A3E2B),
                                 ),
@@ -623,7 +623,7 @@ class _SectionHeader extends StatelessWidget {
           child: Text(
             title,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 19,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
               color: const Color(0xFF2C1E14),
               letterSpacing: -0.3,
@@ -688,7 +688,7 @@ class _TodayCard extends StatelessWidget {
                       Text(
                         panchang.formattedDate,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
+                          fontSize: 14.0,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF8C6546),
                         ),
@@ -697,7 +697,7 @@ class _TodayCard extends StatelessWidget {
                       Text(
                         '${panchang.maas} ${panchang.paksha}\n${panchang.tithi}',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 22,
+                          fontSize: 23,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF2C1E14),
                           height: 1.18,
@@ -713,7 +713,7 @@ class _TodayCard extends StatelessWidget {
                               child: Text(
                                 panchang.festivalName,
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
+                                  fontSize: 15.2,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFFBA471A),
                                 ),
@@ -760,7 +760,7 @@ class _TodayCard extends StatelessWidget {
                               ? 'वर्तमान तिथि'
                               : 'Tithi right now'),
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
+                        fontSize: 14.0,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF8C6546),
                       ),
@@ -777,7 +777,7 @@ class _TodayCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFFBA471A),
                     ),
@@ -795,7 +795,7 @@ class _TodayCard extends StatelessWidget {
                       ? 'खगोलीय गणना: अयनांश: लाहिड़ी • निर्देशांक: ${panchang.cityName}'
                       : 'Astronomical calculation: Ayanamsha: Lahiri, Coordinates: ${panchang.cityName}'),
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 10.5,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w500,
                 color: const Color(0xFFA08875),
               ),
@@ -995,7 +995,7 @@ class _FullPanchangCard extends StatelessWidget {
     return Text(
       text,
       style: GoogleFonts.plusJakartaSans(
-        fontSize: 15,
+        fontSize: 16.2,
         fontWeight: FontWeight.w800,
         color: const Color(0xFF8D3F1B),
       ),
@@ -1028,7 +1028,7 @@ class _FullPanchangCard extends StatelessWidget {
                 Text(
                   label,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
+                    fontSize: 16.0,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF2C1E14),
                     height: 1.2,
@@ -1039,7 +1039,7 @@ class _FullPanchangCard extends StatelessWidget {
                   Text(
                     meaning,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
+                      fontSize: 13.0,
                       fontWeight: FontWeight.w500,
                       color: const Color(0xFF8C7565),
                       height: 1.2,
@@ -1059,7 +1059,7 @@ class _FullPanchangCard extends StatelessWidget {
                   value,
                   textAlign: TextAlign.end,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
+                    fontSize: 16.0,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF2C1E14),
                     height: 1.2,
@@ -1071,7 +1071,7 @@ class _FullPanchangCard extends StatelessWidget {
                     ends,
                     textAlign: TextAlign.end,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
+                      fontSize: 13.0,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFFBA471A),
                       height: 1.2,
@@ -1139,7 +1139,7 @@ class _SunMoonCard extends StatelessWidget {
                     Text(
                       label,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
+                        fontSize: 13.0,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF8C7565),
                         height: 1.1,
@@ -1152,7 +1152,7 @@ class _SunMoonCard extends StatelessWidget {
                       child: Text(
                         value,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
+                          fontSize: 17.0,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF2C1E14),
                         ),
@@ -1413,7 +1413,7 @@ class _PanchangCitySheetState extends ConsumerState<PanchangCitySheet> {
                             Text(
                               s.useGps,
                               style: GoogleFonts.mukta(
-                                fontSize: 16.5,
+                                fontSize: 17.0,
                                 fontWeight: FontWeight.bold,
                                 color: const Color(0xFF1B5E20),
                               ),
@@ -1421,7 +1421,7 @@ class _PanchangCitySheetState extends ConsumerState<PanchangCitySheet> {
                             Text(
                               s.useGpsHint,
                               style: GoogleFonts.mukta(
-                                fontSize: 13.5,
+                                fontSize: 14.0,
                                 color: const Color(0xFF2E7D32),
                               ),
                             ),
@@ -1444,7 +1444,7 @@ class _PanchangCitySheetState extends ConsumerState<PanchangCitySheet> {
               child: TextField(
                 controller: _searchController,
                 onChanged: (val) => setState(() => _filter = val.trim()),
-                style: const TextStyle(fontSize: 15.5),
+                style: const TextStyle(fontSize: 16.0),
                 decoration: InputDecoration(
                   hintText: s.searchCity,
                   prefixIcon: const Icon(
@@ -1513,7 +1513,7 @@ class _PanchangCitySheetState extends ConsumerState<PanchangCitySheet> {
                     title: Text(
                       city.localizedName(widget.langCode),
                       style: GoogleFonts.mukta(
-                        fontSize: 18,
+                        fontSize: 18.5,
                         fontWeight:
                             isSelected ? FontWeight.bold : FontWeight.w600,
                         color: isSelected
@@ -1524,7 +1524,7 @@ class _PanchangCitySheetState extends ConsumerState<PanchangCitySheet> {
                     subtitle: Text(
                       '${city.stateOrCountry} • ${city.latitude.toStringAsFixed(2)}°N, ${city.longitude.toStringAsFixed(2)}°E',
                       style: GoogleFonts.mukta(
-                        fontSize: 14,
+                        fontSize: 14.5,
                         color: MandirTheme.textMuted,
                       ),
                     ),

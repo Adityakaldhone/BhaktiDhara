@@ -22,7 +22,6 @@ import '../widgets/jaap/petal_shower.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../providers/review_provider.dart';
 import 'jaap_stats_screen.dart';
-import 'jaap_welcome_screen.dart';
 
 enum _ChantState { off, playing, paused }
 
@@ -54,6 +53,7 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
   bool? _wakelockOn;
   _ChantState _chant = _ChantState.off;
   late final ChantAudioEngine _engine;
+  bool _entrySheetShown = false;
 
   @override
   void initState() {
@@ -61,6 +61,29 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
     WidgetsBinding.instance.addObserver(this);
     _engine = ref.read(chantAudioEngineProvider);
     BackendService.trackEvent('jaap_open');
+  }
+
+  Future<void> _ensureOnboarded() async {
+    if (_entrySheetShown) return;
+    final jaap = ref.read(jaapProvider);
+    if (!jaap.loaded || jaap.progress.isOnboarded) return;
+    _entrySheetShown = true;
+    final lang = ref.read(localeProvider).languageCode;
+    final mantraId = await showJaapEntrySheet(
+      context,
+      ref,
+      lang,
+      isOnboarding: true,
+    );
+    if (!mounted) return;
+    if (mantraId == null) {
+      Navigator.maybePop(context);
+      return;
+    }
+    await ref.read(jaapProvider.notifier).completeOnboarding(
+          mantraId: mantraId,
+          dailyGoalMalas: ref.read(jaapProvider).progress.dailyGoalMalas,
+        );
   }
 
   @override
@@ -241,7 +264,9 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
     final s = JaapStrings(lang);
 
     if (jaap.loaded && !jaap.progress.isOnboarded) {
-      return const JaapWelcomeScreen();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensureOnboarded());
+      // No spinner — an indeterminate indicator never settles in tests.
+      return const Scaffold(backgroundColor: JaapColors.sandalStart);
     }
     if (jaap.loaded) {
       _setWakelock(jaap.progress.keepScreenOn);
@@ -279,58 +304,57 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
 
   Widget _buildTopBar(JaapStrings s, String lang, JaapMantra mantra) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+      padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
       child: Row(
         children: [
           IconButton(
             iconSize: 30,
-            constraints: const BoxConstraints(minWidth: 56, minHeight: 56),
+            constraints: const BoxConstraints(minWidth: 52, minHeight: 56),
             tooltip: s.back,
             color: MandirTheme.secondaryMaroon,
             icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => Navigator.maybePop(context),
           ),
           Expanded(
-            child: Center(
-              child: Semantics(
-                button: true,
-                label: s.changeMantra,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: () => _openMantraPicker(lang),
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: 48),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: MandirTheme.goldenAccent,
-                        width: 1.2,
-                      ),
+            child: Semantics(
+              button: true,
+              label: s.changeMantra,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: () => _openMantraPicker(lang),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: JaapColors.surfaceGlass,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: MandirTheme.goldenAccent.withValues(alpha: 0.55),
+                      width: 1,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            mantra.localizedName(lang),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.mukta(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: MandirTheme.secondaryMaroon,
-                            ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          mantra.localizedName(lang),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.mukta(
+                            fontSize: 20,
+                            height: 1.2,
+                            fontWeight: FontWeight.w700,
+                            color: MandirTheme.secondaryMaroon,
                           ),
                         ),
-                        const Icon(
-                          Icons.arrow_drop_down_rounded,
-                          size: 30,
-                          color: MandirTheme.secondaryMaroon,
-                        ),
-                      ],
-                    ),
+                      ),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 28,
+                        color: MandirTheme.secondaryMaroon,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -338,7 +362,7 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
           ),
           IconButton(
             iconSize: 28,
-            constraints: const BoxConstraints(minWidth: 56, minHeight: 56),
+            constraints: const BoxConstraints(minWidth: 52, minHeight: 56),
             tooltip: s.settings,
             color: MandirTheme.secondaryMaroon,
             icon: const Icon(Icons.tune_rounded),
@@ -351,21 +375,20 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
 
   Widget _buildLongMantraCard(JaapMantra mantra) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      constraints: const BoxConstraints(maxHeight: 120),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      margin: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      constraints: const BoxConstraints(maxHeight: 110),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: MandirTheme.cardBorder),
+        color: JaapColors.surfaceGlass,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: SingleChildScrollView(
         child: Text(
           mantra.devanagari,
           textAlign: TextAlign.center,
           style: GoogleFonts.notoSansDevanagari(
-            fontSize: 20,
-            height: 1.5,
+            fontSize: 19,
+            height: 1.45,
             fontWeight: FontWeight.w700,
             color: JaapColors.mantraMaroon,
           ),
@@ -379,6 +402,7 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
         ? s.protectorUsed
         : (jaap.showWelcomeBack ? s.welcomeBack : null);
     const total = JaapProgress.beadsPerMala;
+    final showStartHint = jaap.sessionCount == 0 || _chant != _ChantState.off;
 
     return GestureDetector(
       key: const ValueKey('jaap-tap-zone'),
@@ -388,15 +412,15 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
         children: [
           if (banner != null) _buildBanner(banner),
           if (!mantra.isLong) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 mantra.devanagari,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.notoSansDevanagari(
-                  fontSize: 28,
-                  height: 1.35,
+                  fontSize: 30,
+                  height: 1.3,
                   fontWeight: FontWeight.w700,
                   color: JaapColors.mantraMaroon,
                 ),
@@ -406,15 +430,15 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
               mantra.transliteration,
               textAlign: TextAlign.center,
               style: GoogleFonts.mukta(
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: FontWeight.w500,
-                color: MandirTheme.textMuted,
+                color: JaapColors.inkSoft.withValues(alpha: 0.75),
               ),
             ),
           ],
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 400),
@@ -431,22 +455,18 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
           ),
           _buildProgressRow(jaap, s),
           Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 6),
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
             child: Text(
               _chant != _ChantState.off
                   ? s.chantAlongHint
-                  : (jaap.sessionCount == 0
-                        ? s.tapToBegin
-                        : '~  ${s.tapAnywhere}  ~'),
+                  : (jaap.sessionCount == 0 ? s.tapToBegin : s.tapAnywhere),
               textAlign: TextAlign.center,
               style: GoogleFonts.mukta(
-                fontSize: jaap.sessionCount == 0 || _chant != _ChantState.off
-                    ? 19
-                    : 16,
+                fontSize: showStartHint ? 19 : 16,
                 fontWeight: FontWeight.w600,
-                color: jaap.sessionCount == 0 || _chant != _ChantState.off
+                color: showStartHint
                     ? MandirTheme.primarySaffron
-                    : MandirTheme.textMuted.withValues(alpha: 0.7),
+                    : JaapColors.inkSoft.withValues(alpha: 0.65),
               ),
             ),
           ),
@@ -491,8 +511,8 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
                   color: JaapColors.counterGold,
                   shadows: [
                     Shadow(
-                      color: JaapColors.glowGold.withValues(alpha: 0.8),
-                      blurRadius: 18,
+                      color: JaapColors.glowGold.withValues(alpha: 0.45),
+                      blurRadius: 12,
                     ),
                   ],
                 ),
@@ -500,9 +520,9 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
               Text(
                 s.ofBeads(total),
                 style: GoogleFonts.mukta(
-                  fontSize: 19,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: MandirTheme.textMuted,
+                  color: JaapColors.inkSoft.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -515,55 +535,52 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
   Widget _buildProgressRow(JaapState jaap, JaapStrings s) {
     final goal = jaap.progress.dailyGoalMalas;
     final streak = jaap.currentStreak;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Flexible(
-            child: _pill(
-              leading: const Text('📿', style: TextStyle(fontSize: 22)),
-              text: jaap.goalMetToday
-                  ? '${s.malaProgress(jaap.malasToday, goal)} ✓'
-                  : s.malaProgress(jaap.malasToday, goal),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: _pill(
-              leading: DiyaLamp(size: 28, lit: streak > 0),
-              text: streak > 0 ? s.streakDays(streak) : s.firstDay,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    final progress = jaap.goalMetToday
+        ? '${s.malaProgress(jaap.malasToday, goal)} ✓'
+        : s.malaProgress(jaap.malasToday, goal);
+    final streakText = streak > 0 ? s.streakDays(streak) : s.firstDay;
 
-  Widget _pill({required Widget leading, required String text}) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 44),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: MandirTheme.cardBorder),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          leading,
-          const SizedBox(width: 6),
-          Flexible(
+          Expanded(
             child: Text(
-              text,
+              progress,
+              textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.mukta(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: MandirTheme.textDark,
+                color: JaapColors.inkSoft,
               ),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 18,
+            color: MandirTheme.goldenAccent.withValues(alpha: 0.35),
+          ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                DiyaLamp(size: 24, lit: streak > 0),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    streakText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.mukta(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: JaapColors.inkSoft,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -573,16 +590,22 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
 
   Widget _buildBanner(String text) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      margin: const EdgeInsets.fromLTRB(20, 6, 20, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8C98A)),
+        color: JaapColors.surfaceGlass,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: MandirTheme.goldenAccent.withValues(alpha: 0.4),
+        ),
       ),
       child: Row(
         children: [
-          const Text('🙏', style: TextStyle(fontSize: 22)),
+          Icon(
+            Icons.auto_awesome_rounded,
+            size: 22,
+            color: MandirTheme.primarySaffron.withValues(alpha: 0.9),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -600,43 +623,39 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
   }
 
   Widget _buildBottomBar(JaapStrings s, JaapState jaap) {
-    ButtonStyle style() => OutlinedButton.styleFrom(
+    final secondaryStyle = TextButton.styleFrom(
       foregroundColor: MandirTheme.secondaryMaroon,
-      backgroundColor: Colors.white.withValues(alpha: 0.6),
-      side: const BorderSide(color: MandirTheme.goldenAccent, width: 1.2),
-      minimumSize: const Size.fromHeight(56),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      textStyle: GoogleFonts.mukta(fontSize: 18, fontWeight: FontWeight.w700),
+      minimumSize: const Size.fromHeight(52),
+      textStyle: GoogleFonts.mukta(fontSize: 17, fontWeight: FontWeight.w700),
     );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildChantControls(s, jaap),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  style: style(),
+                child: TextButton.icon(
+                  style: secondaryStyle,
                   onPressed: jaap.sessionCount > 0 && _chant == _ChantState.off
                       ? _onUndo
                       : null,
-                  icon: const Icon(Icons.undo_rounded, size: 24),
+                  icon: const Icon(Icons.undo_rounded, size: 22),
                   label: Text(s.undo),
                 ),
               ),
-              const SizedBox(width: 12),
               Expanded(
-                child: OutlinedButton.icon(
-                  style: style(),
+                child: TextButton.icon(
+                  style: secondaryStyle,
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const JaapStatsScreen()),
                   ),
-                  icon: const Icon(Icons.insights_rounded, size: 24),
+                  icon: const Icon(Icons.insights_rounded, size: 22),
                   label: Text(
                     s.mySadhana,
                     maxLines: 1,
@@ -657,25 +676,26 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
       fontWeight: FontWeight.w800,
     );
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
     );
 
     if (_chant == _ChantState.off) {
       final locked = !jaap.mantra.freeAudio && !jaap.isPremium;
       return SizedBox(
         width: double.infinity,
-        height: 58,
+        height: 56,
         child: ElevatedButton.icon(
           key: const ValueKey('jaap-chant-start'),
           onPressed: _startChant,
           style: ElevatedButton.styleFrom(
             backgroundColor: MandirTheme.secondaryMaroon,
             foregroundColor: Colors.white,
+            elevation: 0,
             shape: shape,
           ),
           icon: Icon(
             locked ? Icons.workspace_premium_rounded : Icons.headphones_rounded,
-            size: 26,
+            size: 24,
             color: locked ? JaapColors.glowGold : Colors.white,
           ),
           label: Text(s.chantWithAudio, style: textStyle),
@@ -689,35 +709,35 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
         Expanded(
           flex: 3,
           child: SizedBox(
-            height: 58,
+            height: 56,
             child: ElevatedButton.icon(
               onPressed: _togglePause,
-              style: ElevatedButton.styleFrom(shape: shape),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: MandirTheme.secondaryMaroon,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: shape,
+              ),
               icon: Icon(
                 playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                size: 30,
+                size: 28,
               ),
               label: Text(playing ? s.pause : s.resume, style: textStyle),
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           flex: 2,
           child: SizedBox(
-            height: 58,
-            child: OutlinedButton.icon(
+            height: 56,
+            child: TextButton.icon(
               onPressed: _stopChant,
-              style: OutlinedButton.styleFrom(
+              style: TextButton.styleFrom(
                 foregroundColor: MandirTheme.secondaryMaroon,
-                backgroundColor: Colors.white.withValues(alpha: 0.6),
-                side: const BorderSide(
-                  color: MandirTheme.goldenAccent,
-                  width: 1.2,
-                ),
                 shape: shape,
               ),
-              icon: const Icon(Icons.stop_rounded, size: 28),
+              icon: const Icon(Icons.stop_rounded, size: 26),
               label: Text(s.stop, style: textStyle),
             ),
           ),

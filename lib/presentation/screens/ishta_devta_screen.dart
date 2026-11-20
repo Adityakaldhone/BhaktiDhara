@@ -13,6 +13,7 @@ import '../providers/aarti_favorites_provider.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/nitya_onboarding_providers.dart';
+import '../widgets/request_deity_sheet.dart';
 import 'dashboard_screen.dart';
 
 /// Makes [deity] the Ishta Devta and swaps the previous deity's pinned aarti
@@ -34,13 +35,27 @@ void changeIshtaDevta(WidgetRef ref, BhaktiDeity deity, AartiItem aarti, {requir
 /// With [changing], it is opened from the More tab instead: the current
 /// choice is highlighted, and a tap replaces the previous deity's pinned
 /// aarti with the new one and returns.
-class IshtaDevtaScreen extends ConsumerWidget {
+class IshtaDevtaScreen extends ConsumerStatefulWidget {
   const IshtaDevtaScreen({super.key, this.changing = false});
 
   final bool changing;
 
+  @override
+  ConsumerState<IshtaDevtaScreen> createState() => _IshtaDevtaScreenState();
+}
+
+class _IshtaDevtaScreenState extends ConsumerState<IshtaDevtaScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   static String _t(String lang, {required String en, required String hi, required String mr}) =>
       lang == 'en' ? en : (lang == 'mr' ? mr : hi);
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _openDashboard(NavigatorState nav) {
     nav.pushReplacement(
@@ -53,10 +68,10 @@ class IshtaDevtaScreen extends ConsumerWidget {
     _openDashboard(Navigator.of(context));
   }
 
-  void _select(BuildContext context, WidgetRef ref, BhaktiDeity deity, AartiItem aarti) {
+  void _select(BuildContext context, BhaktiDeity deity, AartiItem aarti) {
     HapticFeedback.selectionClick();
     final nav = Navigator.of(context);
-    if (changing) {
+    if (widget.changing) {
       final lang = ref.read(localeProvider).languageCode;
       changeIshtaDevta(ref, deity, aarti, source: 'more');
       final messenger = ScaffoldMessenger.of(context);
@@ -83,19 +98,60 @@ class IshtaDevtaScreen extends ConsumerWidget {
     _openDashboard(nav);
   }
 
+  void _showRequestDeitySheet(BuildContext context, String lang, {String initialText = ''}) {
+    showRequestDeitySheet(
+      context,
+      lang: lang,
+      initialText: initialText,
+      source: 'ishta_devta_screen',
+      onSubmitted: () {
+        // Onboarding: don't leave them stuck — default to Ganesha and continue.
+        if (!widget.changing) {
+          final catalog = ref.read(aartiCatalogProvider).valueOrNull;
+          if (catalog != null) {
+            final ganesh = ishtaOrDefault(null);
+            final aarti = mainAartiFor(ganesh, catalog);
+            if (aarti != null) {
+              ref.read(ishtaDevtaProvider.notifier).select(ganesh.key);
+              ref.read(aartiFavoritesProvider.notifier).pin(aarti.id);
+            }
+          }
+          _openDashboard(Navigator.of(context));
+        }
+      },
+    );
+  }
+
+  bool _matchesQuery(BhaktiDeity deity, String query) {
+    if (query.isEmpty) return true;
+    final q = query.toLowerCase();
+    if (deity.key.toLowerCase().contains(q)) return true;
+    if (deity.nameHi.toLowerCase().contains(q)) return true;
+    if (deity.nameMr.toLowerCase().contains(q)) return true;
+    if (deity.nameEn.toLowerCase().contains(q)) return true;
+    for (final alias in deity.aliases) {
+      if (alias.toLowerCase().contains(q)) return true;
+    }
+    return false;
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider).languageCode;
     final catalog = ref.watch(aartiCatalogProvider).valueOrNull;
-    final current = changing ? ref.watch(ishtaDevtaProvider) : null;
+    final current = widget.changing ? ref.watch(ishtaDevtaProvider) : null;
 
-    final options = <(BhaktiDeity, AartiItem)>[
-      if (catalog != null)
-        for (final deity in ishtaDeities())
-          if (mainAartiFor(deity, catalog) case final aarti?) (deity, aarti),
+    final allOptions = <(BhaktiDeity, AartiItem)>[
+      for (final deity in ishtaDeities())
+        (deity, safeMainAartiFor(deity, catalog ?? const [])),
     ];
-    final currentIndex = options.indexWhere((o) => o.$1.key == current);
-    if (currentIndex > 0) options.insert(0, options.removeAt(currentIndex));
+    final currentIndex = allOptions.indexWhere((o) => o.$1.key == current);
+    if (currentIndex > 0) allOptions.insert(0, allOptions.removeAt(currentIndex));
+
+    final cleanQuery = _searchQuery.trim();
+    final options = cleanQuery.isEmpty
+        ? allOptions
+        : allOptions.where((o) => _matchesQuery(o.$1, cleanQuery)).toList();
 
     return Scaffold(
       backgroundColor: MandirTheme.backgroundCream,
@@ -105,7 +161,7 @@ class IshtaDevtaScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (changing)
+              if (widget.changing)
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
@@ -132,7 +188,7 @@ class IshtaDevtaScreen extends ConsumerWidget {
                   ),
                 ),
               Text(
-                changing
+                widget.changing
                     ? _t(
                         lang,
                         en: 'Change your Ishta Devta',
@@ -155,7 +211,7 @@ class IshtaDevtaScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                changing
+                widget.changing
                     ? _t(
                         lang,
                         en: 'Their aarti will be added to your Daily aartis',
@@ -169,33 +225,242 @@ class IshtaDevtaScreen extends ConsumerWidget {
                         mr: 'त्यांची आरती होमवर तुमच्या नित्य आरतीत असेल',
                       ),
                 textAlign: TextAlign.center,
-                style: GoogleFonts.mukta(fontSize: 16, color: MandirTheme.textMuted),
+                style: GoogleFonts.mukta(fontSize: 15, color: MandirTheme.textMuted),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+
+              // ── Search Bar ──────────────────────────────────────────
+              Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: MandirTheme.cardBorder, width: 1.2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.search_rounded,
+                      color: MandirTheme.secondaryMaroon,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: GoogleFonts.mukta(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: MandirTheme.textDark,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: _t(
+                            lang,
+                            en: 'Search deity or Kuldevta...',
+                            hi: 'इष्ट देव या कुलदेवता खोजें...',
+                            mr: 'इष्टदेव किंवा कुलदैवत शोधा...',
+                          ),
+                          hintStyle: GoogleFonts.mukta(
+                            fontSize: 14,
+                            color: MandirTheme.textMuted,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onChanged: (val) {
+                          setState(() => _searchQuery = val);
+                        },
+                      ),
+                    ),
+                    if (_searchQuery.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        child: const Icon(
+                          Icons.clear_rounded,
+                          color: MandirTheme.textMuted,
+                          size: 20,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // ── Deity Grid or Empty State ───────────────────────────
               Expanded(
-                child: options.isEmpty
+                child: allOptions.isEmpty
                     ? const Center(
                         child: CircularProgressIndicator(color: MandirTheme.primarySaffron),
                       )
-                    : GridView.builder(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.78,
-                        ),
-                        itemCount: options.length,
-                        itemBuilder: (context, i) {
-                          final (deity, aarti) = options[i];
-                          return _DeityTile(
-                            deity: deity,
-                            lang: lang,
-                            selected: deity.key == current,
-                            onTap: () => _select(context, ref, deity, aarti),
-                          );
-                        },
+                    : options.isEmpty
+                        ? _buildSearchEmptyState(context, lang, cleanQuery)
+                        : GridView.builder(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 14,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 0.78,
+                            ),
+                            itemCount: options.length,
+                            itemBuilder: (context, i) {
+                              final (deity, aarti) = options[i];
+                              return _DeityTile(
+                                deity: deity,
+                                lang: lang,
+                                selected: deity.key == current,
+                                onTap: () => _select(context, deity, aarti),
+                              );
+                            },
+                          ),
+              ),
+
+              // ── "Can't find your deity?" Banner at Bottom ──────────
+              Container(
+                margin: const EdgeInsets.only(bottom: 12, top: 4),
+                child: InkWell(
+                  onTap: () => _showRequestDeitySheet(
+                    context,
+                    lang,
+                    initialText: cleanQuery,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: MandirTheme.primarySaffron.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: MandirTheme.primarySaffron.withValues(alpha: 0.4),
                       ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.volunteer_activism_rounded,
+                          size: 18,
+                          color: MandirTheme.secondaryMaroon,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _t(
+                              lang,
+                              en: 'Can’t find your Deity? Tell us here 🙏',
+                              hi: 'अपना देवता नहीं मिला? यहाँ बताएं 🙏',
+                              mr: 'आपले दैवत सापडले नाही का? येथे सांगा 🙏',
+                            ),
+                            style: GoogleFonts.mukta(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: MandirTheme.secondaryMaroon,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchEmptyState(BuildContext context, String lang, String query) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: MandirTheme.primarySaffron.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.temple_hindu_rounded,
+                  size: 42,
+                  color: MandirTheme.secondaryMaroon,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _t(
+                  lang,
+                  en: 'No deity found for "$query"',
+                  hi: '"$query" के लिए कोई देवता नहीं मिला',
+                  mr: '"$query" साठी कोणतेही दैवत आढळले नाही',
+                ),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.mukta(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: MandirTheme.secondaryMaroon,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _t(
+                  lang,
+                  en: 'We will add this deity & aarti within 24 hours!',
+                  hi: 'हम २४ घंटे में यह देवता और आरती ऐप में जोड़ देंगे!',
+                  mr: 'आम्ही २४ तासांत हे दैवत आणि आरती ॲपमध्ये जोडू!',
+                ),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.mukta(
+                  fontSize: 14,
+                  color: MandirTheme.textMuted,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => _showRequestDeitySheet(
+                  context,
+                  lang,
+                  initialText: query,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: MandirTheme.secondaryMaroon,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 2,
+                ),
+                icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                label: Text(
+                  _t(
+                    lang,
+                    en: 'Request "$query" 🙏',
+                    hi: '"$query" जोड़ने का अनुरोध करें 🙏',
+                    mr: '"$query" जोडण्याची विनंती करा 🙏',
+                  ),
+                  style: GoogleFonts.mukta(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),

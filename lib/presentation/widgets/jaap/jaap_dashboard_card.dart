@@ -3,22 +3,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/theme.dart';
+import '../../jaap/jaap_colors.dart';
 import '../../jaap/jaap_strings.dart';
 import '../../providers/jaap_providers.dart';
 import '../../providers/locale_provider.dart';
 import '../../screens/jaap_counter_screen.dart';
 import 'diya_lamp.dart';
+import 'jaap_sheets.dart';
 
 /// Home-screen entry point: shows the streak and today's progress and opens
-/// the counter (or onboarding for first-time users) in one tap.
+/// the deity sheet, then the counter once a mantra is chosen.
 class JaapDashboardCard extends ConsumerWidget {
   const JaapDashboardCard({super.key});
 
-  /// Every visit starts a fresh round on the ring. The counter screen shows
-  /// onboarding itself when needed, so this works before progress has loaded.
-  static void open(BuildContext context, WidgetRef ref) {
-    ref.read(jaapProvider.notifier).startSession();
-    Navigator.push(
+  /// Shows the deity list sheet first. Selecting a deity (or Continue / Begin)
+  /// opens the counter with that mantra.
+  static Future<void> open(BuildContext context, WidgetRef ref) async {
+    final lang = ref.read(localeProvider).languageCode;
+    final wasOnboarded = ref.read(jaapProvider).progress.isOnboarded;
+    final mantraId = await showJaapEntrySheet(
+      context,
+      ref,
+      lang,
+      isOnboarding: !wasOnboarded,
+    );
+    if (mantraId == null || !context.mounted) return;
+
+    final notifier = ref.read(jaapProvider.notifier);
+    final progress = ref.read(jaapProvider).progress;
+    if (!progress.isOnboarded) {
+      await notifier.completeOnboarding(
+        mantraId: mantraId,
+        dailyGoalMalas: progress.dailyGoalMalas,
+      );
+    } else {
+      notifier.selectMantra(mantraId);
+    }
+    notifier.startSession();
+    if (!context.mounted) return;
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const JaapCounterScreen()),
     );
@@ -45,22 +68,25 @@ class JaapDashboardCard extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           onTap: () => open(context, ref),
           child: Ink(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFFF3D6), Color(0xFFFBE3B8)],
+                colors: [Color(0xFFFFF8E8), JaapColors.sandalStart, Color(0xFFFBE3B8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE8C98A), width: 1.2),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: MandirTheme.goldenAccent.withValues(alpha: 0.55),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8A5A2B).withValues(alpha: 0.10),
-                  blurRadius: 12,
+                  color: const Color(0xFF8A5A2B).withValues(alpha: 0.08),
+                  blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
               ],
@@ -68,16 +94,16 @@ class JaapDashboardCard extends ConsumerWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 52,
+                  width: 48,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      DiyaLamp(size: 38, lit: onboarded && streak > 0),
+                      DiyaLamp(size: 36, lit: onboarded && streak > 0),
                       if (onboarded && streak > 0)
                         Text(
                           '$streak',
                           style: GoogleFonts.mukta(
-                            fontSize: 16,
+                            fontSize: 15,
                             height: 1.0,
                             fontWeight: FontWeight.w800,
                             color: MandirTheme.secondaryMaroon,
@@ -86,19 +112,19 @@ class JaapDashboardCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '📿 ${s.title}',
+                        s.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.mukta(
                           fontSize: 20,
-                          height: 1.2,
+                          height: 1.15,
                           fontWeight: FontWeight.w800,
                           color: MandirTheme.secondaryMaroon,
                         ),
@@ -111,7 +137,7 @@ class JaapDashboardCard extends ConsumerWidget {
                           fontSize: 15,
                           height: 1.2,
                           fontWeight: FontWeight.w600,
-                          color: MandirTheme.textDark,
+                          color: JaapColors.inkSoft,
                         ),
                       ),
                       if (onboarded && streak > 0)
@@ -129,17 +155,21 @@ class JaapDashboardCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  constraints: const BoxConstraints(minHeight: 52, maxWidth: 132),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: MandirTheme.cardPrimaryButton,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(22),
                   ),
                   child: Text(
                     onboarded && jaap.todayCount > 0 ? s.continueJaap : s.start,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.mukta(
-                      fontSize: 15,
+                      fontSize: 14,
+                      height: 1.25,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),

@@ -10,6 +10,7 @@ import '../../../domain/logic/ishta_devta.dart';
 import '../../../presentation/providers/aarti_providers.dart';
 import '../../../presentation/providers/akhand_diya_provider.dart';
 import '../../../presentation/providers/locale_provider.dart';
+import '../../../presentation/widgets/request_deity_sheet.dart';
 import 'mandir_painters.dart';
 
 String _t(String lang, {required String en, required String hi, required String mr}) => switch (lang) {
@@ -30,23 +31,54 @@ Future<(BhaktiDeity, AartiItem)?> showMandirDeityPicker(BuildContext context) {
   );
 }
 
-class _DeityPickerSheet extends ConsumerWidget {
+class _DeityPickerSheet extends ConsumerStatefulWidget {
   const _DeityPickerSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DeityPickerSheet> createState() => _DeityPickerSheetState();
+}
+
+class _DeityPickerSheetState extends ConsumerState<_DeityPickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _matchesQuery(BhaktiDeity deity, String query) {
+    if (query.isEmpty) return true;
+    final q = query.toLowerCase();
+    if (deity.key.toLowerCase().contains(q)) return true;
+    if (deity.nameHi.toLowerCase().contains(q)) return true;
+    if (deity.nameMr.toLowerCase().contains(q)) return true;
+    if (deity.nameEn.toLowerCase().contains(q)) return true;
+    for (final alias in deity.aliases) {
+      if (alias.toLowerCase().contains(q)) return true;
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider).languageCode;
     final current = ref.watch(jyotDeityProvider);
     final catalog = ref.watch(aartiCatalogProvider).valueOrNull;
-    final options = <(BhaktiDeity, AartiItem)>[
-      if (catalog != null)
-        for (final deity in ishtaDeities())
-          if (mainAartiFor(deity, catalog) case final aarti?) (deity, aarti),
+    final allOptions = <(BhaktiDeity, AartiItem)>[
+      for (final deity in ishtaDeities())
+        (deity, safeMainAartiFor(deity, catalog ?? const [])),
     ];
-    final currentIndex = options.indexWhere((o) => o.$1.key == current.key);
-    if (currentIndex > 0) options.insert(0, options.removeAt(currentIndex));
+    final currentIndex = allOptions.indexWhere((o) => o.$1.key == current.key);
+    if (currentIndex > 0) allOptions.insert(0, allOptions.removeAt(currentIndex));
 
-    final height = MediaQuery.sizeOf(context).height * 0.72;
+    final cleanQuery = _searchQuery.trim();
+    final options = cleanQuery.isEmpty
+        ? allOptions
+        : allOptions.where((o) => _matchesQuery(o.$1, cleanQuery)).toList();
+
+    final height = MediaQuery.sizeOf(context).height * 0.78;
     return Container(
       height: height,
       decoration: BoxDecoration(
@@ -85,32 +117,180 @@ class _DeityPickerSheet extends ConsumerWidget {
               style: GoogleFonts.mukta(fontSize: 13, color: const Color(0xB3FFE9B0)),
             ),
             const SizedBox(height: 12),
-            Expanded(
-              child: options.isEmpty
-                  ? const Center(child: CircularProgressIndicator(color: Brass.gold))
-                  : GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        mainAxisSpacing: 14,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 0.66,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0x33FFE9B0),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x66FFE9B0)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, color: Color(0xFFFFE08A), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: GoogleFonts.mukta(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFFFE9B0),
+                        ),
+                        cursorColor: const Color(0xFFFFE08A),
+                        decoration: InputDecoration(
+                          hintText: _t(
+                            lang,
+                            en: 'Search deity...',
+                            hi: 'देवता खोजें...',
+                            mr: 'दैवत शोधा...',
+                          ),
+                          hintStyle: GoogleFonts.mukta(fontSize: 14, color: const Color(0x99FFE9B0)),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onChanged: (v) => setState(() => _searchQuery = v),
                       ),
-                      itemCount: options.length,
-                      itemBuilder: (context, i) {
-                        final option = options[i];
-                        final selected = option.$1.key == current.key;
-                        return _DeityMedallion(
-                          deity: option.$1,
-                          lang: lang,
-                          selected: selected,
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            Navigator.of(context).pop(selected ? null : option);
-                          },
-                        );
-                      },
                     ),
+                    if (_searchQuery.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        child: const Icon(Icons.clear_rounded, color: Color(0x99FFE9B0), size: 18),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: allOptions.isEmpty
+                  ? const Center(child: CircularProgressIndicator(color: Brass.gold))
+                  : options.isEmpty
+                      ? _EmptySearch(
+                          lang: lang,
+                          query: cleanQuery,
+                          onRequest: () => showRequestDeitySheet(
+                            context,
+                            lang: lang,
+                            initialText: cleanQuery,
+                            source: 'mandir_deity_picker',
+                          ),
+                        )
+                      : GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 0.66,
+                          ),
+                          itemCount: options.length,
+                          itemBuilder: (context, i) {
+                            final option = options[i];
+                            final selected = option.$1.key == current.key;
+                            return _DeityMedallion(
+                              deity: option.$1,
+                              lang: lang,
+                              selected: selected,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                Navigator.of(context).pop(selected ? null : option);
+                              },
+                            );
+                          },
+                        ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: InkWell(
+                onTap: () => showRequestDeitySheet(
+                  context,
+                  lang: lang,
+                  initialText: cleanQuery,
+                  source: 'mandir_deity_picker',
+                ),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0x33FF8F00),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0x88FFB300)),
+                  ),
+                  child: Text(
+                    _t(
+                      lang,
+                      en: 'Can’t find your Deity? Tell us here 🙏',
+                      hi: 'अपना देवता नहीं मिला? यहाँ बताएं 🙏',
+                      mr: 'आपले दैवत सापडले नाही का? येथे सांगा 🙏',
+                    ),
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.mukta(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFFFE08A),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptySearch extends StatelessWidget {
+  const _EmptySearch({required this.lang, required this.query, required this.onRequest});
+
+  final String lang;
+  final String query;
+  final VoidCallback onRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _t(
+                lang,
+                en: 'No deity found for "$query"',
+                hi: '"$query" के लिए कोई देवता नहीं मिला',
+                mr: '"$query" साठी कोणतेही दैवत आढळले नाही',
+              ),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.mukta(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFFFFE08A)),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: onRequest,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF8F00),
+                foregroundColor: const Color(0xFF2A0E04),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+              label: Text(
+                _t(
+                  lang,
+                  en: 'Request "$query" 🙏',
+                  hi: '"$query" जोड़ने का अनुरोध करें 🙏',
+                  mr: '"$query" जोडण्याची विनंती करा 🙏',
+                ),
+                style: GoogleFonts.mukta(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),

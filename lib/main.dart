@@ -33,9 +33,7 @@ void main() {
         ? const ProviderScope(child: NityaAartiApp())
         : ClarityService.wrapWithClarity(
             projectId: _clarityProjectId,
-            child: const ProviderScope(
-              child: NityaAartiApp(),
-            ),
+            child: const ProviderScope(child: NityaAartiApp()),
           ),
   );
 }
@@ -49,7 +47,8 @@ class NityaAartiApp extends ConsumerStatefulWidget {
   ConsumerState<NityaAartiApp> createState() => _NityaAartiAppState();
 }
 
-class _NityaAartiAppState extends ConsumerState<NityaAartiApp> with WidgetsBindingObserver {
+class _NityaAartiAppState extends ConsumerState<NityaAartiApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();

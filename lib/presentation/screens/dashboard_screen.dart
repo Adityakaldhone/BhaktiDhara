@@ -26,12 +26,13 @@ import '../providers/remote_config_provider.dart';
 import '../providers/review_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../widgets/app_banner_ad.dart';
-import '../widgets/akhand_jyot_bar.dart';
+import '../widgets/akhand_jyot_bar.dart' show openGarbhagriha;
 import '../widgets/festive_offer_popup.dart';
 import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/remote_notices.dart';
+import '../widgets/request_deity_sheet.dart';
 import 'deity_aarti_list_screen.dart';
 import 'horoscope_screen.dart';
 import 'more_screen.dart';
@@ -39,7 +40,6 @@ import 'panchang_screen.dart';
 import '../../services/ad_units.dart';
 import '../../services/app_permission_service.dart';
 import '../providers/granth_providers.dart';
-import '../widgets/nitya_aarti_shelf.dart';
 import 'granth_chapter_list_screen.dart';
 
 /// Order must match the [IndexedStack] children in the dashboard.
@@ -96,8 +96,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         });
       }
       if (kIsWeb || !Platform.environment.containsKey('FLUTTER_TEST')) {
-        AppPermissionService.checkAndRequestStartupPermissions(ref)
-            .whenComplete(_maybeShowFirstLight);
+        AppPermissionService.checkAndRequestStartupPermissions(ref);
       }
       // Record the session now so first-launch paywall gating is accurate
       // before the festive popup timer fires.
@@ -110,12 +109,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       });
     }
     ref.listenManual(remoteConfigProvider, (_, _) => _maybeShowFestivePopup());
-  }
-
-  Future<void> _maybeShowFirstLight() async {
-    await Future<void>.delayed(const Duration(milliseconds: 800));
-    if (!mounted || _tab != _DashTab.home) return;
-    await FirstLightDialog.maybeShow(context, ref);
   }
 
   void _maybeShowFestivePopup() {
@@ -475,28 +468,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 // ── Decorative Header (collapses to a compact bar) ───────
                 _buildSliverHeader(l10n),
 
-                // ── Akhand Jyot: Ishta Devta flame + ghee level ──────────
-                const SliverToBoxAdapter(child: AkhandJyotBar()),
-
-                // ── Search Bar (stays pinned under the header) ───────────
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _PinnedSearchBarDelegate(
-                    child: _buildSearchBar(l10n, localeCode),
-                  ),
-                ),
-
                 const SliverToBoxAdapter(child: AnnouncementCards()),
-
-                // ── My Nitya Aarti Shelf (Daily Prayer Favorites) ────────
-                if (ref.watch(searchQueryProvider).trim().isEmpty)
-                  SliverToBoxAdapter(
-                    child: NityaAartiShelf(onOpenAarti: _openAarti),
-                  ),
-
-                // ── Multi-Category Search: Matching Scriptures ───────────
-                if (ref.watch(searchQueryProvider).trim().isNotEmpty)
-                  ..._buildMatchingGranthsSlivers(context, ref, localeCode),
 
                 // ── Naam Jaap entry ──────────────────────────────────────
                 if (ref.watch(featureEnabledProvider(AppRemoteConfig.jaap)))
@@ -529,6 +501,23 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   ),
                 ),
 
+                // ── Search Bar (positioned under Sacred Collection & Language) ──
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _PinnedSearchBarDelegate(
+                    child: _buildSearchBar(l10n, localeCode),
+                  ),
+                ),
+
+                // ── 24-Hour Deity / Aarti Request Quick Banner ───────────
+                SliverToBoxAdapter(
+                  child: _buildDeityRequestBanner(localeCode),
+                ),
+
+                // ── Multi-Category Search: Matching Scriptures ───────────
+                if (ref.watch(searchQueryProvider).trim().isNotEmpty)
+                  ..._buildMatchingGranthsSlivers(context, ref, localeCode),
+
                 // ── State Filter Chips ───────────────────────────────────
                 SliverToBoxAdapter(child: _buildRegionChips(localeCode)),
 
@@ -560,7 +549,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     if (catalog.isEmpty)
                       SliverFillRemaining(
                         hasScrollBody: false,
-                        child: _buildEmptyCatalog(l10n),
+                        child: _buildEmptyCatalog(l10n, localeCode),
                       )
                     else
                       SliverPadding(
@@ -663,7 +652,71 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     );
   }
 
-  Widget _buildEmptyCatalog(AppLocalizations l10n) {
+  Widget _buildDeityRequestBanner(String localeCode) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+      child: InkWell(
+        onTap: () {
+          final query = ref.read(searchQueryProvider).trim();
+          _showRequestDeitySheet(context, localeCode, initialText: query);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: MandirTheme.primarySaffron.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: MandirTheme.primarySaffron.withValues(alpha: 0.35),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.temple_hindu_rounded,
+                size: 20,
+                color: MandirTheme.secondaryMaroon,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  switch (localeCode) {
+                    'hi' => 'आपकी मनपसंद आरती नहीं मिली? यहाँ बताएं (२४ घंटे में जोड़ेंगे) 🙏',
+                    'mr' => 'आपले आराध्य दैवत सापडले नाही का? येथे सांगा (२४ तासांत जोडू) 🙏',
+                    _ => "Can't find your deity? Request here (added in 24h) 🙏",
+                  },
+                  style: GoogleFonts.mukta(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: MandirTheme.secondaryMaroon,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 13,
+                color: MandirTheme.secondaryMaroon,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showRequestDeitySheet(BuildContext context, String lang, {String initialText = ''}) {
+    showRequestDeitySheet(
+      context,
+      lang: lang,
+      initialText: initialText,
+      source: 'home_screen',
+    );
+  }
+
+  Widget _buildEmptyCatalog(AppLocalizations l10n, String localeCode) {
     final query = ref.watch(searchQueryProvider).trim();
     return Center(
       child: Padding(
@@ -671,39 +724,91 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.search_off_rounded,
-              size: 56,
-              color: MandirTheme.goldenAccent,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: MandirTheme.primarySaffron.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.temple_hindu_rounded,
+                size: 48,
+                color: MandirTheme.secondaryMaroon,
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Text(
-              query.isNotEmpty ? l10n.searchNoResults : l10n.noAartiFound,
+              query.isNotEmpty
+                  ? (switch (localeCode) {
+                      'hi' => '’$query’ की आरती अभी नहीं मिली',
+                      'mr' => '’$query’ ची आरती अजून सापडली नाही',
+                      _ => 'No Aarti found for "$query"',
+                    })
+                  : l10n.noAartiFound,
               textAlign: TextAlign.center,
               style: GoogleFonts.mukta(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
                 color: MandirTheme.textDark,
               ),
             ),
+            const SizedBox(height: 6),
+            Text(
+              switch (localeCode) {
+                'hi' => 'चिंता न करें! हम २४ घंटे में यह आरती ऐप में जोड़ देंगे।',
+                'mr' => 'काळजी करू नका! आम्ही २४ तासांत ही आरती ॲपमध्ये जोडू.',
+                _ => 'Don’t worry! We will add this aarti within 24 hours.',
+              },
+              textAlign: TextAlign.center,
+              style: GoogleFonts.mukta(
+                fontSize: 14,
+                color: MandirTheme.textMuted,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              onPressed: () => _showRequestDeitySheet(
+                context,
+                localeCode,
+                initialText: query,
+              ),
+              icon: const Icon(Icons.add_task_rounded, size: 20),
+              label: Text(
+                query.isNotEmpty
+                    ? (switch (localeCode) {
+                        'hi' => '’$query’ जोड़ने का अनुरोध भेजें (२४ घंटे)',
+                        'mr' => '’$query’ जोडण्याची विनंती पाठवा (२४ तास)',
+                        _ => 'Request "$query" (24h turnaround)',
+                      })
+                    : (switch (localeCode) {
+                        'hi' => 'नई आरती / देवता का अनुरोध भेजें',
+                        'mr' => 'नवीन आरती / दैवत विनंती पाठवा',
+                        _ => 'Request Deity / Aarti',
+                      }),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: MandirTheme.secondaryMaroon,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
             if (query.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
+              const SizedBox(height: 12),
+              TextButton.icon(
                 onPressed: () {
                   _searchDebounce?.cancel();
                   _searchController.clear();
                   ref.read(searchQueryProvider.notifier).state = '';
                   setState(() {});
                 },
-                icon: const Icon(Icons.clear, size: 18),
+                icon: const Icon(Icons.clear, size: 16),
                 label: Text(l10n.clearSearch),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: MandirTheme.primarySaffron,
-                  foregroundColor: Colors.white,
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                style: TextButton.styleFrom(
+                  foregroundColor: MandirTheme.textMuted,
                 ),
               ),
             ],

@@ -4848,6 +4848,54 @@ final List<AartiItem> kMarathiAartiCatalog = [
     ],
   ),
   AartiItem(
+    id: 'krishna_o_kanha_ab_toh_murli',
+    title: 'O Kanha Ab Toh Murli Ki Madhur Suna Do Taan',
+    titleHi: 'ओ कान्हा अब तो मुरली की मधुर सुना दो तान',
+    titleMr: 'ओ कान्हा अब तो मुरली की मधुर सुना दो तान',
+    deity: 'Lord Krishna',
+    deityHi: 'श्री कृष्ण',
+    deityMr: 'कृष्ण',
+    singer: 'Nova Spiritual India',
+    tags: const ['Bhajan', 'Aarti', 'Kirtan'],
+    youtubeVideoId: '3YLog5mrAYM',
+    durationText: '5:12',
+    accentColorHex: '#2E7D32',
+    deityEmoji: '🪈',
+    aboutMr: 'भगवान श्रीकृष्णाच्या मुरलीची हाक देणारे मधुर भजन.',
+    aboutHi: 'भगवान श्री कृष्ण की मुरली की मधुर तान सुनाने की विनय वाला भजन।',
+    about: 'A beloved Krishna bhajan pleading for the sweet melody of Kanha\'s murli.',
+    lyrics: const [
+      LyricStanza(
+        startTimeMs: 0,
+        devanagari:
+            'ओ कान्हा अब तो मुरली की मधुर सुना दो तान ।\nओ कान्हा अब तो मुरली की मधुर सुना दो तान ॥\nमैं हूँ तेरी प्रेम दीवानी मुझको तू पहचान ।\nमधुर सुना दो तान ॥\nओ कान्हा अब तो मुरली की मधुर सुना दो तान ॥',
+        transliteration:
+            'O Kanha Ab Toh Murli Ki Madhur Suna Do Taan,\nO Kanha Ab Toh Murli Ki Madhur Suna Do Taan.\nMain Hoon Teri Prem Deewani Mujhko Tu Pehchaan,\nMadhur Suna Do Taan.\nO Kanha Ab Toh Murli Ki Madhur Suna Do Taan.',
+      ),
+      LyricStanza(
+        startTimeMs: 45000,
+        devanagari:
+            'जब से तुम संग मैंने अपने नैना जोड़ लिए हैं ।\nक्या मैया क्या बाबुल सबसे, रिश्ते तोड़ लिए हैं ॥\nतेरे मिलन को व्याकुल हैं कबसे मेरे प्राण ।\nमधुर सुना दो तान ॥\nओ कान्हा अब तो मुरली की मधुर सुना दो तान ॥',
+        transliteration:
+            'Jabse Tum Sang Maine Apne Naina Jod Liye Hai,\nKya Maiya Kya Babul Sabse, Rishte Tod Liye Hai.\nTere Milan Ko Vyakul Hai Kabse Mere Praan,\nMadhur Suna Do Taan.\nO Kanha Ab Toh Murli Ki Madhur Suna Do Taan.',
+      ),
+      LyricStanza(
+        startTimeMs: 90000,
+        devanagari:
+            'सागर से भी गहरे मेरे, प्रेम की गहराई ।\nलोक लाज कुल की मर्यादा तज कर मैं तो आई ॥\nमेरे प्रीत से ओ निर्मोही, अब ना बनो अंजान ।\nमधुर सुना दो तान ॥\nओ कान्हा अब तो मुरली की मधुर सुना दो तान ॥',
+        transliteration:
+            'Saagar Se Bhi Gehre Mere, Prem Ki Gehraai,\nLok Laaj Kul Ki Maryada Taj Kar Main Toh Aayi.\nMere Preet Se O Nirmohi, Ab Na Bano Anjaan,\nMadhur Suna Do Taan.\nO Kanha Ab Toh Murli Ki Madhur Suna Do Taan.',
+      ),
+      LyricStanza(
+        startTimeMs: 135000,
+        devanagari:
+            'मैं हूँ तेरी प्रेम दीवानी मुझको तू पहचान ।\nमधुर सुना दो तान ॥\nमधुर सुना दो तान ॥\nमधुर सुना दो तान ॥\nओ कान्हा अब तो मुरली की मधुर सुना दो तान ॥',
+        transliteration:
+            'Main Hoon Teri Prem Deewani Mujhko Tu Pehchaan,\nMadhur Suna Do Taan.\nMadhur Suna Do Taan.\nMadhur Suna Do Taan.\nO Kanha Ab Toh Murli Ki Madhur Suna Do Taan.',
+      ),
+    ],
+  ),
+  AartiItem(
     id: 'vishnu_avadi_gangajale',
     title: 'Aavadi Gangajale Deva Nhanile',
     titleHi: 'आवडी गंगाजळे देवा न्हाणीलें',

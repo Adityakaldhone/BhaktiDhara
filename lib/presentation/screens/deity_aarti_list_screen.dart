@@ -1,5 +1,7 @@
+import '../../core/analytics/analytics_service.dart';
 import '../../core/theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -7,6 +9,7 @@ import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../../domain/logic/deity_affinity_ranker.dart';
 import '../../services/ad_units.dart';
+import '../../services/backend_service.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/bhakti_darshan_providers.dart';
 import '../providers/deity_affinity_provider.dart';
@@ -216,6 +219,36 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           subtitle: 'आरती संग्रह',
           shloka: 'जय देवी जय देवी जय जय रेणुके । तुझे तुळणे हरिहर ब्रह्मादिक ना तुके ॥',
           imagePath: 'assets/bhakti/renuka.webp',
+        );
+      case 'Goddess Tuljabhavani':
+        return const _DeityHeaderInfo(
+          title: 'आई तुळजाभवानी',
+          subtitle: 'आरती संग्रह',
+          shloka: 'दुर्गे दुर्घट भारी तुजविण संसारी । अनाथनाथे अंबे करुणा विस्तारी ॥',
+          imagePath: 'assets/bhakti/durga.webp',
+        );
+      case 'Radha':
+        return const _DeityHeaderInfo(
+          title: 'श्री राधा रानी',
+          subtitle: 'आरती संग्रह',
+          shloka: '''तप्तकाञ्चनगौराङ्गि राधे वृन्दावनेश्वरि ।
+वृषभानुसुते देवि प्रणमामि हरिप्रिये ॥''',
+          imagePath: 'assets/bhakti/radha.webp',
+        );
+      case 'Banke Bihari':
+        return const _DeityHeaderInfo(
+          title: 'श्री बांके बिहारी',
+          subtitle: 'आरती संग्रह',
+          shloka: '''श्री बांके बिहारी तेरी आरती गाऊं ।
+हे गिरिधर तेरी आरती गाऊं ॥''',
+          imagePath: 'assets/bhakti/krishna.webp',
+        );
+      case 'Lord Jyotiba':
+        return const _DeityHeaderInfo(
+          title: 'श्री जोतिबा (केदारलिंग)',
+          subtitle: 'आरती संग्रह',
+          shloka: 'चांगभलं चांगभलं जोतिबाच्या नावानं चांगभलं । रत्नागिरी शिखरीं सुंदर मंदिर शोभलं ॥',
+          imagePath: 'assets/bhakti/siddhanth.webp',
         );
       case 'Lord Siddhanath':
         return const _DeityHeaderInfo(
@@ -435,7 +468,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                     // Aarti Cards Scrollable List
                     Expanded(
                       child: filteredList.isEmpty
-                          ? _buildEmptyState()
+                          ? _buildEmptyState(localeCode)
                           : ListView.builder(
                               padding: const EdgeInsets.fromLTRB(
                                 16,
@@ -848,38 +881,142 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EMPTY SEARCH STATE
+  // EMPTY SEARCH / REQUEST AARTI STATE
   // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(String localeCode) {
+    final query = _searchQuery.trim();
+    final hasQuery = query.isNotEmpty;
+
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.search_off_rounded,
-              size: 48,
-              color: Color(0xFFB8860B),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'कोणतीही आरती आढळली नाही',
-              style: GoogleFonts.mukta(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF7A0C08),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDE8C8).withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+                ),
+                child: const Icon(
+                  Icons.temple_hindu_rounded,
+                  size: 44,
+                  color: Color(0xFF7A0C08),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'कृपया वेगळा शब्द किंवा नाव शोधून पहा.',
-              style: GoogleFonts.mukta(
-                fontSize: 13,
-                color: const Color(0xFF7A5835),
+              const SizedBox(height: 14),
+              Text(
+                hasQuery
+                    ? (localeCode == 'hi'
+                        ? 'क्या आप "$query" की आरती चाहते हैं?'
+                        : (localeCode == 'mr'
+                            ? 'तुम्हाला "$query" ची आरती हवी आहे का?'
+                            : 'Looking for "$query" Aarti?'))
+                    : (localeCode == 'hi'
+                        ? 'इस देवता की आरती जल्द ही उपलब्ध होगी'
+                        : (localeCode == 'mr'
+                            ? 'या दैवताची आरती लवकरच उपलब्ध होत आहे'
+                            : 'Aarti for this deity coming soon')),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.mukta(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF7A0C08),
+                  height: 1.25,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                localeCode == 'hi'
+                    ? 'अनुरोध भेजें, हम २४ घंटे में यह आरती ऐप में जोड़ देंगे! 🙏'
+                    : (localeCode == 'mr'
+                        ? 'विनंती करा, आम्ही २४ तासांत ही आरती ॲपमध्ये जोडू! 🙏'
+                        : 'Submit a request, we will add this Aarti in 24 hours! 🙏'),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.mukta(
+                  fontSize: 14,
+                  color: const Color(0xFF5D4037),
+                ),
+              ),
+              const SizedBox(height: 18),
+              ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  final targetAarti = hasQuery ? query : widget.deity;
+
+                  BackendService.trackEvent(
+                    'aarti_requested',
+                    item: targetAarti,
+                    props: {
+                      'query': targetAarti,
+                      'deity': widget.deity,
+                      'locale': localeCode,
+                    },
+                  );
+
+                  AnalyticsService.logCustomEvent(
+                    'aarti_requested',
+                    parameters: {
+                      'query': targetAarti,
+                      'deity': widget.deity,
+                      'locale': localeCode,
+                    },
+                  );
+
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFF7A0C08),
+                        duration: const Duration(seconds: 4),
+                        content: Text(
+                          localeCode == 'hi'
+                              ? '🙏 "$targetAarti" का अनुरोध मिला! हम २४ घंटे में यह आरती जोड़ देंगे।'
+                              : (localeCode == 'mr'
+                                  ? '🙏 "$targetAarti" ची विनंती मिळाली! आम्ही २४ तासांत ही आरती जोडू.'
+                                  : '🙏 Request for "$targetAarti" received! Adding in 24 hours.'),
+                          style: GoogleFonts.mukta(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7A0C08),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 2,
+                ),
+                icon: const Icon(Icons.volunteer_activism_rounded, size: 20),
+                label: Text(
+                  hasQuery
+                      ? (localeCode == 'hi'
+                          ? '"$query" आरती का अनुरोध करें 🙏'
+                          : (localeCode == 'mr'
+                              ? '"$query" आरतीची विनंती करा 🙏'
+                              : 'Request "$query" Aarti 🙏'))
+                      : (localeCode == 'hi'
+                          ? 'आरती जोड़ने का अनुरोध करें 🙏'
+                          : (localeCode == 'mr'
+                              ? 'आरती जोडण्याची विनंती करा 🙏'
+                              : 'Request Aarti Addition 🙏')),
+                  style: GoogleFonts.mukta(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

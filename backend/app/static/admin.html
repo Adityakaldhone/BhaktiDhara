@@ -843,6 +843,58 @@
           </table>
         </div>
       </div>
+      <div class="card" style="margin-top:16px">
+        <div class="row sp" style="margin-bottom:10px">
+          <h3 style="margin:0">💬 Feedback &amp; Suggestions <small id="fb-total"></small></h3>
+          <select class="inp" id="fb-days" style="font-size:12px;padding:6px 32px 6px 12px">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+        <div class="scroll-x">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Message</th>
+                <th>Language</th>
+                <th>App</th>
+                <th>Device ID</th>
+                <th>Notify status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="fb-rows"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="row sp" style="margin-bottom:10px">
+          <h3 style="margin:0">🙏 Deity Requests <small id="drq-total"></small></h3>
+          <select class="inp" id="drq-days" style="font-size:12px;padding:6px 32px 6px 12px">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+        <div class="scroll-x">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Deity</th>
+                <th>Language</th>
+                <th>Device ID</th>
+                <th>Extras</th>
+                <th>Notify status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="drq-rows"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- RETENTION -->
@@ -1798,6 +1850,7 @@
     aarti_open: '🪔 Aarti Opened', bhajan_open: '🎵 Bhajans Opened', jaap_open: '📿 Jaap Opened', jaap_mala_complete: '📿 Mala Completed',
     horoscope_view: '♈ Horoscope Viewed', panchang_open: '📅 Panchang Opened', vip_unlock: '⭐ VIP Unlocked', paywall_view: '🔒 Paywall Viewed',
     share: '📤 Shared App', app_open: '📱 App Opened',
+    deity_requested: '🙏 Deity Requested', aarti_requested: '📜 Aarti Requested',
   };
   const prettyEvent = (n) => EVENT_NAMES[n] || n.replace(/_/g, ' ');
 
@@ -1847,6 +1900,157 @@
   };
   $('#en-days').addEventListener('change', () => loaders.engagement());
   $('#en-event').addEventListener('change', () => loaders.engagement());
+
+  const langLabel = (l) => ({ en: 'English', hi: 'Hindi', mr: 'Marathi' }[l] || (l || '—'));
+  const fmtWhen = (iso) => {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z');
+      return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch (_) { return iso; }
+  };
+
+  async function loadDeityRequests() {
+    const days = $('#drq-days')?.value || '30';
+    const data = await api(`/api/v1/admin/deity-requests?days=${days}&limit=100`);
+    $('#drq-total').textContent = data.total ? `· ${fmt(data.total)} total` : '';
+    const notifyStatus = (r) => {
+      if (r.notificationOpened) {
+        return `<span style="color:var(--green);font-weight:700;font-size:12.5px" title="${esc(fmtWhen(r.openedAt))}">✅ Opened</span>`;
+      }
+      if (r.notified) {
+        return `<span style="color:var(--saffron);font-weight:700;font-size:12.5px" title="${esc(fmtWhen(r.notifiedAt))}">📤 Sent · not opened</span>`;
+      }
+      return `<span style="color:var(--text-muted);font-size:12.5px">— Not sent</span>`;
+    };
+
+    $('#drq-rows').innerHTML = (data.requests || []).map((r) => {
+      const extras = [];
+      if (r.youtubeUrl) extras.push(`<a href="${esc(r.youtubeUrl.startsWith('http') ? r.youtubeUrl : 'https://youtu.be/' + r.youtubeUrl)}" target="_blank" rel="noopener">YouTube</a>`);
+      if (r.imageUrl) extras.push(`<button type="button" class="btn sm ghost" data-drq-img="${esc(r.imageUrl)}">🖼 Image</button>`);
+      if (r.source) extras.push(`<span style="color:var(--text-muted)">${esc(r.source)}</span>`);
+      return `<tr>
+        <td style="white-space:nowrap;font-size:12.5px">${esc(fmtWhen(r.at))}</td>
+        <td style="font-weight:700">${esc(r.deityName || '—')}</td>
+        <td>${esc(langLabel(r.lang))}</td>
+        <td class="mono" style="font-size:11.5px;word-break:break-all" title="${esc(r.deviceId)}">${esc((r.deviceId || '').slice(0, 14))}…</td>
+        <td style="font-size:12px">${extras.join(' · ') || '—'}</td>
+        <td style="white-space:nowrap">${notifyStatus(r)}</td>
+        <td style="text-align:right"><button type="button" class="btn sm ghost" data-drq-id="${esc(String(r.id || ''))}" data-drq-notify="${esc(r.deviceId)}" data-drq-name="${esc(r.deityName || '')}">🔔 Notify</button></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7" class="empty">No deity requests in this period</td></tr>';
+
+    $('#drq-rows').querySelectorAll('[data-drq-notify]').forEach((btn) => {
+      btn.onclick = async () => {
+        const requestId = btn.getAttribute('data-drq-id');
+        const deity = btn.getAttribute('data-drq-name') || 'your deity';
+        if (!requestId) { toast('⚠️ Missing request id'); return; }
+        const title = prompt('Notification title', '🙏 BhaktiDhara');
+        if (title == null) return;
+        const body = prompt(
+          'Notification message (push + in-app)',
+          `Namaskar! We received your request for "${deity}". We are adding it soon. 🪔`,
+        );
+        if (body == null) return;
+        try {
+          const r = await api(`/api/v1/admin/deity-requests/${encodeURIComponent(requestId)}/notify`, {
+            method: 'POST',
+            body: JSON.stringify({
+              title: title.trim() || '🙏 BhaktiDhara',
+              body: body.trim(),
+            }),
+          });
+          const pushOk = (r.pushSuccess || 0) > 0;
+          toast(pushOk
+            ? '🔔 Push + in-app notification sent'
+            : '📬 In-app notification saved (push unavailable — user may have denied permission)');
+        } catch (e) {
+          toast(`⚠️ ${e.message || 'Failed to notify'}`);
+        }
+        loadDeityRequests();
+      };
+    });
+    $('#drq-rows').querySelectorAll('[data-drq-img]').forEach((btn) => {
+      btn.onclick = async () => {
+        const path = btn.getAttribute('data-drq-img');
+        try {
+          const res = await fetch(path, { headers: { 'X-Admin-Secret': secret } });
+          if (!res.ok) throw new Error('load failed');
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank', 'noopener');
+        } catch (_) {
+          toast('⚠️ Could not open image');
+        }
+      };
+    });
+  }
+
+  $('#drq-days')?.addEventListener('change', () => loadDeityRequests());
+
+  async function loadAppFeedback() {
+    const days = $('#fb-days')?.value || '30';
+    const data = await api(`/api/v1/admin/feedback?days=${days}&limit=100`);
+    $('#fb-total').textContent = data.total ? `· ${fmt(data.total)} total` : '';
+    const notifyStatus = (r) => {
+      if (r.notificationOpened) {
+        return `<span style="color:var(--green);font-weight:700;font-size:12.5px" title="${esc(fmtWhen(r.openedAt))}">✅ Opened</span>`;
+      }
+      if (r.notified) {
+        return `<span style="color:var(--saffron);font-weight:700;font-size:12.5px" title="${esc(fmtWhen(r.notifiedAt))}">📤 Sent · not opened</span>`;
+      }
+      return `<span style="color:var(--text-muted);font-size:12.5px">— Not sent</span>`;
+    };
+    $('#fb-rows').innerHTML = (data.items || []).map((u) => `
+      <tr>
+        <td style="white-space:nowrap;font-size:12.5px">${esc(fmtWhen(u.at || u.createdAt))}</td>
+        <td style="max-width:380px;white-space:pre-wrap;font-size:13px">${esc(u.message || '')}</td>
+        <td>${esc(langLabel(u.lang || u.locale))}</td>
+        <td style="white-space:nowrap;font-size:12.5px">${esc(u.appVersion || '—')}</td>
+        <td class="mono" style="font-size:11.5px;word-break:break-all" title="${esc(u.deviceId || '')}">${esc((u.deviceId || '').slice(0, 14))}…</td>
+        <td style="white-space:nowrap">${notifyStatus(u)}</td>
+        <td style="text-align:right"><button type="button" class="btn sm ghost" data-fb-id="${esc(String(u.id || ''))}" data-fb-device="${esc(u.deviceId || '')}">🔔 Notify</button></td>
+      </tr>`).join('') || '<tr><td colspan="7" class="empty">No feedback yet</td></tr>';
+
+    $('#fb-rows').querySelectorAll('[data-fb-id]').forEach((btn) => {
+      btn.onclick = async () => {
+        const feedbackId = btn.getAttribute('data-fb-id');
+        if (!feedbackId) { toast('⚠️ Missing feedback id'); return; }
+        const title = prompt('Notification title', '🙏 BhaktiDhara');
+        if (title == null) return;
+        const body = prompt(
+          'Notification message (push + in-app)',
+          'Namaskar! Thank you for your feedback. We have noted it and will look into it soon. 🪔',
+        );
+        if (body == null) return;
+        try {
+          const r = await api(`/api/v1/admin/feedback/${encodeURIComponent(feedbackId)}/notify`, {
+            method: 'POST',
+            body: JSON.stringify({
+              title: title.trim() || '🙏 BhaktiDhara',
+              body: body.trim(),
+            }),
+          });
+          const pushOk = (r.pushSuccess || 0) > 0;
+          toast(pushOk
+            ? '🔔 Push + in-app notification sent'
+            : '📬 In-app notification saved (push unavailable — user may have denied permission)');
+          loadAppFeedback();
+        } catch (e) {
+          toast(`⚠️ ${e.message || 'Failed to notify'}`);
+        }
+      };
+    });
+  }
+
+  $('#fb-days')?.addEventListener('change', () => loadAppFeedback());
+
+  const _engagementOrig = loaders.engagement;
+  loaders.engagement = async () => {
+    await _engagementOrig();
+    try { await loadDeityRequests(); } catch (_) {}
+    try { await loadAppFeedback(); } catch (_) {}
+  };
 
   // ── retention ──────────────────────────────────────────────
   loaders.retention = async () => {

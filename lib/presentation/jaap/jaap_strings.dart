@@ -18,9 +18,9 @@ class JaapStrings {
   String get title => _t('नामजप', 'नाम जप', 'Naam Jaap');
   String get mala => _t('माळ', 'माला', 'Mala');
   String get jaap => _t('जप', 'जप', 'jaap');
-  String get start => _t('आरंभ करा 🙏', 'आरंभ करें 🙏', 'Begin 🙏');
-  String get continueJaap => _t('जप सुरू ठेवा 🙏', 'जप जारी रखें 🙏', 'Continue Jaap 🙏');
-  String get startJaap => _t('आजचा जप सुरू करा 🙏', 'आज का जप शुरू करें 🙏', "Start today's jaap 🙏");
+  String get start => _t('आरंभ करा', 'आरंभ करें', 'Begin');
+  String get continueJaap => _t('जप सुरू ठेवा', 'जप जारी रखें', 'Continue Jaap');
+  String get startJaap => _t('आजचा जप सुरू करा', 'आज का जप शुरू करें', "Start today's jaap");
   String get done => _t('पूर्ण', 'पूर्ण', 'Done');
   String get back => _t('मागे', 'वापस', 'Back');
   String get tapAnywhere => _t('कुठेही टॅप करा', 'कहीं भी टैप करें', 'Tap anywhere');

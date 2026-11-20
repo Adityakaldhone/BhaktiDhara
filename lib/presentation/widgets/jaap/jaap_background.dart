@@ -44,28 +44,54 @@ class _JaapBackgroundState extends State<JaapBackground>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final mandalaSize = size.width * 1.25;
+    final mandalaSize = size.width * 1.2;
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final mandala = const RepaintBoundary(
+      child: CustomPaint(painter: _MandalaPainter()),
+    );
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: RadialGradient(
-          center: Alignment(0, -0.1),
-          radius: 1.1,
-          colors: [JaapColors.sandalStart, JaapColors.sandalEnd],
+          center: Alignment(0, -0.15),
+          radius: 1.15,
+          colors: [
+            Color(0xFFFFF8E8),
+            JaapColors.sandalStart,
+            JaapColors.sandalEnd,
+            Color(0xFFE6CFA0),
+          ],
+          stops: [0.0, 0.35, 0.75, 1.0],
         ),
       ),
       child: Stack(
         children: [
           Positioned(
             left: (size.width - mandalaSize) / 2,
-            top: size.height * 0.36 - mandalaSize / 2,
+            top: size.height * 0.38 - mandalaSize / 2,
             width: mandalaSize,
             height: mandalaSize,
             child: IgnorePointer(
               child: RepaintBoundary(
-                child: RotationTransition(
-                  turns: _rotation,
-                  child: const RepaintBoundary(
-                    child: CustomPaint(painter: _MandalaPainter()),
+                child: reduceMotion
+                    ? mandala
+                    : RotationTransition(turns: _rotation, child: mandala),
+              ),
+            ),
+          ),
+          // Soft vignette so the mala and count stay readable.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -0.05),
+                    radius: 1.05,
+                    colors: [
+                      Colors.transparent,
+                      JaapColors.sandalDeep.withValues(alpha: 0.18),
+                      const Color(0xFF8A5A2B).withValues(alpha: 0.12),
+                    ],
+                    stops: const [0.45, 0.82, 1.0],
                   ),
                 ),
               ),
@@ -74,12 +100,12 @@ class _JaapBackgroundState extends State<JaapBackground>
           Positioned.fill(
             child: IgnorePointer(
               child: Align(
-                alignment: const Alignment(0, 0.95),
+                alignment: const Alignment(0, 0.98),
                 child: Image.asset(
                   MandirTheme.getDeityImageAsset(widget.deity),
-                  height: size.height * 0.42,
+                  height: size.height * 0.38,
                   fit: BoxFit.contain,
-                  opacity: const AlwaysStoppedAnimation(0.08),
+                  opacity: const AlwaysStoppedAnimation(0.11),
                   errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
@@ -100,9 +126,9 @@ class _MandalaPainter extends CustomPainter {
     final c = size.center(Offset.zero);
     final maxR = size.width / 2;
     final stroke = Paint()
-      ..color = MandirTheme.goldenAccent.withValues(alpha: 0.10)
+      ..color = MandirTheme.goldenAccent.withValues(alpha: 0.07)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
+      ..strokeWidth = 1.1;
 
     for (var ring = 1; ring <= 5; ring++) {
       final ringR = maxR * ring / 5.4;

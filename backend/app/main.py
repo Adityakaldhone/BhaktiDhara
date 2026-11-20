@@ -10,10 +10,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, Query, Header, HTTPException, Depends, status
+from fastapi import FastAPI, Query, Header, HTTPException, Depends, status, File, Form, UploadFile
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+import uuid
+import re
 # pyrefly: ignore [missing-import]
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # pyrefly: ignore [missing-import]
@@ -41,6 +43,13 @@ from app.database import (
     update_user,
     delete_user,
     get_engagement,
+    list_deity_requests,
+    list_app_feedback,
+    mark_deity_request_notified,
+    mark_app_feedback_notified,
+    list_in_app_notifications,
+    mark_in_app_notification_opened,
+    dismiss_in_app_notification,
     list_announcements,
     create_announcement,
     update_announcement,
@@ -819,6 +828,305 @@ async def admin_user_delete_endpoint(device_id: str):
 @app.get("/api/v1/admin/engagement", dependencies=admin)
 async def admin_engagement_endpoint(days: int = Query(7, ge=1, le=180), event: str = ""):
     return await get_engagement(days, event)
+
+
+@app.get("/api/v1/admin/deity-requests", dependencies=admin)
+async def admin_deity_requests_endpoint(days: int = Query(30, ge=1, le=180), limit: int = Query(100, ge=1, le=500)):
+    return await list_deity_requests(days, limit)
+
+
+class DeityRequestNotifyLink(BaseModel):
+    campaignId: int = 0
+    title: str = ""
+    body: str = ""
+
+
+class DeityRequestNotify(BaseModel):
+    title: str
+    body: str
+
+
+@app.post("/api/v1/admin/deity-requests/{event_id}/link-notify", dependencies=admin)
+async def admin_deity_request_link_notify(event_id: int, payload: DeityRequestNotifyLink):
+    """Links a push campaign to a deity request and creates an in-app inbox message."""
+    if not await mark_deity_request_notified(
+        event_id,
+        payload.campaignId or 0,
+        title=payload.title,
+        body=payload.body,
+        create_inbox=True,
+    ):
+        raise HTTPException(status_code=404, detail="Deity request not found")
+    return {"status": "ok"}
+
+
+@app.post("/api/v1/admin/deity-requests/{event_id}/notify", dependencies=admin)
+async def admin_deity_request_notify(event_id: int, payload: DeityRequestNotify):
+    """Notify one devotee: try FCM push, always create an in-app inbox message."""
+    import aiosqlite
+    from app.database import DB_PATH
+
+    title = payload.title.strip()[:200] or "🙏 BhaktiDhara"
+    body = payload.body.strip()[:1000]
+    if not body:
+        raise HTTPException(status_code=400, detail="Message body is required")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT device_id FROM events WHERE id = ? AND name = 'deity_requested'",
+            (event_id,),
+        ) as cur:
+            row = await cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Deity request not found")
+    device_id = row[0]
+
+    campaign_id = 0
+    push_result: Dict[str, Any] = {"success": 0, "failure": 0, "error": ""}
+    try:
+        campaign_id = await create_push_campaign({
+            "title": title,
+            "body": body,
+            "image_url": "",
+            "route": "",
+            "aarti_id": "",
+            "audience": "user",
+            "locale": "",
+            "platform": "",
+            "target_device_id": device_id[:64],
+            "dormant_days": 7,
+            "status": "scheduled",
+            "scheduled_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "repeat": "none",
+        })
+        push_result = await dispatch_push_campaign(campaign_id)
+    except Exception as e:
+        logger.warning("Deity-request push failed for event %s: %s", event_id, e)
+        push_result = {"success": 0, "failure": 1, "error": str(e)[:200]}
+
+    await mark_deity_request_notified(
+        event_id,
+        campaign_id or 0,
+        title=title,
+        body=body,
+        create_inbox=True,
+    )
+    await log_admin_action("deity_request_notify", f"event#{event_id} device={device_id[:12]}…")
+    return {
+        "status": "ok",
+        "campaignId": campaign_id or None,
+        "pushSuccess": int(push_result.get("success") or 0),
+        "pushFailure": int(push_result.get("failure") or 0),
+        "pushError": push_result.get("error") or "",
+        "inApp": True,
+    }
+
+
+@app.get("/api/v1/notifications")
+async def list_device_notifications(deviceId: str = Query(..., description="Anonymous device id")):
+    """Per-device in-app inbox — works even when push permission is denied."""
+    device_id = deviceId.strip()[:64]
+    if not device_id:
+        raise HTTPException(status_code=400, detail="deviceId required")
+    return {"notifications": await list_in_app_notifications(device_id)}
+
+
+class InAppNotificationAction(BaseModel):
+    deviceId: str
+
+
+@app.post("/api/v1/notifications/{notification_id}/open")
+async def open_device_notification(notification_id: int, payload: InAppNotificationAction):
+    device_id = payload.deviceId.strip()[:64]
+    if not device_id:
+        raise HTTPException(status_code=400, detail="deviceId required")
+    if not await mark_in_app_notification_opened(notification_id, device_id):
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"status": "ok"}
+
+
+@app.post("/api/v1/notifications/{notification_id}/dismiss")
+async def dismiss_device_notification(notification_id: int, payload: InAppNotificationAction):
+    device_id = payload.deviceId.strip()[:64]
+    if not device_id:
+        raise HTTPException(status_code=400, detail="deviceId required")
+    # Opening first so admin "Opened" is recorded even if they only dismiss.
+    await mark_in_app_notification_opened(notification_id, device_id)
+    if not await dismiss_in_app_notification(notification_id, device_id):
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"status": "ok"}
+
+
+DEITY_REQUEST_UPLOAD_DIR = Path(os.getenv("DEITY_REQUEST_UPLOAD_DIR", "uploads/deity_requests"))
+
+
+class FeedbackPayload(BaseModel):
+    deviceId: str = Field(..., min_length=1, max_length=64)
+    message: str = Field(..., min_length=1, max_length=1000)
+    lang: str = Field("en", max_length=8)
+    appVersion: str = Field("", max_length=40)
+
+
+@app.post("/api/v1/feedback")
+async def submit_feedback_endpoint(payload: FeedbackPayload):
+    """Devotee-facing: problem, suggestion, or request to add a deity."""
+    message = payload.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+    # Enforce character limit after strip (matches app UI).
+    if len(message) > 1000:
+        raise HTTPException(status_code=400, detail="message too long (max 1000 characters)")
+    device_id = payload.deviceId.strip()[:64]
+    if not device_id:
+        raise HTTPException(status_code=400, detail="deviceId is required")
+
+    props = {
+        "item": message[:120],
+        "message": message,
+        "lang": (payload.lang or "en")[:8],
+        "app_version": (payload.appVersion or "")[:40],
+    }
+    await record_events(device_id, [{
+        "name": "app_feedback",
+        "props": props,
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }])
+    return {"status": "ok"}
+
+
+@app.get("/api/v1/admin/feedback", dependencies=admin)
+async def admin_feedback_endpoint(days: int = Query(30, ge=1, le=180), limit: int = Query(100, ge=1, le=500)):
+    return await list_app_feedback(days, limit)
+
+
+class FeedbackNotify(BaseModel):
+    title: str = "🙏 BhaktiDhara"
+    body: str
+
+
+@app.post("/api/v1/admin/feedback/{event_id}/notify", dependencies=admin)
+async def admin_feedback_notify(event_id: int, payload: FeedbackNotify):
+    """Notify one devotee about their feedback: try FCM push, always create in-app inbox."""
+    import aiosqlite
+    from app.database import DB_PATH
+
+    title = payload.title.strip()[:200] or "🙏 BhaktiDhara"
+    body = payload.body.strip()[:1000]
+    if not body:
+        raise HTTPException(status_code=400, detail="Message body is required")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT device_id FROM events WHERE id = ? AND name = 'app_feedback'",
+            (event_id,),
+        ) as cur:
+            row = await cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    device_id = row[0]
+
+    campaign_id = 0
+    push_result: Dict[str, Any] = {"success": 0, "failure": 0, "error": ""}
+    try:
+        campaign_id = await create_push_campaign({
+            "title": title,
+            "body": body,
+            "image_url": "",
+            "route": "",
+            "aarti_id": "",
+            "audience": "user",
+            "locale": "",
+            "platform": "",
+            "target_device_id": device_id[:64],
+            "dormant_days": 7,
+            "status": "scheduled",
+            "scheduled_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "repeat": "none",
+        })
+        push_result = await dispatch_push_campaign(campaign_id)
+    except Exception as e:
+        logger.warning("Feedback push failed for event %s: %s", event_id, e)
+        push_result = {"success": 0, "failure": 1, "error": str(e)[:200]}
+
+    await mark_app_feedback_notified(
+        event_id,
+        campaign_id or 0,
+        title=title,
+        body=body,
+        create_inbox=True,
+    )
+    await log_admin_action("app_feedback_notify", f"event#{event_id} device={device_id[:12]}…")
+    return {
+        "status": "ok",
+        "campaignId": campaign_id or None,
+        "pushSuccess": int(push_result.get("success") or 0),
+        "pushFailure": int(push_result.get("failure") or 0),
+        "pushError": push_result.get("error") or "",
+        "inApp": True,
+    }
+
+
+@app.post("/api/v1/deity-request")
+async def submit_deity_request_endpoint(
+    deviceId: str = Form(...),
+    deityName: str = Form(...),
+    lang: str = Form("en"),
+    source: str = Form(""),
+    youtubeUrl: str = Form(""),
+    image: Optional[UploadFile] = File(None),
+):
+    """Devotee-facing: request a missing deity, optionally with image + YouTube link."""
+    name = deityName.strip()[:120]
+    if not name:
+        raise HTTPException(status_code=400, detail="deityName is required")
+    device_id = deviceId.strip()[:64]
+    if not device_id:
+        raise HTTPException(status_code=400, detail="deviceId is required")
+
+    youtube = youtubeUrl.strip()[:500]
+    if youtube and not re.search(r"(youtube\.com|youtu\.be)", youtube, re.I):
+        # Allow empty or YouTube-looking URLs only; still accept bare video ids.
+        if not re.fullmatch(r"[A-Za-z0-9_-]{11}", youtube):
+            youtube = youtube[:500]
+
+    image_url = ""
+    if image is not None and image.filename:
+        raw = await image.read()
+        if len(raw) > 6 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Image too large (max 6MB)")
+        if len(raw) > 0:
+            DEITY_REQUEST_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+            ext = Path(image.filename).suffix.lower()
+            if ext not in {".jpg", ".jpeg", ".png", ".webp", ".heic", ".gif"}:
+                ext = ".jpg"
+            fname = f"{uuid.uuid4().hex}{ext}"
+            path = DEITY_REQUEST_UPLOAD_DIR / fname
+            path.write_bytes(raw)
+            image_url = f"/api/v1/admin/deity-request-images/{fname}"
+
+    props = {
+        "item": name,
+        "deity_name": name,
+        "lang": (lang or "en")[:8],
+        "source": (source or "")[:60],
+        "youtube_url": youtube,
+        "image_url": image_url,
+    }
+    await record_events(device_id, [{
+        "name": "deity_requested",
+        "props": props,
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }])
+    return {"status": "ok", "imageUrl": image_url}
+
+
+@app.get("/api/v1/admin/deity-request-images/{filename}", dependencies=admin)
+async def admin_deity_request_image(filename: str):
+    safe = Path(filename).name
+    path = DEITY_REQUEST_UPLOAD_DIR / safe
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(path)
 
 
 @app.get("/api/v1/admin/announcements", dependencies=admin)

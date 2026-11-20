@@ -5,10 +5,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/theme.dart';
 import '../../domain/entities/app_remote_config.dart';
+import '../../services/app_update_service.dart';
+import '../../services/backend_service.dart';
 import '../providers/locale_provider.dart';
 import '../providers/remote_config_provider.dart';
-
-import '../../services/app_update_service.dart';
 import '../screens/force_update_screen.dart';
 
 String _t(String lang, {required String en, required String hi, required String mr}) =>
@@ -173,13 +173,27 @@ class AnnouncementCards extends ConsumerWidget {
     final items = (ref.watch(announcementsProvider).valueOrNull ?? const <AppAnnouncement>[])
         .where((a) => !dismissed.contains(a.id))
         .toList();
-    if (items.isEmpty) return const SizedBox.shrink();
+    final inbox = ref.watch(inAppNotificationsProvider).valueOrNull ?? const <InAppNotification>[];
+    if (items.isEmpty && inbox.isEmpty) return const SizedBox.shrink();
     final lang = ref.watch(localeProvider).languageCode;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Column(
         children: [
+          for (final n in inbox)
+            _InAppInboxCard(
+              notification: n,
+              onShown: () {
+                if (!n.opened) {
+                  BackendService.openInAppNotification(n.id);
+                }
+              },
+              onDismiss: () async {
+                await BackendService.dismissInAppNotification(n.id);
+                ref.invalidate(inAppNotificationsProvider);
+              },
+            ),
           for (final a in items)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -251,6 +265,90 @@ class AnnouncementCards extends ConsumerWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _InAppInboxCard extends StatefulWidget {
+  const _InAppInboxCard({
+    required this.notification,
+    required this.onShown,
+    required this.onDismiss,
+  });
+
+  final InAppNotification notification;
+  final VoidCallback onShown;
+  final Future<void> Function() onDismiss;
+
+  @override
+  State<_InAppInboxCard> createState() => _InAppInboxCardState();
+}
+
+class _InAppInboxCardState extends State<_InAppInboxCard> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onShown());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final n = widget.notification;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF81C784), width: 1.2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Text('🔔', style: TextStyle(fontSize: 22)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    n.title,
+                    style: GoogleFonts.mukta(
+                      fontSize: 18,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                      color: MandirTheme.secondaryMaroon,
+                    ),
+                  ),
+                  if (n.body.isNotEmpty)
+                    Text(
+                      n.body,
+                      style: GoogleFonts.mukta(
+                        fontSize: 15,
+                        height: 1.3,
+                        fontWeight: FontWeight.w500,
+                        color: MandirTheme.textDark,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: () => widget.onDismiss(),
+              icon: const Icon(Icons.close_rounded, size: 20, color: MandirTheme.textMuted),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
       ),
     );
   }

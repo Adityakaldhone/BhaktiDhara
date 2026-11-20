@@ -14,13 +14,22 @@ Future<void> _frames(WidgetTester tester, int ms) async {
 void main() {
   setUp(() {
     GoogleFonts.config.allowRuntimeFetching = false;
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      // Skip first-visit thali coach so the drag assertions stay deterministic.
+      'mandir_thali_coach_seen': true,
+    });
   });
 
   testWidgets('Garbhagriha opens, lights the diya and runs every seva', (tester) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
+    // Drop the tree before the binding tears down so a late system-font
+    // notification cannot schedule a frame on a disposed RenderObject.
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
 
     await tester.pumpWidget(
       const ProviderScope(
@@ -77,7 +86,5 @@ void main() {
     expect(find.text('दिन 1'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
-    await _frames(tester, 6000);
   });
 }

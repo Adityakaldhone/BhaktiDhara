@@ -119,7 +119,8 @@ class _KundaliFormScreenState extends ConsumerState<KundaliFormScreen> {
         );
     await ref.read(kundaliProfilesProvider.notifier).upsert(profile);
     if (!mounted) return;
-    if (widget.popOnSave) {
+    // Editing (or Milan picker) returns the saved profile; create opens the chart.
+    if (widget.popOnSave || widget.initial != null) {
       Navigator.pop(context, profile);
       return;
     }
@@ -201,7 +202,7 @@ class _KundaliFormScreenState extends ConsumerState<KundaliFormScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: Text(
-                  s.showKundali,
+                  widget.initial == null ? s.showKundali : s.saveChanges,
                   style: GoogleFonts.mukta(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
               ),
@@ -362,7 +363,7 @@ class _PlaceSearchSheetState extends State<_PlaceSearchSheet> {
                 onChanged: _onChanged,
                 style: GoogleFonts.mukta(fontSize: 17),
                 decoration: InputDecoration(
-                  hintText: s.searchPlace,
+                  hintText: s.searchPlaceHint,
                   hintStyle: GoogleFonts.mukta(color: MandirTheme.textMuted),
                   prefixIcon: const Icon(Icons.search_rounded, color: MandirTheme.textMuted),
                   filled: true,

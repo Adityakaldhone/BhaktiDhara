@@ -203,7 +203,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                                   ? 'ग्रहों की स्थिति व राशिफल प्राप्त हो रहा है...'
                                   : 'Consulting celestial planetary transits...'),
                         style: GoogleFonts.mukta(
-                          fontSize: 16,
+                          fontSize: 16.8,
                           color: _Tokens.primaryInk,
                           fontWeight: FontWeight.w600,
                         ),
@@ -225,7 +225,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       Text(
                         'राशीभविष्य लोड करता आले नाही',
                         style: GoogleFonts.tiroDevanagariMarathi(
-                          fontSize: 18,
+                          fontSize: 18.8,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF7A0C08),
                         ),
@@ -305,7 +305,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               Text(
                 'ॐ',
                 style: GoogleFonts.tiroDevanagariMarathi(
-                  fontSize: 24,
+                  fontSize: 25,
                   fontWeight: FontWeight.w700,
                   color: _Tokens.bronzeAccent,
                 ),
@@ -314,7 +314,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               Text(
                 'भक्तिधारा',
                 style: GoogleFonts.tiroDevanagariMarathi(
-                  fontSize: 20,
+                  fontSize: 21,
                   fontWeight: FontWeight.w700,
                   color: _Tokens.primaryInk,
                 ),
@@ -351,7 +351,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                             ? 'प्रीमियम'
                             : (langCode == 'hi' ? 'प्रीमियम' : 'Premium'),
                         style: GoogleFonts.mukta(
-                          fontSize: 12.5,
+                          fontSize: 13.2,
                           fontWeight: FontWeight.w700,
                           color: _Tokens.primaryInk,
                         ),
@@ -369,7 +369,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           Text(
             title,
             style: GoogleFonts.tiroDevanagariMarathi(
-              fontSize: 30,
+              fontSize: 31,
               fontWeight: FontWeight.w700,
               color: _Tokens.primaryInk,
               height: 1.15,
@@ -382,7 +382,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           Text(
             subtitle,
             style: GoogleFonts.mukta(
-              fontSize: 13.5,
+              fontSize: 14.5,
               fontWeight: FontWeight.w500,
               color: _Tokens.mutedText,
             ),
@@ -435,7 +435,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 child: Text(
                   title,
                   style: GoogleFonts.tiroDevanagariMarathi(
-                    fontSize: 16.5,
+                    fontSize: 17.5,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.primaryInk,
                   ),
@@ -460,7 +460,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               child: Text(
                 ctaText,
                 style: GoogleFonts.mukta(
-                  fontSize: 15,
+                  fontSize: 15.8,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -525,7 +525,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                           ? 'वीडियो विज्ञापन देखकर २४ घंटे मुफ्त अनलॉक करें'
                           : 'Watch ad to unlock for 24 hours'),
                 style: GoogleFonts.mukta(
-                  fontSize: 13,
+                  fontSize: 14.0,
                   fontWeight: FontWeight.w600,
                   color: _Tokens.primaryInk,
                 ),
@@ -671,7 +671,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     Text(
                       title,
                       style: GoogleFonts.mukta(
-                        fontSize: 16.5,
+                        fontSize: 17.5,
                         fontWeight: FontWeight.w700,
                         color: _Tokens.primaryInk,
                       ),
@@ -679,7 +679,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     Text(
                       subtitle,
                       style: GoogleFonts.mukta(
-                        fontSize: 12,
+                        fontSize: 13.0,
                         fontWeight: FontWeight.w500,
                         color: _Tokens.mutedText,
                       ),
@@ -716,7 +716,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                               : 'Analyzing planetary transits & Vedic chart...'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.mukta(
-                      fontSize: 14,
+                      fontSize: 15.0,
                       fontWeight: FontWeight.w600,
                       color: _Tokens.primaryInk,
                     ),
@@ -739,7 +739,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
             Text(
               suggestionsTitle,
               style: GoogleFonts.mukta(
-                fontSize: 13,
+                fontSize: 14.2,
                 fontWeight: FontWeight.w600,
                 color: _Tokens.primaryInk,
               ),
@@ -771,7 +771,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                         child: Text(
                           q,
                           style: GoogleFonts.mukta(
-                            fontSize: 13.5,
+                            fontSize: 14.8,
                             fontWeight: FontWeight.w600,
                             color: _Tokens.primaryInk,
                           ),
@@ -804,13 +804,13 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     child: TextField(
                       controller: _questionInputController,
                       style: GoogleFonts.mukta(
-                        fontSize: 13.5,
+                        fontSize: 14.5,
                         color: _Tokens.primaryInk,
                       ),
                       decoration: InputDecoration(
                         hintText: hintText,
                         hintStyle: GoogleFonts.mukta(
-                          fontSize: 13,
+                          fontSize: 14.0,
                           color: _Tokens.mutedText.withValues(alpha: 0.7),
                         ),
                         border: InputBorder.none,
@@ -851,7 +851,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                   label: Text(
                     askBtnText,
                     style: GoogleFonts.mukta(
-                      fontSize: 13.5,
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -895,7 +895,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 child: Text(
                   '“$question”',
                   style: GoogleFonts.mukta(
-                    fontSize: 13,
+                    fontSize: 14.0,
                     fontStyle: FontStyle.italic,
                     fontWeight: FontWeight.w600,
                     color: _Tokens.primaryInk,
@@ -935,7 +935,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                               ? 'ग्रह गोचर संकेत व सारांश'
                               : 'Planetary Transit Signal'),
                     style: GoogleFonts.mukta(
-                      fontSize: 12.5,
+                      fontSize: 13.5,
                       fontWeight: FontWeight.w700,
                       color: _Tokens.bronzeAccent,
                     ),
@@ -946,7 +946,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               Text(
                 consult.headline,
                 style: GoogleFonts.mukta(
-                  fontSize: 14.5,
+                  fontSize: 15.8,
                   fontWeight: FontWeight.w700,
                   color: _Tokens.primaryInk,
                   height: 1.35,
@@ -956,9 +956,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               Text(
                 consult.astrologicalAspect,
                 style: GoogleFonts.mukta(
-                  fontSize: 13.5,
+                  fontSize: 14.5,
                   color: _Tokens.mutedText,
-                  height: 1.4,
+                  height: 1.45,
                 ),
               ),
             ],
@@ -1001,7 +1001,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                         ? 'दूसरा प्रश्न पूछें'
                         : 'Ask another question'),
               style: GoogleFonts.mukta(
-                fontSize: 13,
+                fontSize: 14.0,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1037,7 +1037,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                           ? 'विस्तृत वैदिक सलाह:'
                           : 'Detailed Vedic Guidance:'),
                 style: GoogleFonts.mukta(
-                  fontSize: 13,
+                  fontSize: 14.2,
                   fontWeight: FontWeight.w700,
                   color: _Tokens.bronzeAccent,
                 ),
@@ -1046,9 +1046,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               Text(
                 consult.guidance,
                 style: GoogleFonts.mukta(
-                  fontSize: 13.5,
+                  fontSize: 15.0,
                   color: _Tokens.primaryInk,
-                  height: 1.4,
+                  height: 1.5,
                 ),
               ),
             ],
@@ -1076,7 +1076,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                           ? 'सिद्ध वैदिक उपाय:'
                           : 'Sacred Vedic Remedy:'),
                 style: GoogleFonts.mukta(
-                  fontSize: 13,
+                  fontSize: 14.2,
                   fontWeight: FontWeight.w700,
                   color: _Tokens.bronzeAccent,
                 ),
@@ -1085,10 +1085,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               Text(
                 consult.remedy,
                 style: GoogleFonts.mukta(
-                  fontSize: 13.5,
+                  fontSize: 15.0,
                   fontWeight: FontWeight.w600,
                   color: _Tokens.primaryInk,
-                  height: 1.35,
+                  height: 1.45,
                 ),
               ),
             ],
@@ -1126,7 +1126,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                                 ? 'शुभ समय व दिशा:'
                                 : 'Auspicious Timing & Direction:'),
                       style: GoogleFonts.mukta(
-                        fontSize: 12.5,
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: _Tokens.bronzeAccent,
                       ),
@@ -1135,7 +1135,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     Text(
                       consult.favorableTiming,
                       style: GoogleFonts.mukta(
-                        fontSize: 13,
+                        fontSize: 14.2,
                         fontWeight: FontWeight.w500,
                         color: _Tokens.primaryInk,
                       ),
@@ -1196,7 +1196,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 child: Text(
                   title,
                   style: GoogleFonts.mukta(
-                    fontSize: 15.5,
+                    fontSize: 16.5,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.primaryInk,
                   ),
@@ -1218,9 +1218,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
           Text(
             subtitle,
             style: GoogleFonts.mukta(
-              fontSize: 13,
+              fontSize: 14.2,
               color: _Tokens.mutedText,
-              height: 1.45,
+              height: 1.5,
             ),
           ),
           const SizedBox(height: 12),
@@ -1256,7 +1256,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
               label: Text(
                 previewBtnText,
                 style: GoogleFonts.mukta(
-                  fontSize: 13,
+                  fontSize: 14.0,
                   fontWeight: FontWeight.w600,
                   color: _Tokens.primaryInk,
                 ),
@@ -1303,7 +1303,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                             ? 'नया राशिफल प्राप्त करें'
                             : 'Refresh horoscope'),
                   style: GoogleFonts.mukta(
-                    fontSize: 14,
+                    fontSize: 14.8,
                     fontWeight: FontWeight.w700,
                     color: _Tokens.bronzeAccent,
                   ),
@@ -1316,7 +1316,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
         Text(
           'Powered by Google Gemini & Vedic Astrology',
           style: GoogleFonts.mukta(
-            fontSize: 12.5,
+            fontSize: 13.0,
             color: _Tokens.mutedText.withValues(alpha: 0.8),
           ),
         ),
@@ -1412,7 +1412,7 @@ class _HoroscopeTrayHeaderDelegate extends SliverPersistentHeaderDelegate {
                       child: Text(
                         todayLabel,
                         style: GoogleFonts.mukta(
-                          fontSize: 14.5,
+                          fontSize: 15.2,
                           fontWeight:
                               isToday ? FontWeight.w800 : FontWeight.w600,
                           color: isToday
@@ -1454,7 +1454,7 @@ class _HoroscopeTrayHeaderDelegate extends SliverPersistentHeaderDelegate {
                       child: Text(
                         weeklyLabel,
                         style: GoogleFonts.mukta(
-                          fontSize: 14.5,
+                          fontSize: 15.2,
                           fontWeight:
                               !isToday ? FontWeight.w800 : FontWeight.w600,
                           color: !isToday
@@ -1522,7 +1522,7 @@ class _HoroscopeTrayHeaderDelegate extends SliverPersistentHeaderDelegate {
                         Text(
                           rashi.localizedName(langCode),
                           style: GoogleFonts.mukta(
-                            fontSize: 13.5,
+                            fontSize: 14.2,
                             fontWeight:
                                 isSelected ? FontWeight.w800 : FontWeight.w700,
                             color: isSelected

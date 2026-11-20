@@ -4,10 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/theme.dart';
 import '../../domain/entities/birth_profile.dart';
+import '../../services/chart_export_service.dart';
 import '../../services/kundali/kundali_service.dart';
 import '../../services/kundali/vedic_astro_engine.dart';
 import '../kundali/kundali_strings.dart';
 import '../kundali/north_indian_chart.dart';
+import '../providers/kundali_providers.dart';
 import '../providers/locale_provider.dart';
 import 'kundali_screen.dart';
 
@@ -25,7 +27,39 @@ class KundaliResultScreen extends ConsumerStatefulWidget {
 class _KundaliResultScreenState extends ConsumerState<KundaliResultScreen> {
   late final KundaliData _data = KundaliService.calculate(widget.profile);
   late final Duration _offset = KundaliService.birthOffset(widget.profile);
+  final GlobalKey _exportKey = GlobalKey();
   _ChartKind _kind = _ChartKind.lagna;
+  bool _saving = false;
+
+  Future<void> _download(KundaliStrings s) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final safeName = widget.profile.name.replaceAll(RegExp(r'[^\w\u0900-\u097F]+'), '_');
+      final ok = await ChartExportService.saveAsPdf(
+        _exportKey,
+        fileName: 'kundali_${safeName}_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (!mounted) return;
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text(ok ? s.downloaded : s.downloadFailed, style: GoogleFonts.mukta()),
+          behavior: SnackBarBehavior.floating,
+        ));
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text(s.downloadFailed, style: GoogleFonts.mukta()),
+          behavior: SnackBarBehavior.floating,
+        ));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   List<List<ChartToken>> _houses(KundaliStrings s, int firstRashi) {
     final houses = List.generate(12, (_) => <ChartToken>[]);
@@ -65,38 +99,131 @@ class _KundaliResultScreenState extends ConsumerState<KundaliResultScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
-            KundaliHeader(title: p.name),
-            const SizedBox(height: 4),
-            _BirthSummary(profile: p, offset: _offset, s: s),
-            const SizedBox(height: 16),
-            _KindSelector(
-              selected: _kind,
-              labels: {
-                _ChartKind.lagna: s.lagnaChart,
-                _ChartKind.chandra: s.chandraChart,
-                _ChartKind.navamsa: s.navamsaChart,
-              },
-              onChanged: (k) => setState(() => _kind = k),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: KundaliHeader(title: p.name)),
+                IconButton(
+                  tooltip: s.download,
+                  onPressed: _saving ? null : () => _download(s),
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: MandirTheme.primarySaffron,
+                          ),
+                        )
+                      : const Icon(Icons.download_rounded, color: MandirTheme.primarySaffron),
+                ),
+                IconButton(
+                  tooltip: s.edit,
+                  onPressed: () => openKundaliEditor(
+                    context,
+                    profile: p,
+                    replaceResult: true,
+                  ),
+                  icon: const Icon(Icons.edit_outlined, color: MandirTheme.primarySaffron),
+                ),
+                IconButton(
+                  tooltip: s.delete,
+                  onPressed: () async {
+                    final ok = await confirmDeleteKundali(
+                      context,
+                      s: s,
+                      name: p.name,
+                    );
+                    if (!ok || !context.mounted) return;
+                    await ref.read(kundaliProfilesProvider.notifier).remove(p.id);
+                    if (context.mounted) Navigator.maybePop(context);
+                  },
+                  icon: const Icon(Icons.delete_outline_rounded, color: MandirTheme.textMuted),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: NorthIndianChart(
-                  firstRashi: firstRashi,
-                  houses: _houses(s, firstRashi),
-                  formatNumber: s.num,
+            const SizedBox(height: 4),
+            RepaintBoundary(
+              key: _exportKey,
+              child: ColoredBox(
+                color: MandirTheme.backgroundCream,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        p.name,
+                        style: GoogleFonts.mukta(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: MandirTheme.textDark,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      _BirthSummary(profile: p, offset: _offset, s: s),
+                      const SizedBox(height: 14),
+                      _KindSelector(
+                        selected: _kind,
+                        labels: {
+                          _ChartKind.lagna: s.lagnaChart,
+                          _ChartKind.chandra: s.chandraChart,
+                          _ChartKind.navamsa: s.navamsaChart,
+                        },
+                        onChanged: (k) => setState(() => _kind = k),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 440),
+                          child: NorthIndianChart(
+                            firstRashi: firstRashi,
+                            houses: _houses(s, firstRashi),
+                            formatNumber: s.num,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        s.chartNote,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.mukta(fontSize: 12.5, color: MandirTheme.textMuted),
+                      ),
+                      const SizedBox(height: 16),
+                      _KeyFacts(data: _data, s: s),
+                      const SizedBox(height: 12),
+                      Text(
+                        'BhaktiDhara',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.mukta(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: MandirTheme.primarySaffron,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              s.chartNote,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.mukta(fontSize: 12.5, color: MandirTheme.textMuted),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : () => _download(s),
+                icon: const Icon(Icons.download_rounded),
+                label: Text(
+                  s.download,
+                  style: GoogleFonts.mukta(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: MandirTheme.primarySaffron,
+                  side: const BorderSide(color: MandirTheme.primarySaffron),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
-            _KeyFacts(data: _data, s: s),
             const SizedBox(height: 24),
             _SectionTitle(s.grahaPositions),
             const SizedBox(height: 8),

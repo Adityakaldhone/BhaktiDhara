@@ -99,8 +99,13 @@ class MandirTheme {
       case 'Lord Shiva':
         return 'assets/bhakti/shiva.webp';
       case 'Goddess Durga':
+      case 'Goddess Tuljabhavani':
+      case 'Tuljabhavani':
+      case 'Bhavani Mata':
         return 'assets/bhakti/durga.webp';
       case 'Lord Krishna':
+      case 'Banke Bihari':
+      case 'Shri Banke Bihari':
         return 'assets/bhakti/krishna.webp';
       case 'Radha':
       case 'Goddess Radha':
@@ -138,10 +143,15 @@ class MandirTheme {
         return 'assets/bhakti/renuka.webp';
       case 'Lord Siddhanath':
       case 'Siddhanath':
+      case 'Lord Jyotiba':
+      case 'Jyotiba':
+      case 'Jotiba':
         return 'assets/bhakti/siddhanth.webp';
       case 'Lord Bhairavnath':
       case 'Bhairavnath':
       case 'Bhairav':
+      case 'Kalbhairav':
+      case 'Kalabhairav':
         return 'assets/bhakti/bhairavnath.webp';
       case 'Chandra Dev':
       case 'Chandra':

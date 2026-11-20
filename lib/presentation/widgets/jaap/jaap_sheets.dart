@@ -31,39 +31,47 @@ class JaapMantraTile extends StatelessWidget {
       button: true,
       selected: selected,
       child: Material(
-        color: selected ? const Color(0xFFFFF1D0) : MandirTheme.cardBackground,
-        borderRadius: BorderRadius.circular(18),
+        color: selected ? const Color(0xFFFFF1D0) : Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 76),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            constraints: const BoxConstraints(minHeight: 74),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: selected
                     ? MandirTheme.goldenAccent
-                    : MandirTheme.cardBorder,
-                width: selected ? 2.2 : 1,
+                    : MandirTheme.goldenAccent.withValues(alpha: 0.28),
+                width: selected ? 2 : 1,
               ),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 54,
-                  height: 54,
+                  width: 52,
+                  height: 52,
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: MandirTheme.imageSurface,
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected
+                          ? MandirTheme.goldenAccent.withValues(alpha: 0.6)
+                          : Colors.transparent,
+                    ),
                   ),
                   child: ClipOval(
                     child: Image.asset(
                       MandirTheme.getDeityImageAsset(mantra.deity),
                       fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const Center(
-                        child: Text('🕉️', style: TextStyle(fontSize: 26)),
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.spa_rounded,
+                        size: 26,
+                        color: MandirTheme.secondaryMaroon.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -76,7 +84,7 @@ class JaapMantraTile extends StatelessWidget {
                       Text(
                         mantra.localizedName(langCode),
                         style: GoogleFonts.mukta(
-                          fontSize: 19,
+                          fontSize: 18,
                           height: 1.2,
                           fontWeight: FontWeight.w700,
                           color: MandirTheme.textDark,
@@ -87,7 +95,7 @@ class JaapMantraTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.notoSansDevanagari(
-                          fontSize: 16,
+                          fontSize: 15,
                           height: 1.3,
                           fontWeight: FontWeight.w600,
                           color: JaapColors.mantraMaroon,
@@ -100,7 +108,7 @@ class JaapMantraTile extends StatelessWidget {
                   const Icon(
                     Icons.check_circle_rounded,
                     color: MandirTheme.goldenAccent,
-                    size: 30,
+                    size: 28,
                   ),
               ],
             ),
@@ -112,11 +120,11 @@ class JaapMantraTile extends StatelessWidget {
 }
 
 Widget _sheetHandle() => Container(
-  width: 44,
-  height: 5,
+  width: 40,
+  height: 4,
   margin: const EdgeInsets.only(bottom: 14),
   decoration: BoxDecoration(
-    color: Colors.brown.shade200,
+    color: MandirTheme.goldenAccent.withValues(alpha: 0.45),
     borderRadius: BorderRadius.circular(3),
   ),
 );
@@ -133,58 +141,127 @@ Widget _sheetTitle(String text) => Padding(
   ),
 );
 
+/// Entry / change sheet: deity list. Tap a row to confirm immediately, or
+/// highlight one and press Continue / Begin.
+Future<String?> showJaapEntrySheet(
+  BuildContext context,
+  WidgetRef ref,
+  String langCode, {
+  bool isOnboarding = false,
+}) {
+  final s = JaapStrings(langCode);
+  final initialId =
+      ref.read(jaapProvider).progress.mantraId ?? JaapMantraCatalog.defaultMantraId;
+
+  return showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    isDismissible: !isOnboarding,
+    enableDrag: !isOnboarding,
+    backgroundColor: JaapColors.sandalStart,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (sheetContext) {
+      var selectedId = initialId;
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.82,
+            maxChildSize: 0.95,
+            minChildSize: 0.55,
+            builder: (context, scrollController) => SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Column(
+                  children: [
+                    _sheetHandle(),
+                    _sheetTitle(isOnboarding ? s.welcomeTitle : s.changeMantra),
+                    if (isOnboarding)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          s.welcomeSubtitle,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.mukta(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: JaapColors.inkSoft,
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.only(bottom: 12),
+                        itemCount: JaapMantraCatalog.all.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) {
+                          final mantra = JaapMantraCatalog.all[i];
+                          return JaapMantraTile(
+                            mantra: mantra,
+                            langCode: langCode,
+                            selected: mantra.id == selectedId,
+                            onTap: () {
+                              // Highlight, then open the counter immediately.
+                              setSheetState(() => selectedId = mantra.id);
+                              Navigator.pop(sheetContext, mantra.id);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 58,
+                      child: ElevatedButton(
+                        key: const ValueKey('jaap-entry-continue'),
+                        // Continue / Begin with the highlighted (or default) mantra.
+                        onPressed: () =>
+                            Navigator.pop(sheetContext, selectedId),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: MandirTheme.secondaryMaroon,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          isOnboarding ? s.start : s.continueJaap,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.mukta(
+                            fontSize: 20,
+                            height: 1.25,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 Future<void> showJaapMantraPicker(
   BuildContext context,
   WidgetRef ref,
   String langCode,
-) {
-  final s = JaapStrings(langCode);
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: MandirTheme.backgroundCream,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
-    builder: (sheetContext) {
-      final selectedId = ref.read(jaapProvider).progress.mantraId;
-      return DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.8,
-        maxChildSize: 0.95,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Column(
-            children: [
-              _sheetHandle(),
-              _sheetTitle(s.changeMantra),
-              Expanded(
-                child: ListView.separated(
-                  controller: scrollController,
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: JaapMantraCatalog.all.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) {
-                    final mantra = JaapMantraCatalog.all[i];
-                    return JaapMantraTile(
-                      mantra: mantra,
-                      langCode: langCode,
-                      selected: mantra.id == selectedId,
-                      onTap: () {
-                        ref.read(jaapProvider.notifier).selectMantra(mantra.id);
-                        Navigator.pop(sheetContext);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
+) async {
+  final chosen = await showJaapEntrySheet(context, ref, langCode);
+  if (chosen == null) return;
+  ref.read(jaapProvider.notifier).selectMantra(chosen);
 }
 
 /// Row of big goal buttons (1 / 3 / 5 / 11 / 21 malas).
@@ -279,9 +356,9 @@ Future<void> showJaapSettingsSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: MandirTheme.backgroundCream,
+    backgroundColor: JaapColors.sandalStart,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (sheetContext) => Consumer(
       builder: (context, ref, _) {

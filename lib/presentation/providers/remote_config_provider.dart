@@ -40,6 +40,11 @@ final announcementsProvider = FutureProvider<List<AppAnnouncement>>((ref) {
   return BackendService.fetchAnnouncements(ref.watch(localeProvider).languageCode);
 });
 
+/// Per-device inbox from the server (deity-request replies, etc.).
+final inAppNotificationsProvider = FutureProvider<List<InAppNotification>>((ref) {
+  return BackendService.fetchInAppNotifications();
+});
+
 /// IDs of announcements the user closed, remembered across launches.
 class DismissedAnnouncementsNotifier extends StateNotifier<Set<int>> {
   DismissedAnnouncementsNotifier() : super(const {}) {
