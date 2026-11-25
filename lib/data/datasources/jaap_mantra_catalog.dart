@@ -74,9 +74,14 @@ class JaapMantraCatalog {
     JaapMantra(
       id: 'om_namo_narayanaya',
       deity: 'Lord Vishnu',
-      devanagari: 'ॐ नमो नारायणाय',
-      transliteration: 'Om Namo Narayanaya',
-      name: {'mr': 'ॐ नमो नारायणाय', 'hi': 'ॐ नमो नारायणाय', 'en': 'Om Namo Narayanaya'},
+      devanagari: 'ॐ नमो नारायणाय नमः',
+      transliteration: 'Om Namo Narayanaya Namah',
+      name: {
+        'mr': 'ॐ नमो नारायणाय नमः',
+        'hi': 'ॐ नमो नारायणाय नमः',
+        'en': 'Om Namo Narayanaya Namah',
+      },
+      freeAudio: true,
     ),
     JaapMantra(
       id: 'gayatri',

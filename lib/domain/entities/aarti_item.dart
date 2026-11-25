@@ -56,6 +56,12 @@ class AartiItem {
   /// Short description (English).
   final String about;
 
+  /// Admin / remote catalog display order. Lower = earlier. Unset = [unsetSortOrder].
+  final int sortOrder;
+
+  /// Sentinel meaning "no explicit admin order" (keeps relative catalog order).
+  static const int unsetSortOrder = 1000000;
+
   const AartiItem({
     required this.id,
     required this.title,
@@ -75,7 +81,103 @@ class AartiItem {
     this.about = '',
     this.aboutHi = '',
     this.aboutMr = '',
+    this.sortOrder = unsetSortOrder,
   });
+
+  factory AartiItem.fromJson(Map<String, dynamic> json) {
+    final lyricsRaw = json['lyrics'];
+    final lyrics = <LyricStanza>[];
+    if (lyricsRaw is List) {
+      for (final item in lyricsRaw) {
+        if (item is Map<String, dynamic>) {
+          final stanza = LyricStanza.fromJson(item);
+          if (stanza.devanagari.isNotEmpty) lyrics.add(stanza);
+        } else if (item is Map) {
+          final stanza = LyricStanza.fromJson(Map<String, dynamic>.from(item));
+          if (stanza.devanagari.isNotEmpty) lyrics.add(stanza);
+        }
+      }
+    }
+
+    List<String> stringList(Object? raw) {
+      if (raw is! List) return const [];
+      return raw.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    }
+
+    final rawOrder = json['sortOrder'];
+    final parsedOrder = rawOrder is num
+        ? rawOrder.toInt()
+        : int.tryParse('$rawOrder') ?? unsetSortOrder;
+
+    return AartiItem(
+      id: (json['id'] as String?)?.trim() ?? '',
+      title: (json['title'] as String?)?.trim() ?? '',
+      titleHi: (json['titleHi'] as String?)?.trim() ?? '',
+      titleMr: (json['titleMr'] as String?)?.trim() ?? '',
+      deity: (json['deity'] as String?)?.trim() ?? '',
+      deityHi: (json['deityHi'] as String?)?.trim() ?? '',
+      deityMr: (json['deityMr'] as String?)?.trim() ?? '',
+      singer: (json['singer'] as String?)?.trim() ?? 'Traditional',
+      youtubeVideoId: (json['youtubeVideoId'] as String?)?.trim() ?? '',
+      backupVideoIds: stringList(json['backupVideoIds']),
+      durationText: (json['durationText'] as String?)?.trim() ?? '',
+      lyrics: lyrics,
+      accentColorHex: (json['accentColorHex'] as String?)?.trim() ?? '#8B1D18',
+      deityEmoji: (json['deityEmoji'] as String?)?.trim() ?? '🙏',
+      tags: stringList(json['tags']).isNotEmpty ? stringList(json['tags']) : const ['Aarti'],
+      about: (json['about'] as String?)?.trim() ?? '',
+      aboutHi: (json['aboutHi'] as String?)?.trim() ?? '',
+      aboutMr: (json['aboutMr'] as String?)?.trim() ?? '',
+      sortOrder: parsedOrder,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'titleHi': titleHi,
+        'titleMr': titleMr,
+        'deity': deity,
+        'deityHi': deityHi,
+        'deityMr': deityMr,
+        'singer': singer,
+        'youtubeVideoId': youtubeVideoId,
+        'backupVideoIds': backupVideoIds,
+        'durationText': durationText,
+        'lyrics': lyrics.map((s) => s.toJson()).toList(),
+        'accentColorHex': accentColorHex,
+        'deityEmoji': deityEmoji,
+        'tags': tags,
+        'about': about,
+        'aboutHi': aboutHi,
+        'aboutMr': aboutMr,
+        'sortOrder': sortOrder,
+      };
+
+  AartiItem copyWithSortOrder(int order) => AartiItem(
+        id: id,
+        title: title,
+        titleHi: titleHi,
+        titleMr: titleMr,
+        deity: deity,
+        deityHi: deityHi,
+        deityMr: deityMr,
+        singer: singer,
+        youtubeVideoId: youtubeVideoId,
+        backupVideoIds: backupVideoIds,
+        durationText: durationText,
+        lyrics: lyrics,
+        accentColorHex: accentColorHex,
+        deityEmoji: deityEmoji,
+        tags: tags,
+        about: about,
+        aboutHi: aboutHi,
+        aboutMr: aboutMr,
+        sortOrder: order,
+      );
+
+  bool get isValidRemote =>
+      id.isNotEmpty && title.isNotEmpty && deity.isNotEmpty && youtubeVideoId.isNotEmpty && lyrics.isNotEmpty;
 
   /// Returns the localized title based on locale code.
   String localizedTitle(String localeCode) {

@@ -21,6 +21,7 @@ import '../features/mandir/screens/real_garbhagriha_screen.dart';
 import '../firebase_options.dart';
 import '../presentation/screens/altar_screen.dart';
 import '../presentation/screens/bhajan_screen.dart';
+import '../presentation/screens/deity_aarti_list_screen.dart';
 import '../presentation/screens/grahan_screen.dart';
 import '../presentation/screens/horoscope_screen.dart';
 import '../presentation/screens/jaap_counter_screen.dart';
@@ -311,11 +312,26 @@ class PushNotificationService {
         return const RealGarbhagrihaScreen();
       case 'aarti':
         final aarti = _findAarti(data['aartiId']?.toString());
-        return aarti == null ? null : AartiAltarScreen(aarti: aarti);
+        if (aarti != null) return AartiAltarScreen(aarti: aarti);
+        // Fall back to deity list when aarti id is not on device yet.
+        final deityFromAarti = data['deityKey']?.toString().trim() ?? '';
+        if (deityFromAarti.isNotEmpty) {
+          return DeityAartiListScreen(deity: deityFromAarti);
+        }
+        return null;
+      case 'deity':
+        final deityKey = data['deityKey']?.toString().trim() ??
+            data['deity']?.toString().trim() ??
+            '';
+        if (deityKey.isEmpty) return null;
+        return DeityAartiListScreen(deity: deityKey);
       default:
         return null;
     }
   }
+
+  /// Opens the screen for [data] using the app navigator (push + inbox taps).
+  static void openFromData(Map<String, dynamic> data) => _handleTap(data);
 
   /// Whether on-device scheduled reminders are available (mobile, after [init]).
   static bool get canScheduleReminders => _supported && _initialized;
@@ -457,7 +473,8 @@ class PushNotificationService {
 
   static AartiItem? _findAarti(String? id) => findAartiById(id);
 
-  /// Looks [id] up across every bundled catalog, including regional ones.
+  /// Looks [id] up across every bundled catalog, including regional ones,
+  /// then the cached remote catalog.
   static AartiItem? findAartiById(String? id) {
     if (id == null || id.isEmpty) return null;
     for (final item in [
@@ -467,6 +484,7 @@ class PushNotificationService {
       ...kGujaratiDeitiesCatalog,
       ...kRajasthaniDeitiesCatalog,
       ...kUttarakhandDeitiesCatalog,
+      ...BackendService.remoteCatalog.aartis,
     ]) {
       if (item.id == id) return item;
     }

@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/theme.dart';
-import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../domain/entities/aarti_item.dart';
+import '../../domain/entities/bhakti_deity.dart';
 import '../providers/aarti_favorites_provider.dart';
+import '../providers/bhakti_darshan_providers.dart';
 import '../providers/locale_provider.dart';
+import 'bhakti/deity_cutout_image.dart';
 
 /// Daily Aarti (माझी नित्य आरती) quick-play strip on the Home Dashboard: one
 /// slim row of chips so the sacred collection stays in view.
@@ -50,6 +52,7 @@ class NityaAartiShelf extends ConsumerWidget {
     if (nityaAartis.isEmpty) return const SizedBox.shrink();
 
     final lang = ref.watch(localeProvider).languageCode;
+    final deities = ref.watch(allBhaktiDeitiesProvider);
 
     return Container(
       height: 44,
@@ -76,6 +79,7 @@ class NityaAartiShelf extends ConsumerWidget {
           final aarti = nityaAartis[index - 1];
           return _NityaChip(
             aarti: aarti,
+            deities: deities,
             title: _t(lang, en: aarti.title, hi: aarti.titleHi, mr: aarti.titleMr),
             onTap: () => onOpenAarti(aarti),
             onLongPress: () => _remove(context, ref, aarti, lang),
@@ -88,26 +92,22 @@ class NityaAartiShelf extends ConsumerWidget {
 
 class _NityaChip extends StatelessWidget {
   final AartiItem aarti;
+  final List<BhaktiDeity> deities;
   final String title;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
   const _NityaChip({
     required this.aarti,
+    required this.deities,
     required this.title,
     required this.onTap,
     required this.onLongPress,
   });
 
-  String get _imageAsset {
-    for (final deity in kBhaktiDeities) {
-      if (deity.matches(aarti.deity)) return deity.imageAsset;
-    }
-    return MandirTheme.getDeityImageAsset(aarti.deity);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final portrait = resolveDeityPortrait(aarti.deity, deities: deities);
     final radius = BorderRadius.circular(20);
     return Material(
       color: MandirTheme.surfaceWhite,
@@ -132,8 +132,9 @@ class _NityaChip extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: ClipOval(
-                  child: Image.asset(
-                    _imageAsset,
+                  child: DeityPortraitImage(
+                    imageAsset: portrait.asset,
+                    imageUrl: portrait.url,
                     fit: BoxFit.cover,
                     cacheWidth: 90,
                     errorBuilder: (_, _, _) => Center(

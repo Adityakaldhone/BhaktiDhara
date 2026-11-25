@@ -24,6 +24,9 @@ void main() {
       // Tap on More (5th tab)
       await tester.tap(find.byIcon(Icons.more_horiz_rounded));
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
+      await tester.pump();
 
       // Verify More screen items
       expect(find.textContaining('100% Authentic Vedic Astrology'), findsOneWidget);

@@ -102,6 +102,8 @@ def _build_message(campaign: Dict[str, Any], target: Dict[str, str]) -> Dict[str
         data["route"] = campaign["route"]
     if campaign.get("aarti_id"):
         data["aartiId"] = campaign["aarti_id"]
+    if campaign.get("deity_key"):
+        data["deityKey"] = campaign["deity_key"]
     if campaign.get("rashi"):
         data["rashi"] = campaign["rashi"]
     if campaign.get("focus"):

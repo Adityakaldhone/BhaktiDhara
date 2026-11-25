@@ -319,8 +319,8 @@ final List<AartiItem> kMarathiAartiCatalog = [
     deityMr: 'गणेश',
     singer: 'Traditional',
     tags: const ["Prarthana", "Namavani"],
-    youtubeVideoId: 'p25bal4mm9E',
-    backupVideoIds: const ["2vSdS624Fvk", "qux5HuSgaI4"],
+    youtubeVideoId: '2vSdS624Fvk',
+    backupVideoIds: const ["p25bal4mm9E", "qux5HuSgaI4"],
     durationText: '2:45',
     accentColorHex: '#F57C00',
     deityEmoji: '🐘',
@@ -2347,6 +2347,75 @@ final List<AartiItem> kMarathiAartiCatalog = [
     ],
   ),
   AartiItem(
+    id: 'tulsi_mata_aarti_hindi',
+    title: 'Tulsi Mata Aarti (Hindi)',
+    titleHi: 'माँ तुलसी आरती (हिंदी)',
+    titleMr: 'माँ तुलसी आरती (हिंदी)',
+    deity: 'Goddess Tulsi',
+    deityHi: 'तुलसी माता',
+    deityMr: 'तुळशी माता',
+    singer: 'Traditional',
+    tags: const ['Aarti', 'Hindi', 'Popular', 'Tulsi Vivah'],
+    youtubeVideoId: '_c5mQBVhjvM',
+    durationText: '4:56',
+    accentColorHex: '#2E7D32',
+    deityEmoji: '🌿',
+    aboutMr: 'जय जय तुलसी माता — हिंदीतील प्रसिद्ध माँ तुलसी आरती; तुळशी विवाह आणि कार्तिक पूजेसाठी.',
+    aboutHi: 'जय जय तुलसी माता — माँ तुलसी की प्रसिद्ध हिंदी आरती; तुलसी विवाह व कार्तिक पूजा के लिए।',
+    about: 'Jai Jai Tulsi Mata — popular Hindi aarti of Goddess Tulsi, ideal for Tulsi Vivah and Kartika worship.',
+    lyrics: const [
+      LyricStanza(
+        startTimeMs: 0,
+        devanagari:
+            'जय जय तुलसी माता, मैय्या जय तुलसी माता ।\nसब जग की सुख दाता, सबकी वर माता ॥\nमैय्या जय तुलसी माता ॥',
+        transliteration:
+            'Jai jai Tulsi Mata, Maiya jai Tulsi Mata.\nSab jag ki sukh data, sabki var Mata.\nMaiya jai Tulsi Mata.',
+      ),
+      LyricStanza(
+        startTimeMs: 45000,
+        devanagari:
+            'सब योगों से ऊपर, सब रोगों से ऊपर ।\nरज से रक्ष करके, सबकी भव त्राता ॥\nमैय्या जय तुलसी माता ॥',
+        transliteration:
+            'Sab yogon se upar, sab rogon se upar.\nRaj se raksha karke, sabki bhav trata.\nMaiya jai Tulsi Mata.',
+      ),
+      LyricStanza(
+        startTimeMs: 85000,
+        devanagari:
+            'बटु पुत्री है श्यामा, सूर बल्ली है ग्राम्या ।\nविष्णुप्रिय जो नर तुमको सेवे, सो नर तर जाता ॥\nमैय्या जय तुलसी माता ॥',
+        transliteration:
+            'Batu putri hai shyama, sur balli hai gramya.\nVishnupriya jo nar tumko seve, so nar tar jata.\nMaiya jai Tulsi Mata.',
+      ),
+      LyricStanza(
+        startTimeMs: 130000,
+        devanagari:
+            'हरि के शीश विराजत, त्रिभुवन से हो वंदित ।\nपतित जनों की तारिणी, तुम हो विख्याता ॥\nमैय्या जय तुलसी माता ॥',
+        transliteration:
+            'Hari ke sheesh virajat, tribhuvan se ho vandit.\nPatit janon ki tarini, tum ho vikhyata.\nMaiya jai Tulsi Mata.',
+      ),
+      LyricStanza(
+        startTimeMs: 175000,
+        devanagari:
+            'लेकर जन्म विजन में, आई दिव्य भवन में ।\nमानव लोक तुम्हीं से, सुख-संपति पाता ॥\nमैय्या जय तुलसी माता ॥',
+        transliteration:
+            'Lekar janm vijan mein, aayi divya bhavan mein.\nManav lok tumhin se, sukh-sampati pata.\nMaiya jai Tulsi Mata.',
+      ),
+      LyricStanza(
+        startTimeMs: 220000,
+        devanagari:
+            'हरि को तुम अति प्यारी, श्याम वर्ण सुकुमारी ।\nप्रेम अजब है उनका, तुमसे कैसा नाता ॥\nहमारी विपद हरो तुम, कृपा करो माता ॥\nमैय्या जय तुलसी माता ॥',
+        transliteration:
+            'Hari ko tum ati pyari, shyam varn sukumari.\nPrem ajab hai unka, tumse kaisa nata.\nHamari vipad haro tum, kripa karo Mata.\nMaiya jai Tulsi Mata.',
+      ),
+      LyricStanza(
+        startTimeMs: 265000,
+        devanagari:
+            'जय जय तुलसी माता, मैय्या जय तुलसी माता ।\nसब जग की सुख दाता, सबकी वर माता ॥\nमैय्या जय तुलसी माता ॥\nबोलो श्री तुलसी मात की जय ॥',
+        transliteration:
+            'Jai jai Tulsi Mata, Maiya jai Tulsi Mata.\nSab jag ki sukh data, sabki var Mata.\nMaiya jai Tulsi Mata.\nBolo Shri Tulsi Maat ki jai.',
+      ),
+    ],
+  ),
+  AartiItem(
     id: 'tulsi_aarti',
     title: 'Tulsi Aarti',
     titleHi: 'तुळशीची आरती',
@@ -2387,6 +2456,7 @@ final List<AartiItem> kMarathiAartiCatalog = [
       ),
     ],
   ),
+
   AartiItem(
     id: 'vishnu_aarti',
     title: 'Shree Vishnu Aarti',
@@ -5055,6 +5125,75 @@ final List<AartiItem> kMarathiAartiCatalog = [
         startTimeMs: 236250,
         devanagari: 'निरंतर आमुची चिंता तुम्हां असावी । चिंता तुम्हा असावी ।\nसर्वांची लज्जा देवा तुम्ही रक्षावी ॥ ७ ॥\nनिरोप घेतों आतां आम्हां आज्ञा असावी ।\nचुकलें आमुचें कांहीं त्याची क्षमा असावी ॥',
         transliteration: 'Nirantar aamuchi chinta tumhan asavi, chinta tumha asavi,\nSarvanchi lajja deva tumhi rakshavi.\nNirop gheton aatan aamhan aagya asavi,\nChuklen aamuchen kanhin tyachi kshama asavi.',
+      ),
+    ],
+  ),
+  AartiItem(
+    id: 'bhairi_bhavani_aarti',
+    title: 'Bhairi Bhavani Aarti',
+    titleHi: 'भैरी भवानी आरती',
+    titleMr: 'भैरी भवानी आरती (जय देवी जय देवी)',
+    deity: 'Goddess Tuljabhavani',
+    deityHi: 'भैरी भवानी',
+    deityMr: 'भैरी भवानी',
+    singer: 'Ultra Bhakti',
+    tags: const ['Aarti', 'Bhavani', 'Konkan', 'Popular'],
+    youtubeVideoId: 'XkggkF1q9o4',
+    durationText: '3:50',
+    accentColorHex: '#AD1457',
+    deityEmoji: '🌸',
+    aboutMr: 'कोकणवासीयांच्या कुलस्वामिनी भैरी भवानी (जोगेश्वरी) ची ढोल-ताश शैलीतील मराठी आरती.',
+    aboutHi: 'कोकण की कुलस्वामिनी भैरी भवानी (जोगेश्वरी) की ढोल-ताशा शैली में मराठी आरती।',
+    about: 'Marathi dhol-tasha aarti of Konkan kulswamini Bhairi Bhavani (Jogeshwari).',
+    lyrics: const [
+      LyricStanza(
+        startTimeMs: 0,
+        devanagari:
+            'जय देवी जय देवी भैरी भवानी ।\nचंद्रपूरची वासु माझी आई काय ॥ धृ ॥',
+        transliteration:
+            'Jai devi jai devi bhairi bhavani,\nChandrapurchi vasu mazhi aai kay.',
+      ),
+      LyricStanza(
+        startTimeMs: 40000,
+        devanagari:
+            'तुला काय ते सुख दुःख तू जानी ।\nसर्वशक्तीशाली तू अंबे रया मी ॥ १ ॥\nजय देवी जय देवी भैरी भवानी ॥',
+        transliteration:
+            'Tula kay te sukh dukh tu jani,\nSarvashaktishali tu ambe raya mi.\nJai devi jai devi bhairi bhavani.',
+      ),
+      LyricStanza(
+        startTimeMs: 68000,
+        devanagari:
+            'तू दुर्गा नवरूपे घेऊनि आली ।\nविजयादशमीला तू विजयी हो जानी ॥ २ ॥\nजय देवी जय देवी भैरी भवानी ॥',
+        transliteration:
+            'Tu durga navrupe gheuni aali,\nVijayadashmila tu vijayi ho jani.\nJai devi jai devi bhairi bhavani.',
+      ),
+      LyricStanza(
+        startTimeMs: 102000,
+        devanagari:
+            'आई असुरांचे तू मर्दन केले ।\nभक्तांना तू मुक्तिदा माऊली रया ॥ ३ ॥\nजय देवी जय देवी भैरी भवानी ॥',
+        transliteration:
+            'Aai asuranche tu mardan kele,\nBhaktanna tu muktida mauli raya.\nJai devi jai devi bhairi bhavani.',
+      ),
+      LyricStanza(
+        startTimeMs: 130000,
+        devanagari:
+            'विद्येच्या गिरी सिंहावर स्वारी ।\nनंदीवर भोंडावर त्रिशूळधारी ॥ ४ ॥\nजय देवी जय देवी भैरी भवानी ॥',
+        transliteration:
+            'Vidyechya giri sinhavar swari,\nNandivar bhondavar trishuldhari.\nJai devi jai devi bhairi bhavani.',
+      ),
+      LyricStanza(
+        startTimeMs: 164000,
+        devanagari:
+            'भवानी तुझा वाजतो डंका ।\nशत्रूंना उण्या तुझा इले लंका ॥ ५ ॥\nजय देवी जय देवी भैरी भवानी ॥',
+        transliteration:
+            'Bhavani tujha vajato danka,\nShatrunna unya tujha ile lanka.\nJai devi jai devi bhairi bhavani.',
+      ),
+      LyricStanza(
+        startTimeMs: 190000,
+        devanagari:
+            'विना अंबे वरदान काय काया ।\nदरले जाऊनी करूनी तुझे पाया ॥ ६ ॥\nजय देवी जय देवी भैरी भवानी ।\nचंद्रपूरची वासु माझी आई काय ॥',
+        transliteration:
+            'Vina ambe vardan kay kaya,\nDarale jauni karuni tujhe paya.\nJai devi jai devi bhairi bhavani,\nChandrapurchi vasu mazhi aai kay.',
       ),
     ],
   ),

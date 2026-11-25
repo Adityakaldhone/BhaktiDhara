@@ -40,8 +40,14 @@ class AartiAltarScreen extends ConsumerStatefulWidget {
   /// Opened from the first-launch Ishta Devta picker: offer the Nitya Aarti
   /// pin + reminder sheet when the aarti ends or the devotee leaves.
   final bool fromOnboarding;
+  final bool autoplay;
 
-  const AartiAltarScreen({super.key, required this.aarti, this.fromOnboarding = false});
+  const AartiAltarScreen({
+    super.key,
+    required this.aarti,
+    this.fromOnboarding = false,
+    this.autoplay = true,
+  });
 
   @override
   ConsumerState<AartiAltarScreen> createState() => _AartiAltarScreenState();
@@ -233,7 +239,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
           videoId: '$videoId',
           host: 'https://www.youtube.com',
           playerVars: {
-            autoplay: 1,
+            autoplay: ${widget.autoplay ? 1 : 0},
             mute: 0,
             playsinline: 1,
             rel: 0,
@@ -248,7 +254,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
               try {
                 player.unMute();
                 player.setVolume(100);
-                player.playVideo();
+                if (${widget.autoplay}) player.playVideo();
               } catch (e) {}
               reportMuteState();
             },
@@ -739,14 +745,14 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(
-                  'assets/aarti_screen/om.png',
+                  'assets/aarti_screen/om.webp',
                   width: 120,
                   height: 48,
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 2),
                 Image.asset(
-                  'assets/decorations/horizontal_bar.png',
+                  'assets/decorations/horizontal_bar.webp',
                   width: 140,
                   height: 10,
                   fit: BoxFit.contain,
@@ -901,7 +907,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
                         final iframe = element as dynamic;
                         iframe.src =
                             'https://www.youtube.com/embed/$_activeVideoId'
-                            '?autoplay=1&mute=1&playsinline=1&rel=0'
+                            '?autoplay=${widget.autoplay ? 1 : 0}&mute=1&playsinline=1&rel=0'
                             '&enablejsapi=1&origin=$_kYoutubeEmbedOrigin';
                         iframe.style.border = 'none';
                         iframe.style.width = '100%';
@@ -1097,7 +1103,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
                     );
                   },
                   child: Image.asset(
-                    'assets/aarti_screen/deepak.png',
+                    'assets/aarti_screen/deepak.webp',
                     width: 28,
                     height: 28,
                     fit: BoxFit.contain,
@@ -1142,7 +1148,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
               alignment: Alignment.center,
               children: [
                 Image.asset(
-                  'assets/aarti_screen/icons_bg.png',
+                  'assets/aarti_screen/icons_bg.webp',
                   width: 68,
                   height: 68,
                   fit: BoxFit.contain,
@@ -1229,7 +1235,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage(
-              'assets/aarti_screen/about_this_aarti_card_bg.png',
+              'assets/aarti_screen/about_this_aarti_card_bg.webp',
             ),
             fit: BoxFit.fill,
           ),
@@ -1318,7 +1324,7 @@ class _AartiAltarScreenState extends ConsumerState<AartiAltarScreen>
         ),
         const SizedBox(height: 2),
         Image.asset(
-          'assets/decorations/horizontal_bar.png',
+          'assets/decorations/horizontal_bar.webp',
           width: 120,
           height: 10,
           fit: BoxFit.contain,

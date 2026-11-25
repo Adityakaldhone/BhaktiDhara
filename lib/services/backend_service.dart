@@ -15,6 +15,7 @@ import '../core/analytics/analytics_service.dart';
 import '../domain/entities/app_remote_config.dart';
 import '../domain/entities/horoscope.dart';
 import '../domain/entities/panchang.dart';
+import '../domain/entities/remote_devotional_catalog.dart';
 
 /// Client service that connects the Flutter app to your Hetzner Python FastAPI backend.
 /// Automatically handles anonymous device telemetry, daily caching, and seamless offline fallbacks.
@@ -497,6 +498,76 @@ class BackendService {
       // Keep the cached config; features stay on by default.
     }
     return remoteConfig;
+  }
+
+  static const _remoteCatalogKey = 'remote_devotional_catalog_v1';
+  static const _remoteCatalogEtagKey = 'remote_devotional_catalog_etag_v1';
+
+  /// Last remote aarti/deity catalog (cache or empty).
+  static RemoteDevotionalCatalog remoteCatalog = RemoteDevotionalCatalog.empty;
+
+  /// Loads the last successful catalog fetch from disk.
+  static Future<RemoteDevotionalCatalog> loadCachedRemoteCatalog() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_remoteCatalogKey);
+      if (raw != null) {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          remoteCatalog = RemoteDevotionalCatalog.fromJson(
+            Map<String, dynamic>.from(decoded),
+            mediaBaseUrl: backendUrl,
+          );
+        }
+      }
+    } catch (_) {}
+    return remoteCatalog;
+  }
+
+  /// Fetches `/api/v1/catalog`; uses ETag when possible; falls back to cache.
+  static Future<RemoteDevotionalCatalog> fetchRemoteCatalog() async {
+    if (backendUrl.trim().isEmpty || _isFlutterTest) {
+      return await loadCachedRemoteCatalog();
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final etag = prefs.getString(_remoteCatalogEtagKey) ?? '';
+      final headers = <String, String>{};
+      if (etag.isNotEmpty) headers['If-None-Match'] = etag;
+
+      final response = await http
+          .get(
+            Uri.parse('${backendUrl.trim()}/api/v1/catalog'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 304) {
+        return await loadCachedRemoteCatalog();
+      }
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        if (decoded is Map) {
+          final catalog = RemoteDevotionalCatalog.fromJson(
+            Map<String, dynamic>.from(decoded),
+            mediaBaseUrl: backendUrl,
+          );
+          remoteCatalog = catalog;
+          await prefs.setString(_remoteCatalogKey, jsonEncode(catalog.toJson()));
+          final newEtag = response.headers['etag'] ?? response.headers['ETag'];
+          if (newEtag != null && newEtag.isNotEmpty) {
+            await prefs.setString(_remoteCatalogEtagKey, newEtag);
+          } else if (catalog.version.isNotEmpty) {
+            await prefs.setString(_remoteCatalogEtagKey, '"${catalog.version}"');
+          }
+          return catalog;
+        }
+      }
+    } catch (_) {
+      // Keep the cached catalog; bundled local aartis still work offline.
+    }
+    return loadCachedRemoteCatalog();
   }
 
   /// Live announcements for [locale]; empty when offline.

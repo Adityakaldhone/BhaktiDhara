@@ -7,6 +7,7 @@ import '../../core/theme/theme.dart';
 import '../../domain/entities/app_remote_config.dart';
 import '../../services/app_update_service.dart';
 import '../../services/backend_service.dart';
+import '../../services/push_notification_service.dart';
 import '../providers/locale_provider.dart';
 import '../providers/remote_config_provider.dart';
 import '../screens/force_update_screen.dart';
@@ -53,6 +54,19 @@ final _showUpdateBannerProvider = Provider<bool>((ref) {
 /// Whether [AppNoticeBanners] currently shows anything.
 final appNoticesVisibleProvider = Provider<bool>((ref) {
   return ref.watch(remoteConfigProvider).maintenanceMode || ref.watch(_showUpdateBannerProvider);
+});
+
+/// Undismissed announcements + inbox messages waiting on home.
+final homeInboxBadgeCountProvider = Provider<int>((ref) {
+  final dismissed = ref.watch(dismissedAnnouncementsProvider);
+  final announcements =
+      (ref.watch(announcementsProvider).valueOrNull ?? const <AppAnnouncement>[])
+          .where((a) => !dismissed.contains(a.id))
+          .length;
+  final inbox =
+      (ref.watch(inAppNotificationsProvider).valueOrNull ?? const <InAppNotification>[])
+          .length;
+  return announcements + inbox;
 });
 
 /// Maintenance notice and optional "new version" prompt, shown above every tab.
@@ -163,108 +177,304 @@ class _Banner extends StatelessWidget {
   }
 }
 
-/// Live admin announcements on the home tab; each can be closed for good.
-class AnnouncementCards extends ConsumerWidget {
-  const AnnouncementCards({super.key});
+/// Compact bell on the home header; opens the inbox sheet.
+class HomeNotificationsButton extends ConsumerWidget {
+  const HomeNotificationsButton({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dismissed = ref.watch(dismissedAnnouncementsProvider);
-    final items = (ref.watch(announcementsProvider).valueOrNull ?? const <AppAnnouncement>[])
-        .where((a) => !dismissed.contains(a.id))
-        .toList();
-    final inbox = ref.watch(inAppNotificationsProvider).valueOrNull ?? const <InAppNotification>[];
-    if (items.isEmpty && inbox.isEmpty) return const SizedBox.shrink();
+    final count = ref.watch(homeInboxBadgeCountProvider);
     final lang = ref.watch(localeProvider).languageCode;
+    final size = compact ? 36.0 : 40.0;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Column(
-        children: [
-          for (final n in inbox)
-            _InAppInboxCard(
-              notification: n,
-              onShown: () {
-                if (!n.opened) {
-                  BackendService.openInAppNotification(n.id);
-                }
-              },
-              onDismiss: () async {
-                await BackendService.dismissInAppNotification(n.id);
-                ref.invalidate(inAppNotificationsProvider);
-              },
-            ),
-          for (final a in items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFF3D6), Color(0xFFFBE3B8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE8C98A), width: 1.2),
+    return Tooltip(
+      message: _t(lang, en: 'Notifications', hi: 'सूचनाएं', mr: 'सूचना'),
+      child: Material(
+        color: MandirTheme.surfaceWhite,
+        shape: const CircleBorder(),
+        elevation: 1.5,
+        shadowColor: Colors.black26,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => showHomeNotificationsSheet(context, ref),
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  count > 0 ? Icons.notifications_rounded : Icons.notifications_none_rounded,
+                  color: MandirTheme.secondaryMaroon,
+                  size: compact ? 20 : 22,
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Text('📢', style: TextStyle(fontSize: 22)),
+                if (count > 0)
+                  Positioned(
+                    top: 2,
+                    right: 2,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: MandirTheme.primarySaffron,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white, width: 1.2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        count > 9 ? '9+' : '$count',
+                        style: GoogleFonts.mukta(
+                          fontSize: 10,
+                          height: 1,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            a.title,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens announcements + per-device inbox without crowding the home scroll.
+Future<void> showHomeNotificationsSheet(BuildContext context, WidgetRef ref) {
+  final lang = ref.read(localeProvider).languageCode;
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: MandirTheme.backgroundCream,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+    ),
+    builder: (sheetContext) {
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.55,
+        minChildSize: 0.35,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) {
+          return Consumer(
+            builder: (context, sheetRef, _) {
+              final dismissed = sheetRef.watch(dismissedAnnouncementsProvider);
+              final announcements =
+                  (sheetRef.watch(announcementsProvider).valueOrNull ??
+                          const <AppAnnouncement>[])
+                      .where((a) => !dismissed.contains(a.id))
+                      .toList();
+              final inbox = sheetRef.watch(inAppNotificationsProvider).valueOrNull ??
+                  const <InAppNotification>[];
+              final loading = sheetRef.watch(announcementsProvider).isLoading ||
+                  sheetRef.watch(inAppNotificationsProvider).isLoading;
+
+              return Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: MandirTheme.chipBorder,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.notifications_rounded,
+                          color: MandirTheme.secondaryMaroon,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _t(lang, en: 'Notifications', hi: 'सूचनाएं', mr: 'सूचना'),
                             style: GoogleFonts.mukta(
-                              fontSize: 18,
-                              height: 1.2,
+                              fontSize: 22,
                               fontWeight: FontWeight.w800,
                               color: MandirTheme.secondaryMaroon,
                             ),
                           ),
-                          if (a.body.isNotEmpty)
-                            Text(
-                              a.body,
-                              style: GoogleFonts.mukta(
-                                fontSize: 15,
-                                height: 1.3,
-                                fontWeight: FontWeight.w500,
-                                color: MandirTheme.textDark,
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.close_rounded, color: MandirTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE8DCC8)),
+                  Expanded(
+                    child: loading && announcements.isEmpty && inbox.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: CircularProgressIndicator(
+                                color: MandirTheme.primarySaffron,
                               ),
                             ),
-                          if (a.link.isNotEmpty)
-                            TextButton(
-                              onPressed: () => _open(a.link),
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                foregroundColor: MandirTheme.primarySaffron,
+                          )
+                        : announcements.isEmpty && inbox.isEmpty
+                            ? ListView(
+                                controller: scrollController,
+                                padding: const EdgeInsets.fromLTRB(24, 40, 24, 40),
+                                children: [
+                                  const Icon(
+                                    Icons.notifications_off_outlined,
+                                    size: 48,
+                                    color: MandirTheme.textMuted,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _t(
+                                      lang,
+                                      en: 'No notifications right now.',
+                                      hi: 'अभी कोई सूचना नहीं है।',
+                                      mr: 'सध्या कोणतीही सूचना नाही.',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.mukta(
+                                      fontSize: 16,
+                                      color: MandirTheme.textMuted,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView(
+                                controller: scrollController,
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                                children: [
+                                  for (final n in inbox)
+                                    _InAppInboxCard(
+                                      notification: n,
+                                      onShown: () {
+                                        if (!n.opened) {
+                                          BackendService.openInAppNotification(n.id);
+                                        }
+                                      },
+                                      onOpen: () {
+                                        final data = n.toPushData();
+                                        if (data['route'] == null) return;
+                                        Navigator.of(context).maybePop();
+                                        PushNotificationService.openFromData(data);
+                                      },
+                                      onDismiss: () async {
+                                        await BackendService.dismissInAppNotification(n.id);
+                                        sheetRef.invalidate(inAppNotificationsProvider);
+                                      },
+                                    ),
+                                  for (final a in announcements)
+                                    _AnnouncementCard(
+                                      announcement: a,
+                                      lang: lang,
+                                      onDismiss: () => sheetRef
+                                          .read(dismissedAnnouncementsProvider.notifier)
+                                          .dismiss(a.id),
+                                    ),
+                                ],
                               ),
-                              child: Text(
-                                _t(lang, en: 'Open →', hi: 'खोलें →', mr: 'उघडा →'),
-                                style: GoogleFonts.mukta(fontSize: 15, fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                        ],
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+}
+
+class _AnnouncementCard extends StatelessWidget {
+  const _AnnouncementCard({
+    required this.announcement,
+    required this.lang,
+    required this.onDismiss,
+  });
+
+  final AppAnnouncement announcement;
+  final String lang;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = announcement;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFF3D6), Color(0xFFFBE3B8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE8C98A), width: 1.2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Text('📢', style: TextStyle(fontSize: 22)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    a.title,
+                    style: GoogleFonts.mukta(
+                      fontSize: 18,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                      color: MandirTheme.secondaryMaroon,
+                    ),
+                  ),
+                  if (a.body.isNotEmpty)
+                    Text(
+                      a.body,
+                      style: GoogleFonts.mukta(
+                        fontSize: 15,
+                        height: 1.3,
+                        fontWeight: FontWeight.w500,
+                        color: MandirTheme.textDark,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () =>
-                          ref.read(dismissedAnnouncementsProvider.notifier).dismiss(a.id),
-                      icon: const Icon(Icons.close_rounded, size: 20, color: MandirTheme.textMuted),
-                      visualDensity: VisualDensity.compact,
+                  if (a.link.isNotEmpty)
+                    TextButton(
+                      onPressed: () => _open(a.link),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        foregroundColor: MandirTheme.primarySaffron,
+                      ),
+                      child: Text(
+                        _t(lang, en: 'Open →', hi: 'खोलें →', mr: 'उघडा →'),
+                        style: GoogleFonts.mukta(fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
-        ],
+            IconButton(
+              onPressed: onDismiss,
+              icon: const Icon(Icons.close_rounded, size: 20, color: MandirTheme.textMuted),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -275,11 +485,13 @@ class _InAppInboxCard extends StatefulWidget {
     required this.notification,
     required this.onShown,
     required this.onDismiss,
+    this.onOpen,
   });
 
   final InAppNotification notification;
   final VoidCallback onShown;
   final Future<void> Function() onDismiss;
+  final VoidCallback? onOpen;
 
   @override
   State<_InAppInboxCard> createState() => _InAppInboxCardState();
@@ -295,59 +507,79 @@ class _InAppInboxCardState extends State<_InAppInboxCard> {
   @override
   Widget build(BuildContext context) {
     final n = widget.notification;
+    final canOpen = n.route.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFF81C784), width: 1.2),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 2),
-              child: Text('🔔', style: TextStyle(fontSize: 22)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    n.title,
-                    style: GoogleFonts.mukta(
-                      fontSize: 18,
-                      height: 1.2,
-                      fontWeight: FontWeight.w800,
-                      color: MandirTheme.secondaryMaroon,
-                    ),
-                  ),
-                  if (n.body.isNotEmpty)
-                    Text(
-                      n.body,
-                      style: GoogleFonts.mukta(
-                        fontSize: 15,
-                        height: 1.3,
-                        fontWeight: FontWeight.w500,
-                        color: MandirTheme.textDark,
-                      ),
-                    ),
-                ],
+          onTap: canOpen ? widget.onOpen : null,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFF81C784), width: 1.2),
             ),
-            IconButton(
-              onPressed: () => widget.onDismiss(),
-              icon: const Icon(Icons.close_rounded, size: 20, color: MandirTheme.textMuted),
-              visualDensity: VisualDensity.compact,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Text('🔔', style: TextStyle(fontSize: 22)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        n.title,
+                        style: GoogleFonts.mukta(
+                          fontSize: 18,
+                          height: 1.2,
+                          fontWeight: FontWeight.w800,
+                          color: MandirTheme.secondaryMaroon,
+                        ),
+                      ),
+                      if (n.body.isNotEmpty)
+                        Text(
+                          n.body,
+                          style: GoogleFonts.mukta(
+                            fontSize: 15,
+                            height: 1.3,
+                            fontWeight: FontWeight.w500,
+                            color: MandirTheme.textDark,
+                          ),
+                        ),
+                      if (canOpen)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Tap to open →',
+                            style: GoogleFonts.mukta(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: MandirTheme.primarySaffron,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => widget.onDismiss(),
+                  icon: const Icon(Icons.close_rounded, size: 20, color: MandirTheme.textMuted),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,32 +1,35 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/datasources/bhajan_catalog.dart';
 import '../../data/datasources/bhakti_deity_catalog.dart';
-import '../../data/datasources/catalog.dart';
-import '../../data/datasources/gujarati_deities_catalog.dart';
-import '../../data/datasources/khatushyam_stotras_catalog.dart';
-import '../../data/datasources/mahakal_stotras_catalog.dart';
-import '../../data/datasources/rajasthani_deities_catalog.dart';
-import '../../data/datasources/uttarakhand_deities_catalog.dart';
+import '../../data/datasources/bundled_aarti_catalog.dart';
 import '../../data/repositories/recent_deities_repository.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/bhakti_deity.dart';
+import '../../domain/entities/remote_devotional_catalog.dart';
+import 'remote_catalog_provider.dart';
+
+/// Bundled + remote deities (local keys win).
+final allBhaktiDeitiesProvider = Provider<List<BhaktiDeity>>((ref) {
+  final remote = ref.watch(remoteCatalogProvider);
+  return mergeDeityCatalogs(
+    kBhaktiDeities,
+    remote.deities,
+    deitySort: remote.deitySort,
+  );
+});
 
 /// Every aarti, bhajan, mantra and stotra across the catalogs, de-duplicated by id.
 final bhaktiContentProvider = Provider<List<AartiItem>>((ref) {
+  final remote = ref.watch(remoteCatalogProvider);
   final seen = <String>{};
-  return [
+  final merged = [
     for (final item in [
-      ...kDevotionalCatalog,
-      ...kBhajanCatalog,
-      ...kKhatuShyamStotrasCatalog,
-      ...kMahakalStotrasCatalog,
-      ...kGujaratiDeitiesCatalog,
-      ...kRajasthaniDeitiesCatalog,
-      ...kUttarakhandDeitiesCatalog,
+      ...bundledAartiCatalog,
+      ...remote.aartis,
     ])
       if (seen.add(item.id)) item,
   ];
+  return applyAartiSortOrder(merged, remote.aartiSort);
 });
 
 /// Repository for persisting recent deity order.
@@ -63,7 +66,8 @@ class RecentDeitiesNotifier extends StateNotifier<List<String>> {
   /// Moves this deity to index 0, shifts previous deities down, resets carousel to index 0, and caches in SharedPreferences.
   Future<void> recordDeityOpened(String rawDeity) async {
     // 1. Resolve canonical deity key matching rawDeity
-    final match = kBhaktiDeities.cast<BhaktiDeity?>().firstWhere(
+    final deities = _ref.read(allBhaktiDeitiesProvider);
+    final match = deities.cast<BhaktiDeity?>().firstWhere(
       (d) => d != null && d.matches(rawDeity),
       orElse: () => null,
     );
@@ -104,8 +108,9 @@ final bhaktiDeitiesProvider = Provider<List<BhaktiDeity>>((ref) {
   final content = ref.watch(bhaktiContentProvider);
   final recentKeys = ref.watch(recentDeitiesProvider);
   final pinnedKey = ref.watch(pinnedDeityKeyProvider);
+  final allDeities = ref.watch(allBhaktiDeitiesProvider);
 
-  final available = kBhaktiDeities
+  final available = allDeities
       .where((d) => content.any((item) => d.matches(item.deity)))
       .toList();
 
@@ -140,7 +145,17 @@ final selectedDeityIndexProvider = StateProvider<int>((ref) => 0);
 /// All catalog items for a deity key.
 final deityContentProvider =
     Provider.family<List<AartiItem>, String>((ref, deityKey) {
-  final deity = kBhaktiDeities.firstWhere((d) => d.key == deityKey);
+  final deities = ref.watch(allBhaktiDeitiesProvider);
+  final deity = deities.firstWhere(
+    (d) => d.key == deityKey,
+    orElse: () => BhaktiDeity(
+      key: deityKey,
+      nameEn: deityKey,
+      nameHi: deityKey,
+      nameMr: deityKey,
+      imageAsset: 'assets/bhakti/durga.webp',
+    ),
+  );
   return ref
       .watch(bhaktiContentProvider)
       .where((item) => deity.matches(item.deity))
@@ -169,6 +184,7 @@ final deityCategoriesProvider =
   }
   if (deityKey == 'Lord Hanuman' || deityKey == 'Hanuman') {
     return const [
+      BhaktiCategory.aarti,
       BhaktiCategory.chalisa,
       BhaktiCategory.mantra,
       BhaktiCategory.stotra,

@@ -2406,6 +2406,182 @@ final List<AartiItem> kBhajanCatalog = [
     ],
   ),
 
+  AartiItem(
+    id: 'chalisa_shiv',
+    title: 'Shri Shiv Chalisa',
+    titleHi: 'श्री शिव चालीसा',
+    titleMr: 'श्री शिव चालीसा',
+    deity: 'Lord Shiva',
+    deityHi: 'भगवान शिव',
+    deityMr: 'भगवान शिव',
+    singer: 'Ashwani Amarnath',
+    tags: const ['Chalisa', 'Shiva', 'Popular', 'Stotra'],
+    youtubeVideoId: '05g9Ua_M1xA',
+    backupVideoIds: const ['ebIhU2RjdN8', '-mUoM-sSzkc'],
+    durationText: '14:15',
+    accentColorHex: '#1565C0',
+    deityEmoji: '🔱',
+    aboutMr: 'अयोध्यादासकृत श्री शिव चालीसा — गिरिजापती महादेवांची स्तुती; नित्य पठणाने भय, ऋण आणि संकट दूर होतात.',
+    aboutHi: 'अयोध्यादास रचित श्री शिव चालीसा — गिरिजापति महादेव की दिव्य स्तुति; नित्य पाठ से भय, ऋण और संकट दूर होते हैं।',
+    about: 'Shri Shiv Chalisa by Ayodhyadas — a sacred 40-verse hymn praising Lord Shiva that removes fear, debt and adversity.',
+    lyrics: const [
+      LyricStanza(
+        startTimeMs: 0,
+        devanagari:
+            '॥ दोहा ॥\nश्री गणेश गिरिजा सुवन, मंगल मूल सुजान।\nकहत अयोध्यादास तुम, देहु अभय वरदान॥',
+        transliteration:
+            '|| Doha ||\nShri Ganesh Girija Suvan, Mangal Mool Sujan.\nKahat Ayodhyadas Tum, Dehu Abhay Vardan.',
+      ),
+      LyricStanza(
+        startTimeMs: 25000,
+        devanagari:
+            '॥ चौपाई ॥\nजय गिरिजा पति दीन दयाला। सदा करत सन्तन प्रतिपाला॥\nभाल चन्द्रमा सोहत नीके। कानन कुण्डल नागफनी के॥',
+        transliteration:
+            '|| Chaupai ||\nJai Girija Pati Din Dayala. Sada Karat Santan Pratipala.\nBhal Chandrama Sohat Nike. Kanan Kundal Nagphani Ke.',
+      ),
+      LyricStanza(
+        startTimeMs: 55000,
+        devanagari:
+            'अंग गौर शिर गंग बहाये। मुण्डमाल तन छार लगाये॥\nवस्त्र खाल बाघम्बर सोहे। छवि को देख नाग मुनि मोहे॥',
+        transliteration:
+            'Ang Gaur Shir Gang Bahaye. Mundmal Tan Chhar Lagaye.\nVastra Khal Baghambar Sohe. Chhavi Ko Dekh Nag Muni Mohe.',
+      ),
+      LyricStanza(
+        startTimeMs: 85000,
+        devanagari:
+            'मैना मातु की ह्वै दुलारी। बाम अंग सोहत छवि न्यारी॥\nकर त्रिशूल सोहत छवि भारी। करत सदा शत्रुन क्षयकारी॥',
+        transliteration:
+            'Maina Matu Ki Hwai Dulari. Bam Ang Sohat Chhavi Nyari.\nKar Trishul Sohat Chhavi Bhari. Karat Sada Shatrun Kshayakari.',
+      ),
+      LyricStanza(
+        startTimeMs: 115000,
+        devanagari:
+            'नन्दि गणेश सोहै तहँ कैसे। सागर मध्य कमल हैं जैसे॥\nकार्तिक श्याम और गणराऊ। या छवि को कहि जात न काऊ॥',
+        transliteration:
+            'Nandi Ganesh Sohai Tahan Kaise. Sagar Madhya Kamal Hain Jaise.\nKartik Shyam Aur Ganrau. Ya Chhavi Ko Kahi Jaat Na Kau.',
+      ),
+      LyricStanza(
+        startTimeMs: 145000,
+        devanagari:
+            'देवन जबहीं जाय पुकारा। तब ही दुख प्रभु आप निवारा॥\nकिया उपद्रव तारक भारी। देवन सब मिलि तुमहिं जुहारी॥',
+        transliteration:
+            'Devan Jabhin Jay Pukara. Tab Hi Dukh Prabhu Aap Nivara.\nKiya Upadrav Tarak Bhari. Devan Sab Mili Tumahin Juhari.',
+      ),
+      LyricStanza(
+        startTimeMs: 175000,
+        devanagari:
+            'तुरत षडानन आप पठायउ। लवनिमेष महँ मारि गिरायउ॥\nआप जलंधर असुर संहारा। सुयश तुम्हार विदित संसारा॥',
+        transliteration:
+            'Turat Shadanana Aap Pathayau. Lavanimesh Mahan Mari Girayau.\nAap Jalandhar Asur Sanhara. Suyash Tumhar Vidit Sansara.',
+      ),
+      LyricStanza(
+        startTimeMs: 205000,
+        devanagari:
+            'त्रिपुरासुर सन युद्ध मचाई। सबहिं कृपा कर लीन बचाई॥\nकिया तपहिं भागीरथ भारी। पुरब प्रतिज्ञा तसु पुरारी॥',
+        transliteration:
+            'Tripurasur San Yuddha Machai. Sabahin Kripa Kar Lin Bachai.\nKiya Tapahin Bhagirath Bhari. Purab Pratigya Tasu Purari.',
+      ),
+      LyricStanza(
+        startTimeMs: 235000,
+        devanagari:
+            'दानिन महं तुम सम कोउ नाहीं। सेवक स्तुति करत सदाहीं॥\nवेद नाम महिमा तव गाई। अकथ अनादि भेद नहिं पाई॥',
+        transliteration:
+            'Danin Mahan Tum Sam Kou Nahin. Sevak Stuti Karat Sadahin.\nVed Nam Mahima Tav Gai. Akath Anadi Bhed Nahin Pai.',
+      ),
+      LyricStanza(
+        startTimeMs: 265000,
+        devanagari:
+            'प्रगट उदधि मंथन में ज्वाला। जरे सुरासुर भये विहाला॥\nकीन्ह दया तहँ करी सहाई। नीलकण्ठ तब नाम कहाई॥',
+        transliteration:
+            'Pragat Udadhi Manthan Mein Jwala. Jare Surasur Bhaye Vihala.\nKinh Daya Tahan Kari Sahai. Neelkanth Tab Nam Kahai.',
+      ),
+      LyricStanza(
+        startTimeMs: 295000,
+        devanagari:
+            'पूजन रामचंद्र जब कीन्हा। जीत के लंक विभीषण दीन्हा॥\nसहस कमल में हो रहे धारी। कीन्ह परीक्षा तबहिं पुरारी॥',
+        transliteration:
+            'Pujan Ramchandra Jab Kinha. Jeet Ke Lank Vibhishan Dinha.\nSahas Kamal Mein Ho Rahe Dhari. Kinh Pariksha Tabahin Purari.',
+      ),
+      LyricStanza(
+        startTimeMs: 325000,
+        devanagari:
+            'एक कमल प्रभु राखेउ जोई। कमल नयन पूजन चहं सोई॥\nकठिन भक्ति देखी प्रभु शंकर। भये प्रसन्न दिए इच्छित वर॥',
+        transliteration:
+            'Ek Kamal Prabhu Rakheu Joi. Kamal Nayan Pujan Chahan Soi.\nKathin Bhakti Dekhi Prabhu Shankar. Bhaye Prasanna Diye Ichchhit Var.',
+      ),
+      LyricStanza(
+        startTimeMs: 355000,
+        devanagari:
+            'जय जय जय अनंत अविनाशी। करत कृपा सब के घटवासी॥\nदुष्ट सकल नित मोहि सतावै। भ्रमत रहे मोहि चैन न आवै॥',
+        transliteration:
+            'Jai Jai Jai Anant Avinashi. Karat Kripa Sab Ke Ghatvasi.\nDusht Sakal Nit Mohi Satavai. Bhramat Rahe Mohi Chain Na Aavai.',
+      ),
+      LyricStanza(
+        startTimeMs: 385000,
+        devanagari:
+            'त्राहि त्राहि मैं नाथ पुकारो। यहि अवसर मोहि आन उबारो॥\nलै त्रिशूल शत्रुन को मारो। संकट से मोहि आन उबारो॥',
+        transliteration:
+            'Trahi Trahi Main Nath Pukaro. Yahi Avsar Mohi Aan Ubaro.\nLai Trishul Shatrun Ko Maro. Sankat Se Mohi Aan Ubaro.',
+      ),
+      LyricStanza(
+        startTimeMs: 415000,
+        devanagari:
+            'मातु पिता भ्राता सब कोई। संकट में पूछत नहिं कोई॥\nस्वामी एक है आस तुम्हारी। आय हरहु अब संकट भारी॥',
+        transliteration:
+            'Matu Pita Bhrata Sab Koi. Sankat Mein Puchhat Nahin Koi.\nSwami Ek Hai Aas Tumhari. Aay Harahu Ab Sankat Bhari.',
+      ),
+      LyricStanza(
+        startTimeMs: 445000,
+        devanagari:
+            'धन निर्धन को देत सदाहीं। जो कोई जांचे वो फल पाहीं॥\nअस्तुति केहि विधि करौं तुम्हारी। क्षमहु नाथ अब चूक हमारी॥',
+        transliteration:
+            'Dhan Nirdhan Ko Det Sadahin. Jo Koi Janche Vo Phal Pahin.\nAstuti Kehi Vidhi Karaun Tumhari. Kshamahun Nath Ab Chuk Hamari.',
+      ),
+      LyricStanza(
+        startTimeMs: 475000,
+        devanagari:
+            'शंकर हो संकट के नाशन। मंगल कारण विघ्न विनाशन॥\nयोगी यति मुनि ध्यान लगावैं। नारद शारद शीश नवावैं॥',
+        transliteration:
+            'Shankar Ho Sankat Ke Nashan. Mangal Karan Vighna Vinashan.\nYogi Yati Muni Dhyan Lagavain. Narad Sharad Shish Navavain.',
+      ),
+      LyricStanza(
+        startTimeMs: 505000,
+        devanagari:
+            'नमो नमो जय नमो शिवाय। सुर ब्रह्मादिक पार न पाय॥\nजो यह पाठ करे मन लाई। ता पार होत है शम्भु सहाई॥',
+        transliteration:
+            'Namo Namo Jai Namo Shivay. Sur Brahmadik Par Na Pay.\nJo Yah Path Kare Man Lai. Ta Par Hot Hai Shambhu Sahai.',
+      ),
+      LyricStanza(
+        startTimeMs: 535000,
+        devanagari:
+            'ॠनिया जो कोई हो अधिकारी। पाठ करे सो पावन हारी॥\nपुत्र हीन कर इच्छा कोई। निश्चय शिव प्रसाद तेहि होई॥',
+        transliteration:
+            'Riniya Jo Koi Ho Adhikari. Path Kare So Pavan Hari.\nPutra Hin Kar Ichchha Koi. Nishchay Shiv Prasad Tehi Hoi.',
+      ),
+      LyricStanza(
+        startTimeMs: 565000,
+        devanagari:
+            'पण्डित त्रयोदशी को लावे। ध्यान पूर्वक होम करावे॥\nत्रयोदशी ब्रत करे हमेशा। तन नहीं ताके रहे कलेशा॥',
+        transliteration:
+            'Pandit Trayodashi Ko Lave. Dhyan Purvak Hom Karave.\nTrayodashi Brat Kare Hamesha. Tan Nahin Take Rahe Kalesha.',
+      ),
+      LyricStanza(
+        startTimeMs: 595000,
+        devanagari:
+            'धूप दीप नैवेद्य चढ़ावे। शंकर सम्मुख पाठ सुनावे॥\nजन्म जन्म के पाप नसावे। अन्तवास शिवपुर में पावे॥\nकहे अयोध्या आस तुम्हारी। जानि सकल दुःख हरहु हमारी॥',
+        transliteration:
+            'Dhup Deep Naivedya Chadhave. Shankar Sammukh Path Sunave.\nJanm Janm Ke Paap Nasave. Antavas Shivpur Mein Pave.\nKahe Ayodhya Aas Tumhari. Jani Sakal Dukh Harahu Hamari.',
+      ),
+      LyricStanza(
+        startTimeMs: 640000,
+        devanagari:
+            '॥ दोहा ॥\nनित्त नेम कर प्रातः ही, पाठ करौं चालीसा।\nतुम मेरी मनोकामना, पूर्ण करो जगदीश॥\n\nमगसर छठि हेमन्त ॠतु, संवत चौसठ जान।\nअस्तुति चालीसा शिवहि, पूर्ण कीन कल्याण॥',
+        transliteration:
+            '|| Doha ||\nNitt Nem Kar Pratah Hi, Path Karaun Chalisa.\nTum Meri Manokamna, Purn Karo Jagdeesh.\n\nMagsar Chhathi Hemant Ritu, Samvat Chausath Jan.\nAstuti Chalisa Shivahi, Purn Kin Kalyan.',
+      ),
+    ],
+  ),
+
   // ───────────────────────────────────────────────────────────────────────────
   // SACRED HANUMAN MANTRAS (11 MANTRAS)
   // ───────────────────────────────────────────────────────────────────────────

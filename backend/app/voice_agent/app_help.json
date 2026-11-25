@@ -1,0 +1,1428 @@
+{
+  "exclude": "keyboard|translator|translate|translation|weather|dentist|delete|erase(?! my search)|restore|export|refund|already|password|payment|camera|यूट्यूब|कीबोर्ड|हटाओ|मिटवा|(?:my |the )?(?:phone|device|keyboard)(?:.s)? language|language (?:of|on) (?:my|the) (?:phone|device)|(?:फ़ोन|फोन|मोबाइल) की भाषा|फोनची भाषा",
+  "topics": {
+    "jaap_stats": {
+      "terms": "my sadhana|meri sadhana|माझी साधना|मेरी साधना|(?:jaap|japa|chanting) (?:stats|history)|जपाचा इतिहास|जाप का इतिहास",
+      "questions": "what (?:is|does|can i (?:do|find)|information)|what.s (?:on|in)|क्या (?:है|दिखता|मिलता)|काय (?:असत|दिसत|मिळत)|kya (?:hai|milta)|how (?:do|can) i (?:find|see|check)",
+      "reply": {
+        "en": "My Sadhana shows your chanting streak, lifetime count, and this week’s and this month’s activity.",
+        "hi": "मेरी साधना में लगातार जप के दिन, कुल जप और इस सप्ताह व महीने की गतिविधि दिखती है।",
+        "mr": "माझी साधना येथे सलग जपाचे दिवस, एकूण जप आणि या आठवड्यातील व महिन्यातील साधना दिसते."
+      },
+      "examples": [
+        "What is My Sadhana?",
+        "What can I find in jaap stats?",
+        "मेरी साधना में क्या दिखता है?",
+        "माझी साधना येथे काय दिसते?"
+      ],
+      "labels": {
+        "en": "chant history",
+        "hi": "जप का इतिहास",
+        "mr": "जपाची आकडेवारी"
+      },
+      "screen_action": "open_jaap_stats",
+      "aliases": [
+        "my sadhana",
+        "chanting statistics",
+        "chanting history"
+      ]
+    },
+    "milan": {
+      "terms": "milan|gun milan|match two (?:birth )?charts|marriage compatibility|मिलान|मिलन|गुणमेलन",
+      "questions": "how (?:do|can|would|should) (?:i|we)|how (?:does|to)|steps to|where (?:can|do|should) i|कैसे|कसे|कशी|कसा|कुठे|कहाँ|kaise|kashi|kasa|what (?:is|does|can i (?:do|find)|information)|what.s (?:on|in)|क्या (?:है|दिखता|मिलता)|काय (?:असत|दिसत|मिळत)|kya (?:hai|milta)",
+      "reply": {
+        "en": "Open Kundali Milan and select or add a birth profile for each person. The result shows the guna score and its breakdown.",
+        "hi": "कुंडली मिलान खोलें और दोनों की जन्म जानकारी चुनें या जोड़ें। परिणाम में गुणों का अंक और विवरण मिलता है।",
+        "mr": "कुंडली मिलन उघडून दोघांची जन्म माहिती निवडा किंवा भरा. निकालात जुळणारे गुण व त्यांचा तपशील दिसतो."
+      },
+      "examples": [
+        "How does Kundali Milan work?",
+        "What is marriage compatibility in the app?",
+        "कुंडली मिलान कैसे करें?",
+        "गुणमेलन कसे करावे?"
+      ],
+      "labels": {
+        "en": "Kundali Milan",
+        "hi": "कुंडली मिलान",
+        "mr": "कुंडली मिलन"
+      },
+      "screen_action": "open_milan",
+      "aliases": [
+        "marriage matching screen",
+        "compatibility screen",
+        "birth chart matching"
+      ]
+    },
+    "calendar": {
+      "terms": "festival calendar|festival dates|पंचांग कॅलेंडर|त्योहारों का कैलेंडर|सणांची दिनदर्शिका",
+      "questions": "how (?:do|can|would|should) (?:i|we)|how (?:does|to)|steps to|where (?:can|do|should) i|कैसे|कसे|कशी|कसा|कुठे|कहाँ|kaise|kashi|kasa|what (?:is|does|can i (?:do|find)|information)|what.s (?:on|in)|क्या (?:है|दिखता|मिलता)|काय (?:असत|दिसत|मिळत)|kya (?:hai|milta)",
+      "reply": {
+        "en": "Open the Panchang Calendar to browse by month. Select a day for its details, or check the month’s festival list.",
+        "hi": "पंचांग कैलेंडर में महीना चुनें। किसी दिन पर टैप करके उसका विवरण देखें या उस महीने की त्योहार सूची पढ़ें।",
+        "mr": "पंचांग कॅलेंडरमध्ये महिना निवडा. दिवसाचा तपशील पाहण्यासाठी तारीख दाबा किंवा त्या महिन्यातील सणांची यादी पाहा."
+      },
+      "examples": [
+        "How do I use the festival calendar?",
+        "What information is in the festival calendar?",
+        "त्योहारों का कैलेंडर कैसे देखें?",
+        "सणांची दिनदर्शिका कशी पाहू?"
+      ],
+      "labels": {
+        "en": "festival calendar",
+        "hi": "त्योहार कैलेंडर",
+        "mr": "सणांची दिनदर्शिका"
+      },
+      "screen_action": "open_calendar",
+      "aliases": [
+        "festival dates"
+      ]
+    },
+    "language": {
+      "terms": "languages?|भाषा|भाषाओं|bhasha|language selector|menu language|screen language|app ki bhasha",
+      "questions": "how (?:do|can|would|should) (?:i|we)|how (?:does|to)|steps to|where (?:can|do|should) i|कैसे|कसे|कशी|कसा|कुठे|कहाँ|kaise|kashi|kasa|which languages|what languages|languages (?:are|does|can)|available in|can i change|कोणत्या|कौन सी|किन भाषाओं|supported languages|languages.*support|does (?:this|the) app support|how many languages|is it possible|can (?:the|this) app|can i (?:see|use|switch)",
+      "reply": {
+        "en": "BhaktiDhara supports Marathi, Hindi and English. Tap the language selector or say “switch to Hindi”.",
+        "hi": "भक्तिधारा मराठी, हिंदी और अंग्रेज़ी में उपलब्ध है। भाषा चुनने के लिए भाषा बटन दबाएँ या कहें “ऐप की भाषा हिंदी में बदलो”।",
+        "mr": "भक्तिधारा मराठी, हिंदी आणि इंग्रजीत उपलब्ध आहे. भाषा निवडण्यासाठी भाषा बटण दाबा किंवा “अॅपची भाषा मराठी करा” असे म्हणा."
+      },
+      "examples": [
+        "What languages are available in BhaktiDhara?",
+        "How do we choose the app language?",
+        "Can I change the language here?",
+        "भाषा कैसे बदल सकते हैं?",
+        "कोणत्या भाषा उपलब्ध आहेत?",
+        "app ki bhasha kaise badlu"
+      ],
+      "labels": {
+        "en": "app language settings",
+        "hi": "ऐप की भाषा",
+        "mr": "अॅपची भाषा"
+      },
+      "screen_action": "open_language_settings",
+      "aliases": [
+        "app language picker",
+        "language picker",
+        "language settings"
+      ]
+    },
+    "feedback": {
+      "terms": "feedback|suggestion|bug|broken feature|report a problem|अभिप्राय|तक्रार|सुझाव|शिकायत|फीडबैक|(?:issue|mistake) (?:with|in) (?:the |this )?app|tell (?:the|your) (?:team|developers)|(?:send|give|share|pitch) (?:the |your )?(?:developers?|team) (?:an? |my )?(?:idea|suggestion)",
+      "questions": "how (?:do|can|would|should) (?:i|we)|how (?:does|to)|steps to|where (?:can|do|should) i|कैसे|कसे|कशी|कसा|कुठे|कहाँ|kaise|kashi|kasa",
+      "reply": {
+        "en": "Open More, choose “Share feedback or a request”, write your message and tap Submit. You can also request a deity there.",
+        "hi": "अधिक खोलें, सुझाव या अनुरोध का फ़ॉर्म चुनें, अपना संदेश लिखें और भेजें दबाएँ। वहाँ किसी देवता को जोड़ने का अनुरोध भी कर सकते हैं।",
+        "mr": "अधिक उघडा, अभिप्राय किंवा विनंतीचा फॉर्म निवडा, संदेश लिहा आणि पाठवा दाबा. तिथे देवता जोडण्याची विनंतीही करता येते."
+      },
+      "examples": [
+        "How do I give the developers feedback?",
+        "Where do I report a bug?",
+        "Where can I leave a suggestion?",
+        "सुझाव कैसे दूँ?",
+        "अभिप्राय कुठे पाठवू?",
+        "feedback kaise bheju"
+      ],
+      "labels": {
+        "en": "feedback form",
+        "hi": "सुझाव फ़ॉर्म",
+        "mr": "अभिप्राय फॉर्म"
+      },
+      "screen_action": "open_feedback",
+      "aliases": [
+        "feedback",
+        "suggestions"
+      ]
+    },
+    "reminders": {
+      "terms": "aarti (?:alerts?|reminders?|notifications?)|(?:reminders?|alerts?) for (?:my |the )?(?:daily )?aarti|आरतीची आठवण|आरती आठवण|आरती.*रिमाइंडर",
+      "questions": "how (?:do|can|would|should) (?:i|we)|how (?:does|to)|steps to|where (?:can|do|should) i|कैसे|कसे|कशी|कसा|कुठे|कहाँ|kaise|kashi|kasa",
+      "reply": {
+        "en": "Open More → Aarti reminders. Use the switches there for evening aarti and Kakad aarti.",
+        "hi": "अधिक में आरती रिमाइंडर खोलें। वहाँ संध्या आरती और काकड़ आरती के स्विच हैं।",
+        "mr": "अधिकमध्ये आरती आठवण उघडा. तिथे संध्याकाळची आरती आणि काकड आरती यांची आठवण चालू करता येते."
+      },
+      "examples": [
+        "How do I enable aarti reminders?",
+        "Where can I manage alerts for my aarti?",
+        "आरती का रिमाइंडर कैसे लगाऊँ?",
+        "आरतीची आठवण कुठे सुरू करू?",
+        "aarti reminder kaise lagau"
+      ],
+      "labels": {
+        "en": "aarti reminders",
+        "hi": "आरती रिमाइंडर",
+        "mr": "आरतीची आठवण"
+      },
+      "screen_action": "open_aarti_reminders",
+      "aliases": [
+        "aarti reminder options",
+        "aarti reminder settings"
+      ]
+    },
+    "jaap": {
+      "terms": "jaap|japa|naam jap|chanting|repetitions?|जप|जाप|नामजप|mantras?",
+      "questions": "how (?:do|can|would|should) (?:i|we) (?:count|record|use|start)|how (?:does|to) (?:the )?(?:count|use|jaap|japa)|कैसे (?:गिन|कर)|कसा (?:मोज|कर)|कसे मोज|kaise (?:ginu|karu)|सुरू करायचा तर काय|how (?:do|can) i (?:log|add) (?:a |my )?(?:repetition|chant)",
+      "reply": {
+        "en": "Open the jaap counter and choose a mantra. Tap the counter once for each repetition. My Sadhana shows your totals and streak.",
+        "hi": "जप काउंटर खोलें और मंत्र चुनें। हर बार मंत्र जपने पर काउंटर पर एक बार टैप करें। मेरी साधना में कुल जप और लगातार दिनों की गिनती मिलती है।",
+        "mr": "जप मोजणी उघडून मंत्र निवडा. प्रत्येक जपानंतर एकदा टॅप करा. माझी साधना येथे एकूण जप आणि सलग दिवस दिसतात."
+      },
+      "examples": [
+        "How do I use the jaap counter?",
+        "How can I count repetitions?",
+        "जाप कैसे गिनूँ?",
+        "जप कसा मोजायचा?",
+        "naam jap kaise ginu"
+      ],
+      "labels": {
+        "en": "jaap counter",
+        "hi": "जप माला",
+        "mr": "जपमाळ"
+      },
+      "screen_action": "start_jaap",
+      "aliases": [
+        "chant counter"
+      ]
+    },
+    "panchang": {
+      "terms": "panchang|पंचांग",
+      "questions": "what is (?:the )?panchang(?:[ ?.]*$| (?:page|screen|feature))|what (?:does (?:the )?panchang|can i (?:see|find)|information)|what.s (?:on|in)|बारे में|क्या (?:है|दिखता|मिलता)|काय (?:असत|दिसत|मिळत)|kya (?:hai|milta)",
+      "reply": {
+        "en": "Panchang shows the day's tithi, nakshatra, sunrise, sunset and Rahu Kaal.",
+        "hi": "पंचांग में दिन की तिथि, नक्षत्र, सूर्योदय, सूर्यास्त और राहुकाल मिलता है।",
+        "mr": "पंचांगात दिवसाची तिथी, नक्षत्र, सूर्योदय, सूर्यास्त आणि राहुकाळ दिसतो."
+      },
+      "examples": [
+        "What information is on the Panchang page?",
+        "What's in the Panchang?",
+        "पंचांग में क्या मिलता है?",
+        "पंचांगात काय दिसते?",
+        "panchang me kya milta hai"
+      ],
+      "labels": {
+        "en": "Panchang",
+        "hi": "पंचांग",
+        "mr": "पंचांग"
+      },
+      "screen_action": "open_panchang",
+      "aliases": [
+        "hindu almanac"
+      ]
+    },
+    "kundali": {
+      "terms": "kundali|kundli|birth chart|natal chart|कुंडली|जन्मपत्रिका",
+      "questions": "what (?:details|information|inputs)|(?:details|information) (?:are|do)|how (?:do|can) i (?:create|make|fill)|क्या (?:जानकारी|चाहिए)|कौन सी जानकारी|कोणती माहिती|काय माहिती|kya (?:details|chahiye)",
+      "reply": {
+        "en": "To create a kundali, open the birth chart form and enter your date, time and place of birth.",
+        "hi": "कुंडली बनाने के लिए जन्म कुंडली का फ़ॉर्म खोलें और जन्म की तारीख, समय और स्थान भरें।",
+        "mr": "कुंडली तयार करण्यासाठी जन्मकुंडलीचा फॉर्म उघडा आणि जन्मतारीख, जन्मवेळ व जन्मस्थान भरा."
+      },
+      "examples": [
+        "What details do I need for my kundali?",
+        "How can I fill the birth chart form?",
+        "कुंडली के लिए क्या जानकारी चाहिए?",
+        "जन्मपत्रिकेसाठी कोणती माहिती लागते?",
+        "kundli ke liye kya chahiye"
+      ],
+      "labels": {
+        "en": "birth chart form",
+        "hi": "जन्म कुंडली",
+        "mr": "जन्मकुंडली"
+      },
+      "screen_action": "open_kundali",
+      "aliases": [
+        "kundali",
+        "birth chart"
+      ]
+    },
+    "capabilities": {
+      "terms": "what can you do|what can i (?:say|ask)|what (?:kinds? of )?(?:things|commands).*ask|what (?:voice )?commands|help me use (?:the |this )?(?:app|assistant)|how can you help|क्या (?:कर सकते|पूछ)|काय (?:करू शक|विचार)|kya (?:kar sakte|puch)|which (?:voice )?commands|what are (?:my|the) (?:voice )?commands|what can bhaktidhara do|what (?:is|does) bhakti\\s?dhara|भक्तिधारा (?:क्या है|अॅप म्हणजे काय)",
+      "questions": "ask|commands|assistant|you do|help me use|can you help|सहायक|सकते|विचारू|करू शक|puch|kar sakte|commands|bhaktidhara do|what (?:is|does) bhakti\\s?dhara|क्या है|म्हणजे काय",
+      "reply": {
+        "en": "You can ask me to open a devotional text, play an aarti, start naam jaap, show your horoscope or find a feature. Try “read Pasayadan” or “open aarti reminders”.",
+        "hi": "आप आरती सुनने, ग्रंथ खोलने, नाम जप शुरू करने, राशिफल देखने या कोई सुविधा ढूँढने को कह सकते हैं। जैसे “पसायदान खोलो”।",
+        "mr": "आरती ऐकणे, ग्रंथ उघडणे, नामजप सुरू करणे, राशीभविष्य पाहणे किंवा एखादी सुविधा शोधणे यासाठी मला सांगा. उदाहरणार्थ “पसायदान उघडा”."
+      },
+      "examples": [
+        "What can you do here?",
+        "What commands can I ask the assistant?",
+        "help me use the assistant",
+        "मैं क्या पूछ सकता हूँ?",
+        "मी तुला काय विचारू शकतो?",
+        "assistant se kya puch sakta hu",
+        "What is BhaktiDhara?",
+        "What does BhaktiDhara offer?",
+        "भक्तिधारा क्या है?",
+        "भक्तिधारा अॅप म्हणजे काय?"
+      ],
+      "labels": {
+        "en": "Bhakti voice assistant",
+        "hi": "भक्ति वॉइस सहायक",
+        "mr": "भक्ती आवाज सहाय्यक"
+      }
+    },
+    "greetings": {
+      "terms": "greetings?|status card|शुभकामना|शुभेच्छा|सुविचार",
+      "questions": "how (?:do|can|would|should) (?:i|we)|how (?:does|to)|steps to|where (?:can|do|should) i|कैसे|कसे|कशी|कसा|कुठे|कहाँ|kaise|kashi|kasa|how (?:is|are) .*shared",
+      "reply": {
+        "en": "Open Greetings, choose a card, then tap Share and select where to send it.",
+        "hi": "शुभकामनाएँ खोलें, एक कार्ड चुनें, फिर शेयर दबाकर भेजने का माध्यम चुनें।",
+        "mr": "शुभेच्छा उघडा, कार्ड निवडा आणि शेअर दाबून ते कुठे पाठवायचे ते निवडा."
+      },
+      "examples": [
+        "How do I share a greeting?",
+        "How to send a status card?",
+        "शुभकामना कार्ड कैसे भेजूँ?",
+        "शुभेच्छा कशी शेअर करायची?"
+      ],
+      "labels": {
+        "en": "greeting cards",
+        "hi": "शुभकामना कार्ड",
+        "mr": "शुभेच्छापत्रे"
+      },
+      "screen_action": "open_greetings",
+      "aliases": [
+        "greetings",
+        "devotional greeting cards"
+      ]
+    },
+    "ishta_devta": {
+      "terms": "ishta dev|isht dev|इष्टदैवत|इष्ट देव|इष्ट दैवत",
+      "questions": "how (?:do|can|would|should) (?:i|we)|how (?:does|to)|steps to|where (?:can|do|should) i|कैसे|कसे|कशी|कसा|कुठे|कहाँ|kaise|kashi|kasa",
+      "reply": {
+        "en": "In More, tap your Ishta Devta card and choose a deity. The app updates your daily aarti for that deity.",
+        "hi": "अधिक में अपने इष्ट देवता का कार्ड दबाएँ और देवता चुनें। ऐप उनकी आरती को दैनिक आरती में जोड़ता है।",
+        "mr": "अधिकमध्ये इष्ट दैवताचे कार्ड दाबून देवता निवडा. त्या देवतेची आरती नित्य आरतीत जोडली जाते."
+      },
+      "examples": [
+        "How do I choose my Ishta Devta?",
+        "इष्ट देवता कैसे चुनूँ?",
+        "इष्ट दैवत कसे बदलायचे?"
+      ],
+      "labels": {
+        "en": "Ishta Devta",
+        "hi": "इष्ट देवता",
+        "mr": "इष्ट दैवत"
+      },
+      "screen_action": "open_ishta_devta",
+      "aliases": [
+        "personal deity screen"
+      ]
+    },
+    "granth": {
+      "terms": "granth|sacred books|pothi|scriptures?|ग्रंथ|पोथी",
+      "questions": "how (?:do|can|would|should) (?:i|we)|how (?:does|to)|steps to|where (?:can|do|should) i|कैसे|कसे|कशी|कसा|कुठे|कहाँ|kaise|kashi|kasa|what (?:is|does|can i (?:do|find)|information)|what.s (?:on|in)|क्या (?:है|दिखता|मिलता)|काय (?:असत|दिसत|मिळत)|kya (?:hai|milta)",
+      "reply": {
+        "en": "Open Granth, select a book, then choose from the chapters or pages available for that book.",
+        "hi": "ग्रंथ खोलें, पुस्तक चुनें और फिर उसके उपलब्ध अध्याय या पन्ने चुनें।",
+        "mr": "ग्रंथ उघडा, पुस्तक निवडा आणि त्यातील उपलब्ध अध्याय किंवा पाने उघडा."
+      },
+      "examples": [
+        "How do I read a book from Granth?",
+        "What can I find in the sacred books library?",
+        "ग्रंथ कैसे पढ़ूँ?",
+        "पोथी कशी वाचायची?"
+      ],
+      "labels": {
+        "en": "Granth library",
+        "hi": "ग्रंथ संग्रह",
+        "mr": "ग्रंथ संग्रह"
+      },
+      "screen_action": "open_granth",
+      "aliases": [
+        "sacred books",
+        "scripture library"
+      ]
+    },
+    "notifications": {
+      "terms": "notifications?|inbox|announcements?|app notices|नोटिफिकेशन|नोटिफिकेशन्स|अधिसूचना|सूचना पेटी|ऐप की सूचन|अॅपच्या सूचन",
+      "questions": "how (?:can|do|does|to|is)|what (?:does|is|can|will)|what.s (?:in|inside)|where (?:do|can|is)|what.*(?:for|show)|tell me about|explain|कैसे|कहाँ|क्या (?:है|मिल)|कसे|कशी|कसा|काय (?:आहे|दिस)|कुठे|kaise|kase|kashi",
+      "reply": {
+        "en": "Tap the bell on the home screen to read app announcements and notifications. You can also say “open notifications”.",
+        "hi": "ऐप की घोषणाएँ और सूचनाएँ पढ़ने के लिए होम स्क्रीन पर घंटी दबाएँ। आप “नोटिफिकेशन खोलो” भी कह सकते हैं।",
+        "mr": "अॅपच्या घोषणा आणि सूचना वाचण्यासाठी मुख्य स्क्रीनवरील घंटा दाबा. “नोटिफिकेशन उघडा” असंही म्हणू शकता."
+      },
+      "examples": [
+        "Where do the app's announcements go?",
+        "How do I read app notices?",
+        "Where is the inbox?",
+        "ऐप की सूचनाएँ कहाँ पढ़ें?",
+        "अॅपच्या सूचना कुठे वाचू?",
+        "app ke notifications kaise dekhu"
+      ],
+      "labels": {
+        "en": "notification inbox",
+        "hi": "नोटिफिकेशन",
+        "mr": "सूचना पेटी"
+      },
+      "screen_action": "open_notifications",
+      "aliases": [
+        "notifications",
+        "notification centre",
+        "notification center",
+        "inbox",
+        "app announcements",
+        "app notices",
+        "home bell",
+        "notices"
+      ]
+    },
+    "mandir": {
+      "terms": "mandir|virtual (?:temple|shrine)|temple bell|darshan|मंदिर|मन्दिर|देवघर|गाभारा|दर्शन",
+      "questions": "how (?:can|do|does|to|is)|what (?:does|is|can|will)|what.s (?:in|inside)|where (?:do|can|is)|what.*(?:for|show)|tell me about|explain|कैसे|कहाँ|क्या (?:है|मिल)|कसे|कशी|कसा|काय (?:आहे|दिस)|कुठे|kaise|kase|kashi",
+      "reply": {
+        "en": "Open Mandir for darshan. Tap a hanging bell to ring it, or offer flowers to the deity.",
+        "hi": "मंदिर में दर्शन करें। लटकी हुई घंटी को छूकर बजाएँ या देवता को फूल अर्पित करें।",
+        "mr": "देवघरात दर्शन घ्या. टांगलेल्या घंटेला स्पर्श करून ती वाजवा किंवा देवाला फुलं वाहा."
+      },
+      "examples": [
+        "What can I do in the virtual shrine?",
+        "How does Mandir work here?",
+        "Tell me about darshan in this app",
+        "मंदिर में क्या कर सकते हैं?",
+        "देवघरात काय करता येतं?",
+        "mandir mein kya kar sakte hain"
+      ],
+      "labels": {
+        "en": "virtual temple",
+        "hi": "मंदिर",
+        "mr": "देवघर"
+      },
+      "screen_action": "open_mandir",
+      "aliases": [
+        "shrine",
+        "virtual shrine",
+        "darshan",
+        "temple",
+        "mandir",
+        "गाभारा"
+      ]
+    },
+    "akhand_diya": {
+      "terms": "diya|eternal lamp|ghee|अखंड (?:दीप|दिवा|दीया|ज्योत)|तूप|घी",
+      "questions": "how (?:can|do|does|to|is)|what (?:does|is|can|will)|what.s (?:in|inside)|where (?:do|can|is)|what.*(?:for|show)|tell me about|explain|कैसे|कहाँ|क्या (?:है|मिल)|कसे|कशी|कसा|काय (?:आहे|दिस)|कुठे|kaise|kase|kashi",
+      "reply": {
+        "en": "Open the Akhand Diya in Mandir. The ghee bar shows how much is left. Tap Offer ghee to refill the lamp.",
+        "hi": "मंदिर में अखंड दीप खोलें। घी का स्तर दिखता है। दीप भरने के लिए घी अर्पण करें दबाएँ।",
+        "mr": "देवघरात अखंड दिवा उघडा. तूप किती उरलं आहे ते पट्टीवर दिसतं. दिवा भरण्यासाठी तूप अर्पण करा दाबा."
+      },
+      "examples": [
+        "How do I refill the lamp with ghee?",
+        "What does the ghee bar show?",
+        "How does the Akhand Diya work?",
+        "दीये में घी कैसे डालें?",
+        "अखंड दिव्यात तूप कसं घालू?",
+        "diya mein ghee kaise dale"
+      ],
+      "labels": {
+        "en": "Akhand Diya",
+        "hi": "अखंड दीप",
+        "mr": "अखंड दिवा"
+      },
+      "screen_action": "open_akhand_diya",
+      "aliases": [
+        "eternal lamp",
+        "diya",
+        "ghee lamp",
+        "अखंड ज्योत"
+      ]
+    },
+    "grahan": {
+      "terms": "grahan|eclipses?|sutak|ग्रहण|सूतक|सुतक",
+      "questions": "how (?:can|do|does|to|is)|what (?:does|is|can|will)|what.s (?:in|inside)|where (?:do|can|is)|what.*(?:for|show)|tell me about|explain|कैसे|कहाँ|क्या (?:है|मिल)|कसे|कशी|कसा|काय (?:आहे|दिस)|कुठे|kaise|kase|kashi",
+      "reply": {
+        "en": "Open Grahan from More and select a solar or lunar eclipse to see its timings, local visibility and any listed sutak period.",
+        "hi": "अधिक में ग्रहण खोलें और सूर्य या चंद्र ग्रहण चुनें। वहाँ समय, स्थानीय दृश्यता और उपलब्ध सूतक काल मिलता है।",
+        "mr": "अधिकमध्ये ग्रहण उघडा आणि सूर्यग्रहण किंवा चंद्रग्रहण निवडा. तिथे वेळा, स्थानिक दृश्यता आणि उपलब्ध सूतककाळ दिसतो."
+      },
+      "examples": [
+        "What does the eclipse screen tell me?",
+        "How do I check eclipse visibility here?",
+        "Where do I look up sutak details?",
+        "ग्रहण की जानकारी कहाँ पढ़ें?",
+        "ग्रहण विभागात काय दिसतं?",
+        "grahan ka sutak kaise dekhu"
+      ],
+      "labels": {
+        "en": "eclipse screen",
+        "hi": "ग्रहण विभाग",
+        "mr": "ग्रहण विभाग"
+      },
+      "screen_action": "open_grahan",
+      "aliases": [
+        "grahan",
+        "eclipses",
+        "solar eclipse",
+        "lunar eclipse",
+        "चंद्रग्रहणाचं पान",
+        "सूर्यग्रहण"
+      ]
+    },
+    "horoscope": {
+      "terms": "horoscope|zodiac|rashifal|rashi|राशीभविष्य|राशिफल|राशिभविष्य",
+      "questions": "(?:how|where|explain|teach|guide|कसे|कशी|कसा|कसं|कैसे|कहाँ|कुठे|kaise|kase).*(?:weekly|screen|view|use|useful|change|switch|choose|select|साप्ताहिक|विभाग)|(?:weekly|साप्ताहिक).*(?:how|कैसे|कस)|what (?:does (?:the )?(?:horoscope|rashifal) (?:page|screen)|are .*options)",
+      "reply": {
+        "en": "Select your Moon sign in Horoscope, then choose Today or Weekly. If you don’t know your sign, Bhakti can calculate it from your birth details.",
+        "hi": "राशिफल में अपनी जन्म राशि चुनें, फिर आज या साप्ताहिक चुनें। राशि पता न हो तो भक्ति जन्म विवरण से इसे निकाल सकती है।",
+        "mr": "राशीभविष्यात जन्मरास निवडा आणि आज किंवा साप्ताहिक पर्याय दाबा. जन्मरास माहीत नसेल तर भक्ती जन्मतपशीलांवरून ती काढू शकते."
+      },
+      "examples": [
+        "How do I see a weekly horoscope?",
+        "What are the horoscope view options?",
+        "Which sign does the horoscope use?",
+        "साप्ताहिक राशिफल कैसे देखें?",
+        "साप्ताहिक राशीभविष्य कसं पाहू?",
+        "weekly rashifal kaise dekhu"
+      ],
+      "labels": {
+        "en": "horoscope screen",
+        "hi": "राशिफल",
+        "mr": "राशीभविष्य"
+      },
+      "screen_action": "open_horoscope",
+      "aliases": [
+        "horoscope",
+        "horoscope page",
+        "horoscope tab",
+        "rashi screen"
+      ]
+    },
+    "bhajans": {
+      "terms": "bhajans?|sacred collection|devotional (?:collection|library)|भजन|भक्तिसंग्रह",
+      "questions": "how (?:can|do|does|to|is)|what (?:does|is|can|will)|what.s (?:in|inside)|where (?:do|can|is)|what.*(?:for|show)|tell me about|explain|कैसे|कहाँ|क्या (?:है|मिल)|कसे|कशी|कसा|काय (?:आहे|दिस)|कुठे|kaise|kase|kashi",
+      "reply": {
+        "en": "Open Bhajans, swipe to a deity and select an available category such as aarti, stotra or songs.",
+        "hi": "भजन खोलें, स्वाइप करके देवता चुनें और उपलब्ध आरती, स्तोत्र या गीत की श्रेणी खोलें।",
+        "mr": "भजन उघडा, स्वाइप करून देवता निवडा आणि उपलब्ध आरती, स्तोत्र किंवा गीतांचा विभाग उघडा."
+      },
+      "examples": [
+        "How do I browse the bhajans?",
+        "What can I find in the sacred collection?",
+        "How do I switch deities in the devotional library?",
+        "भजन संग्रह कैसे देखें?",
+        "भजन संग्रहात देवता कशी निवडू?",
+        "bhajan kaise dekhu"
+      ],
+      "labels": {
+        "en": "bhajan collection",
+        "hi": "भजन संग्रह",
+        "mr": "भजन संग्रह"
+      },
+      "screen_action": "open_bhajans",
+      "aliases": [
+        "bhajans",
+        "sacred collection",
+        "devotional library",
+        "bhajan library"
+      ]
+    },
+    "daily_aarti": {
+      "terms": "pinn(?:ed|ing) (?:my |an? |the )?(?:daily )?(?:aartis?|hymns?)|pin (?:an? |my |this )?aarti|daily aartis?|nitya aarti|नित्य आरती|दैनिक आरती|आरती (?:को )?पिन",
+      "questions": "how (?:can|do|does|to|is)|what (?:does|is|can|will)|what.s (?:in|inside)|where (?:do|can|is)|what.*(?:for|show)|tell me about|explain|कैसे|कहाँ|क्या (?:है|मिल)|कसे|कशी|कसा|काय (?:आहे|दिस)|कुठे|kaise|kase|kashi",
+      "reply": {
+        "en": "When the prompt appears after an aarti, tap Pin to My Daily Aartis. You can then open that aarti from the home screen.",
+        "hi": "आरती के बाद विकल्प दिखे तो उसे अपनी दैनिक आरती में पिन करें। फिर होम स्क्रीन से सीधे खोल सकते हैं।",
+        "mr": "आरतीनंतर पर्याय दिसला की ती माझ्या नित्य आरतीमध्ये पिन करा. मग ती मुख्य स्क्रीनवरून थेट उघडता येते."
+      },
+      "examples": [
+        "How do I pin an aarti to my home screen?",
+        "What does pinning an aarti do?",
+        "Where are my pinned aartis?",
+        "आरती को पिन कैसे करें?",
+        "आरती पिन कशी करू?",
+        "aarti pin kaise karu"
+      ],
+      "labels": {
+        "en": "pinned aartis",
+        "hi": "दैनिक आरती",
+        "mr": "नित्य आरती"
+      }
+    },
+    "more": {
+      "terms": "more (?:tab|menu|screen|page|section)|अधिक(?:मध्ये| मेनू| में)|और का पेज",
+      "questions": "how (?:can|do|does|to|is)|what (?:does|is|can|will)|what.s (?:in|inside)|where (?:do|can|is)|what.*(?:for|show)|tell me about|explain|कैसे|कहाँ|क्या (?:है|मिल)|कसे|कशी|कसा|काय (?:आहे|दिस)|कुठे|kaise|kase|kashi",
+      "reply": {
+        "en": "Open More for aarti reminders, feedback, Ishta Devta and eclipse information.",
+        "hi": "आरती रिमाइंडर, सुझाव, इष्ट देवता और ग्रहण की जानकारी के लिए अधिक खोलें।",
+        "mr": "आरतीची आठवण, अभिप्राय, इष्ट देवता आणि ग्रहणाची माहिती यांसाठी अधिक उघडा."
+      },
+      "examples": [
+        "What's in the More menu?",
+        "What does the More tab contain?",
+        "Where is the More section?",
+        "अधिक में क्या मिलता है?",
+        "अधिकमध्ये काय आहे?",
+        "more menu mein kya hai"
+      ],
+      "labels": {
+        "en": "More menu",
+        "hi": "अधिक मेनू",
+        "mr": "अधिक मेनू"
+      },
+      "screen_action": "open_more",
+      "aliases": [
+        "more tab",
+        "more page",
+        "more screen"
+      ]
+    },
+    "premium": {
+      "terms": "premium|subscription|vip plan|प्रीमियम|सब्सक्रिप्शन|सदस्यता|सदस्यत्व",
+      "questions": "how (?:much|do|can|does)|what (?:does|are|is)|where (?:do|can|are)|cost|price|pricing|किती|कितना|कीमत|किंमत|कहाँ|कुठे|कैसे|कसे",
+      "reply": {
+        "en": "When Premium is available, tap Premium on the home screen to see the available plans and their current prices. You can review the options before choosing a plan.",
+        "hi": "प्रीमियम उपलब्ध होने पर होम स्क्रीन पर प्रीमियम दबाएँ। वहाँ मौजूदा प्लान और उनकी कीमतें देखकर अपना विकल्प चुन सकते हैं।",
+        "mr": "प्रीमियम उपलब्ध असताना मुख्य स्क्रीनवर प्रीमियम दाबा. तिथे सध्याच्या योजना आणि त्यांच्या किमती पाहून पर्याय निवडता येतो."
+      },
+      "examples": [
+        "How much is the BhaktiDhara subscription?",
+        "Where can I see the Premium prices?",
+        "प्रीमियम की कीमत कहाँ देखूँ?",
+        "प्रीमियमच्या योजना कुठे पाहू?",
+        "premium ke plans kahan dekhu"
+      ],
+      "labels": {
+        "en": "Premium plans",
+        "hi": "प्रीमियम प्लान",
+        "mr": "प्रीमियम योजना"
+      },
+      "screen_action": "open_premium",
+      "aliases": [
+        "premium",
+        "subscription plans",
+        "vip plans",
+        "premium options",
+        "प्रीमियम"
+      ]
+    },
+    "wake_voice": {
+      "terms": "wake (?:words?|phrases?|bhakti)|hands.free|hey bhakti|hi bhakti|हे भक्त[ीि]|हाय भक्त[ीि]",
+      "questions": "how|what|where|enable|कैसे|कहाँ|कसे|कसं|कुठे|kaise|kase",
+      "labels": {
+        "en": "hands-free voice",
+        "hi": "बिना छुए आवाज़ से बुलाना",
+        "mr": "आवाज देऊन भक्तीला बोलावणे"
+      },
+      "examples": [
+        "How do I wake Bhakti without tapping?",
+        "What are the wake words?",
+        "बिना बटन दबाए भक्ति को कैसे बुलाऊँ?",
+        "माइक न दाबता भक्तीला कसं बोलवू?",
+        "hey bhakti kaise chalu karu"
+      ],
+      "reply": {
+        "en": "On your phone, open More and turn on Listen for “Hey Bhakti”. Allow microphone access. While the app is open, say “Hey Bhakti”, “Hi Bhakti”, or just “Bhakti”. When you see Listening, give your command.",
+        "hi": "मोबाइल में अधिक खोलें और “हे भक्ति” सुनें चालू करें। माइक्रोफ़ोन की अनुमति दें। ऐप खुला हो तो “हे भक्ति”, “हाय भक्ति” या सिर्फ़ “भक्ति” कहें। सुनने का संकेत दिखने पर अपनी बात कहें।",
+        "mr": "फोनवर अधिक उघडा आणि “हे भक्ती” ऐका हा पर्याय सुरू करा. मायक्रोफोनची परवानगी द्या. अॅप उघडं असताना “हे भक्ती”, “हाय भक्ती” किंवा फक्त “भक्ती” म्हणा. “ऐकत आहे” दिसल्यावर तुमची विनंती सांगा."
+      }
+    },
+    "home_region": {
+      "terms": "region filter|state filter|region chips|राज्यांचा फिल्टर|राज्य फ़िल्टर",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "Above the collection, choose Gujarat, Rajasthan or Uttarakhand. Select All to see every region again. The selected filter also applies while searching for aartis.",
+        "hi": "संग्रह के ऊपर गुजरात, राजस्थान या उत्तराखंड चुनें। सभी चुनने पर हर क्षेत्र की आरतियाँ दिखेंगी। खोज में भी चुना हुआ फ़िल्टर लागू रहता है।",
+        "mr": "संग्रहावर गुजरात, राजस्थान किंवा उत्तराखंड निवडा. सगळ्या प्रदेशांसाठी सर्व निवडा. आरती शोधतानाही निवडलेला फिल्टर लागू राहतो."
+      },
+      "examples": [
+        "Which states can I filter by on Home?",
+        "राज्य फ़िल्टर में कौन से प्रदेश हैं?",
+        "राज्यांचा फिल्टर कसा काढू?",
+        "region chips mein Maharashtra kahan hai?",
+        "state filter lavla tar search pan badalto ka?"
+      ],
+      "labels": {
+        "en": "region filters",
+        "hi": "राज्य फ़िल्टर",
+        "mr": "प्रदेशांचे फिल्टर"
+      }
+    },
+    "home_search": {
+      "terms": "search (?:by|box|bar|using)|search for an aarti|आरती शोध|आरती खोज",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "Type a hymn title, deity, singer or a few words from the lyrics in the search box. English, Hindi, Marathi and transliterated lyrics are searchable when present. Tap the cross to clear your text.",
+        "hi": "खोज में आरती का नाम, देवता, गायक या बोल की कुछ पंक्तियाँ लिखें। उपलब्ध अंग्रेज़ी, हिंदी, मराठी और रोमन लिपि के बोल खोजे जा सकते हैं। पाठ हटाने के लिए क्रॉस दबाएँ।",
+        "mr": "शोधपेटीत आरतीचे नाव, देवता, गायक किंवा बोलांमधले काही शब्द लिहा. उपलब्ध इंग्रजी, हिंदी, मराठी आणि रोमन लिपीतील बोल शोधता येतात. मजकूर काढण्यासाठी फुली दाबा."
+      },
+      "examples": [
+        "I remember one line but not the title. How can I find the hymn?",
+        "सिर्फ गायक का नाम याद है आरती कैसे खोजूँ?",
+        "आरती शोधताना बोल लिहिले तरी चालेल का?",
+        "sirf lyrics yaad hain search kaise karu?",
+        "search box madhla naav kasa pusu?"
+      ],
+      "labels": {
+        "en": "collection search",
+        "hi": "संग्रह की खोज",
+        "mr": "संग्रहातील शोध"
+      }
+    },
+    "home_books": {
+      "terms": "scripture results|scriptures row|book results|ग्रंथांचे निकाल",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "A Home search also checks book titles, subtitles and book identifiers. Matching books appear in the Scriptures row. Swipe across the row and tap a book to open its chapter list.",
+        "hi": "होम पर खोज ग्रंथ के नाम, उपशीर्षक और पहचान से भी होती है। पवित्र ग्रंथ की पंक्ति में बगल की ओर स्वाइप करें और अध्याय देखने के लिए किताब दबाएँ।",
+        "mr": "मुख्य पानावर नाव, उपशीर्षक आणि ग्रंथाच्या ओळखीवरूनही शोध होतो. पवित्र ग्रंथांच्या ओळीत आडवे सरकवा आणि अध्यायांसाठी ग्रंथावर टॅप करा."
+      },
+      "examples": [
+        "Why are books appearing above my aarti results?",
+        "आरती खोजते समय किताब दिखी उसके अध्याय कैसे देखूँ?",
+        "ग्रंथांचे निकाल आडवे कसे पाहू?",
+        "search mein scripture mila chapter tak kaise jaun?",
+        "book result var tap kelyavar kay dista?"
+      ],
+      "labels": {
+        "en": "scripture results",
+        "hi": "ग्रंथ परिणाम",
+        "mr": "ग्रंथांचे निकाल"
+      }
+    },
+    "home_cards": {
+      "terms": "collection cards|deity cards|read and play button|sacred collection list",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "Home normally shows one card per deity. Searching shows individual matching titles. Tap a card marked Read & Play to open the deity’s list with that item selected.",
+        "hi": "होम पर आम तौर पर हर देवता का एक कार्ड दिखता है। खोजने पर मेल खाने वाली आरतियों के नाम दिखते हैं। कार्ड दबाने पर उस देवता की सूची में चुनी हुई आरती खुलती है।",
+        "mr": "मुख्य पानावर साधारणपणे प्रत्येक देवतेचे एक कार्ड दिसते. शोधल्यावर जुळणाऱ्या आरत्यांची नावे दिसतात. कार्डवर टॅप केल्यावर त्या देवतेच्या यादीत निवडलेली आरती उघडते."
+      },
+      "examples": [
+        "Why do I only see one card for each deity?",
+        "खोजने के बाद कार्ड पर अलग नाम क्यों आता है?",
+        "देवतेच्या कार्डवर टॅप केल्यावर काय उघडतं?",
+        "Read and Play dabane par kaunsi list aati hai?",
+        "collection madhe ekach dev ekdach ka disto?"
+      ],
+      "labels": {
+        "en": "deity cards",
+        "hi": "देवता कार्ड",
+        "mr": "देवतांची कार्डे"
+      }
+    },
+    "home_request": {
+      "terms": "missing.aarti banner|request banner|request form|24.hour request|विनंतीचा फॉर्म|अनुरोध फ़ॉर्म",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "Tap the missing-aarti banner under search, or the request button in empty results. Enter the deity name. A photo and YouTube link are optional. Tap Submit Request. The form says additions are expected within 24 hours.",
+        "hi": "खोज के नीचे अनुरोध का बैनर या खाली परिणामों में अनुरोध बटन दबाएँ। देवता का नाम लिखें। फोटो और YouTube लिंक वैकल्पिक हैं। अनुरोध भेजें दबाएँ। फ़ॉर्म पर 24 घंटे का समय बताया गया है।",
+        "mr": "शोधाखालच्या विनंतीच्या पट्टीवर किंवा रिकाम्या निकालातील विनंती बटणावर टॅप करा. देवतेचे नाव लिहा. फोटो आणि YouTube लिंक ऐच्छिक आहेत. विनंती पाठवा निवडा. फॉर्मवर २४ तासांचा कालावधी दिला आहे."
+      },
+      "examples": [
+        "Do I need a photo to request a missing deity?",
+        "अनुरोध फ़ॉर्म बिना फोटो के भेज सकते हैं क्या?",
+        "विनंतीचा फॉर्म भरताना लिंक द्यावी लागते का?",
+        "missing aarti request mein youtube link zaroori hai kya?",
+        "24 hours chya banner madhye kay bharu?"
+      ],
+      "labels": {
+        "en": "missing-aarti request form",
+        "hi": "आरती अनुरोध फ़ॉर्म",
+        "mr": "आरती विनंती फॉर्म"
+      }
+    },
+    "home_empty": {
+      "terms": "empty results|no aarti found|no search results|रिकामे निकाल",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "Try a shorter title, deity name or lyric, and select All above the collection. Clear Search removes the typed text. If the hymn is still missing, the request button opens a form with your search text filled in.",
+        "hi": "नाम के कुछ शब्द, देवता या बोल से खोजें और संग्रह के ऊपर सभी चुनें। खोज साफ़ करने से लिखा पाठ हटता है। आरती फिर भी न मिले तो अनुरोध बटन से फ़ॉर्म खुलेगा जिसमें आपकी खोज पहले से लिखी होगी।",
+        "mr": "नावाचे काही शब्द, देवता किंवा बोल वापरून शोधा आणि संग्रहावर सर्व निवडा. शोध साफ केल्याने लिहिलेला मजकूर हटतो. तरी आरती न मिळाल्यास विनंती बटण दाबा. तुमचा शोध फॉर्ममध्ये आधीच भरलेला असेल."
+      },
+      "examples": [
+        "What can I do about empty results after searching?",
+        "आरती नहीं मिली लिखा है अब क्या करूँ?",
+        "रिकामे निकाल आले तर काय बदलून पाहू?",
+        "no aarti found aa raha kya try karu?",
+        "search result shunya aala tar kay karu?"
+      ],
+      "labels": {
+        "en": "empty results",
+        "hi": "खाली परिणाम",
+        "mr": "रिकामे निकाल"
+      }
+    },
+    "home_bells": {
+      "terms": "header bells|decorative bells|notification badge|bell count|9\\+",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "The two bells beside the title are decorations. Tap the round bell beside Sacred Collection for announcements and inbox messages. Its badge counts waiting items and displays 9+ above nine.",
+        "hi": "शीर्षक के पास की दो घंटियाँ सजावट हैं। घोषणाएँ और संदेश देखने के लिए संग्रह के पास गोल घंटी दबाएँ। अंक बाकी सूचनाओं की संख्या है। नौ से ज़्यादा पर 9+ दिखता है।",
+        "mr": "शीर्षकाजवळच्या दोन घंटा सजावटीसाठी आहेत. घोषणा व संदेशांसाठी संग्रहाजवळची गोल घंटा दाबा. त्यावरील आकडा बाकी सूचनांची संख्या आहे. नऊपेक्षा जास्त असल्यास 9+ दिसते."
+      },
+      "examples": [
+        "Why do the bells by the title do nothing?",
+        "घंटी पर नौ से ज़्यादा संदेश कैसे दिखते हैं?",
+        "वरच्या दोन घंटांपैकी कोणती दाबायची?",
+        "bell pe 9+ ka kya matlab hai?",
+        "title chya bells var tap karun kahi hot nahi ka?"
+      ],
+      "labels": {
+        "en": "header bells and notification badge",
+        "hi": "शीर्षक की घंटियाँ और सूचना अंक",
+        "mr": "शीर्षकातील घंटा आणि सूचनांचा आकडा"
+      }
+    },
+    "home_scroll": {
+      "terms": "scroll to top|back to the top|up arrow|pinned search bar",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "After scrolling down, tap the up arrow or tap Home again to return to the top. The large header collapses as you scroll and the search bar stays accessible.",
+        "hi": "नीचे जाने पर ऊपर का तीर दबाएँ या होम दोबारा दबाएँ। स्क्रॉल करने पर बड़ा शीर्षक सिमटता है और खोज बार दिखता रहता है।",
+        "mr": "खाली गेल्यावर वरचा बाण किंवा पुन्हा होम दाबा. स्क्रोल करताना मोठा मथळा लहान होतो आणि शोधपेटी दिसत राहते."
+      },
+      "examples": [
+        "How do I jump to the top of this long list?",
+        "स्क्रॉल करने पर बड़ा शीर्षक कहाँ गया?",
+        "यादीच्या सुरुवातीला पटकन कसं जाऊ?",
+        "upar wala arrow kis kaam ka hai?",
+        "scroll kelyavar search bar ka thambto?"
+      ],
+      "labels": {
+        "en": "scroll to top",
+        "hi": "सूची के ऊपर जाने का बटन",
+        "mr": "वर जाण्याचे बटण"
+      }
+    },
+    "home_back": {
+      "terms": "back button|press back|back twice|बैक बटन|मागे बटण",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "From another tab, Back returns to Home. On Home, Back clears an active search first. With the search empty, press Back twice within two seconds to exit.",
+        "hi": "दूसरे टैब से बैक दबाने पर होम खुलता है। होम पर पहले लिखी हुई खोज साफ़ होती है। खोज खाली हो तो दो सेकंड में दो बार बैक दबाकर बाहर जाएँ।",
+        "mr": "इतर टॅबवरून मागे दाबल्यावर होम उघडते. होमवर आधी लिहिलेला शोध साफ होतो. शोध रिकामा असेल तेव्हा दोन सेकंदांत दोनदा मागे दाबून बाहेर पडा."
+      },
+      "examples": [
+        "Why did Back erase my search instead of closing the app?",
+        "ऐप से बाहर निकलने के लिए बैक कितनी बार दबाऊँ?",
+        "मागे बटण दाबल्यावर शोध का गेला?",
+        "back dabaya to Home kyun aaya?",
+        "app band karayla back kiti vela dabu?"
+      ],
+      "labels": {
+        "en": "back button",
+        "hi": "बैक बटन",
+        "mr": "मागे बटण"
+      }
+    },
+    "home_microphone": {
+      "terms": "search microphone|microphone icon|floating orb|search mic",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "The microphone in the search bar and the floating Bhakti button both open the voice assistant. Tap either and speak your request when it is listening.",
+        "hi": "खोज में माइक और तैरता हुआ भक्ति बटन दोनों आवाज़ सहायक खोलते हैं। कोई भी दबाएँ और सुनना शुरू होने पर बोलें।",
+        "mr": "शोधातील माइक आणि तरंगते भक्ती बटण दोन्ही आवाज सहाय्यक उघडतात. कोणतेही दाबा आणि ऐकायला सुरुवात झाल्यावर विनंती बोला."
+      },
+      "examples": [
+        "Is the floating Bhakti button different from the search microphone?",
+        "खोज वाले माइक में कैसे बोलूँ?",
+        "तरंगतं भक्ती बटण दाबलं तर काय होतं?",
+        "search mic aur Bhakti button mein farak kya hai?",
+        "voice sathi orb dabu ki mic?"
+      ],
+      "labels": {
+        "en": "search microphone",
+        "hi": "खोज का माइक",
+        "mr": "शोधातील माइक"
+      }
+    },
+    "home_ads": {
+      "terms": "banner ad|ads on home|advertisement on home",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "The Home banner can appear on mobile when ads are enabled and an ad has loaded. Premium access hides the banner.",
+        "hi": "मोबाइल पर विज्ञापन चालू होने और विज्ञापन लोड होने पर होम बैनर दिख सकता है। प्रीमियम सुविधा में यह बैनर छिपा रहता है।",
+        "mr": "मोबाइलवर जाहिराती सक्षम असतील आणि जाहिरात लोड झाली असेल तर होमवर बॅनर दिसू शकतो. प्रीमियम सुविधा असल्यास तो दिसत नाही."
+      },
+      "examples": [
+        "Why is there an advertisement below the collection?",
+        "होम के नीचे विज्ञापन कब दिखता है?",
+        "मुख्य पानावरची जाहिरात प्रीमियममध्ये दिसते का?",
+        "home ke neeche ad kyun dikhta hai?",
+        "premium madhe banner ad disto ka?"
+      ],
+      "labels": {
+        "en": "Home banner ads",
+        "hi": "होम के विज्ञापन",
+        "mr": "होमवरील जाहिराती"
+      }
+    },
+    "home_offer": {
+      "terms": "festive offer|festive popup|festival offer",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "The festive offer appears on eligible return visits during an active campaign, up to twice per campaign. Opening it shows the subscription offer for review.",
+        "hi": "त्योहार का ऑफ़र सक्रिय अभियान में पात्र उपयोगकर्ताओं को अगली यात्राओं पर अधिकतम दो बार दिखता है। इसे खोलकर सदस्यता का प्रस्ताव देख सकते हैं।",
+        "mr": "उत्सवी ऑफर चालू मोहिमेत पात्र वापरकर्त्यांना पुढील भेटींमध्ये जास्तीत जास्त दोनदा दिसते. ती उघडून सदस्यत्वाचा प्रस्ताव पाहता येतो."
+      },
+      "examples": [
+        "Why didn’t the festive offer appear on my first visit?",
+        "त्योहार वाला प्रस्ताव हर बार क्यों नहीं दिखता?",
+        "उत्सवी ऑफर उघडली तर काय दिसतं?",
+        "festive popup kitni baar aata hai?",
+        "festival offer parat kadhi diste?"
+      ],
+      "labels": {
+        "en": "festive offer",
+        "hi": "उत्सव का प्रस्ताव",
+        "mr": "उत्सवी ऑफर"
+      }
+    },
+    "home_update": {
+      "terms": "update banner|new version banner|update notice",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "Tap Update in the new-version banner to start the update flow. The close button dismisses that version’s banner.",
+        "hi": "नए संस्करण के बैनर में अपडेट दबाएँ। बंद करने का बटन उस संस्करण का बैनर हटा देता है।",
+        "mr": "नवीन आवृत्तीच्या पट्टीत अपडेट दाबा. बंद करण्याचे बटण त्या आवृत्तीची पट्टी काढते."
+      },
+      "examples": [
+        "Can I close the new version banner?",
+        "नए संस्करण की पट्टी से ऐप कैसे अपडेट करूँ?",
+        "नवीन आवृत्तीचा संदेश कसा बंद करू?",
+        "update banner mein cross dabau to kya hoga?",
+        "update notice kasa band karu?"
+      ],
+      "labels": {
+        "en": "update banner",
+        "hi": "अपडेट बैनर",
+        "mr": "अपडेटची पट्टी"
+      }
+    },
+    "home_maintenance": {
+      "terms": "maintenance banner|maintenance message|server maintenance",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "The maintenance banner displays the service notice. Some online features may be unavailable during maintenance. Read the banner for the current message.",
+        "hi": "रखरखाव की पट्टी में सेवा की सूचना दिखती है। इस दौरान कुछ ऑनलाइन सुविधाएँ उपलब्ध न हों। वर्तमान जानकारी पट्टी में पढ़ें।",
+        "mr": "देखभालीच्या पट्टीत सेवेची सूचना दिसते. या काळात काही ऑनलाइन सुविधा उपलब्ध नसू शकतात. सध्याचा संदेश पट्टीत वाचा."
+      },
+      "examples": [
+        "What does the maintenance message mean?",
+        "सर्वर की देखभाल का संदेश क्यों आ रहा है?",
+        "देखभालीची पट्टी दिसते तेव्हा सेवा चालते का?",
+        "maintenance mein online features chalenge kya?",
+        "server maintenance cha message mhanje kay?"
+      ],
+      "labels": {
+        "en": "maintenance banner",
+        "hi": "रखरखाव का बैनर",
+        "mr": "देखभालीची पट्टी"
+      }
+    },
+    "home_tabs": {
+      "terms": "bottom tabs|bottom navigation|tabs on home",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "Use the bottom bar to switch between Home, Mandir and More. Horoscope and Panchang tabs appear when enabled. Tapping Home again scrolls its list to the top.",
+        "hi": "नीचे की पट्टी से होम, मंदिर और अधिक पर जाएँ। सक्षम होने पर राशिफल और पंचांग टैब भी दिखते हैं। होम दोबारा दबाने से सूची ऊपर जाती है।",
+        "mr": "खालच्या पट्टीतून होम, मंदिर आणि अधिक उघडा. सक्षम असल्यास राशीभविष्य आणि पंचांग टॅबही दिसतात. होम पुन्हा दाबल्यावर यादी वर जाते."
+      },
+      "examples": [
+        "Which screens can I reach from the bottom bar?",
+        "नीचे पंचांग का टैब हर बार क्यों नहीं दिखता?",
+        "खालच्या पट्टीत कोणती पाने आहेत?",
+        "bottom tabs kabhi kam kyun dikhte hain?",
+        "home tab punha tap kela tar kay hota?"
+      ],
+      "labels": {
+        "en": "bottom tabs",
+        "hi": "नीचे के टैब",
+        "mr": "खालचे टॅब"
+      }
+    },
+    "home_jaap_card": {
+      "terms": "jaap card|chanting card|जपाचे कार्ड",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "Tap the Naam Jaap card and choose a mantra to start counting. Once set up, the card shows today’s malas against your daily goal or marks the goal complete.",
+        "hi": "नाम जप कार्ड दबाएँ और गिनती शुरू करने के लिए मंत्र चुनें। सेटअप के बाद कार्ड आज की मालाएँ और दैनिक लक्ष्य या लक्ष्य पूरा होने का संदेश दिखाता है।",
+        "mr": "नामजप कार्डवर टॅप करून मंत्र निवडा आणि जप सुरू करा. सुरुवातीची निवड झाल्यावर कार्डवर आजच्या माळा आणि दैनिक उद्दिष्ट किंवा उद्दिष्ट पूर्ण झाल्याचा संदेश दिसतो."
+      },
+      "examples": [
+        "What does the progress on the jaap card measure?",
+        "नाम जप कार्ड दबाने के बाद मंत्र क्यों चुनना है?",
+        "जपाचे कार्ड आजच्या किती माळा झाल्या ते दाखवतं का?",
+        "jaap card pe goal done kyun likha hai?",
+        "jap card madhla daily goal mhanje kay?"
+      ],
+      "labels": {
+        "en": "jaap card",
+        "hi": "जप कार्ड",
+        "mr": "जपाचे कार्ड"
+      }
+    },
+    "home_loading": {
+      "terms": "collection loading|collection spinner|loading error on home",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "A spinner means the collection is loading. A loading error means the catalog could not be loaded. Empty search results mean the catalog loaded but the current search or filters have no matching aartis.",
+        "hi": "घूमता निशान बताता है कि संग्रह लोड हो रहा है। लोडिंग त्रुटि का अर्थ है कि संग्रह खुल नहीं पाया। खाली परिणाम बताते हैं कि खोज या फ़िल्टर से कोई आरती नहीं मिली।",
+        "mr": "फिरणारं चिन्ह म्हणजे संग्रह लोड होत आहे. लोडिंगची त्रुटी म्हणजे संग्रह उघडता आला नाही. रिकामे निकाल म्हणजे सध्याच्या शोधाशी किंवा फिल्टरशी कोणतीही आरती जुळली नाही."
+      },
+      "examples": [
+        "Does the spinner mean there are no hymns?",
+        "संग्रह लोड होने और कोई परिणाम न मिलने में क्या फर्क है?",
+        "संग्रहाच्या जागी गोल चिन्ह का फिरतंय?",
+        "loading error aur empty list same hain kya?",
+        "collection loading diste mhanje aarti nahi ka?"
+      ],
+      "labels": {
+        "en": "collection loading indicator",
+        "hi": "संग्रह लोड होने का संकेत",
+        "mr": "संग्रह लोड होण्याचे चिन्ह"
+      }
+    },
+    "home_order": {
+      "terms": "collection order|order of deity cards|order of the deity cards",
+      "questions": "how|why|what|where|which|can i|do i|does|क्या|कैसे|कौन|कहाँ|क्यों|कसे|कशी|कुठे| का(?:$|[ ?])|काय|किती|kase|kaise|kya|kuthe|konta",
+      "reply": {
+        "en": "In the unfiltered Home collection each deity appears once. Deities pinned by the app team come first. Activity in the app can influence which other deities appear near the top.",
+        "hi": "होम के पूरे संग्रह में हर देवता एक बार दिखता है। टीम द्वारा पिन किए गए देवता पहले आते हैं। ऐप में आपकी गतिविधि से बाकी देवताओं का क्रम बदल सकता है।",
+        "mr": "होमच्या पूर्ण संग्रहात प्रत्येक देवता एकदा दिसतो. टीमने पिन केलेल्या देवता आधी दिसतात. अ‍ॅपमधील तुमच्या वापरामुळे इतर देवतांचा क्रम बदलू शकतो."
+      },
+      "examples": [
+        "Why is the collection order different from yesterday?",
+        "कुछ देवता हमेशा सूची में पहले क्यों आते हैं?",
+        "देवतांच्या यादीचा क्रम कसा ठरतो?",
+        "deity cards ka order kaise decide hota hai?",
+        "majhya list madhe kahi dev var ka distat?"
+      ],
+      "labels": {
+        "en": "collection order",
+        "hi": "संग्रह का क्रम",
+        "mr": "संग्रहाचा क्रम"
+      }
+    }
+  },
+  "decline": "(?:^| )(?:do not|don['’]t|never|cancel|मत|नको|नका|mat karo)(?: |$)|(?:already|status of|did you|have you|was my|has my).*(?:feedback|suggestion|complaint)|(?:feedback|suggestion|complaint).*(?:received|sent yet|submitted yet)|(?:^| )(?:suggestions?|recommendations?) for (?:dinner|lunch|hotels|restaurants)|(?:brightness|contrast|font size|colou?r theme) (?:of |on )?(?:my |the )?(?:app |interface|screen)|interface (?:brightness|contrast|colou?r|font)|(?:weather|stock|sales) forecast|(?:excel|spreadsheet) chart|chart in (?:excel|sheets)|(?:gmail|email|whatsapp|phone.s?) (?:notification|inbox)|(?:notification|inbox)s?.*(?:gmail|whatsapp|outlook)|(?:weather|debit card|credit card).*(?:map|pin)|(?:purchase|order|buy) .*ghee|(?:banking app|work email|group chat|social media account).*(?:notification|inbox|message)|(?:notification|inbox|message).*(?:banking app|work email|group chat|social media account)|(?:book|buy|reserve|purchase).*(?:darshan|temple|shrine).*(?:ticket|visit|slot)|(?:cancel|refund|purchase|buy|activate|renew) (?:my |the |a )?(?:subscription|premium|vip plan)|(?:work email|banking app|group chat|social media account).*(?:language|settings)|(?:language|settings).*(?:work email|banking app|group chat|social media account)",
+  "model_questions": "walk me through|tutorial|instructions for|teach me (?:how|about)|guide me through|समझाइए|समजावून|मार्गदर्शन|(?:can|could) (?:you|someone) explain|help (?:me )?(?:understand|learn)|new to (?:the |this )?(?:app|feature)|how is .*used",
+  "catalog_questions": {
+    "singer": [
+      "(?:tell me )?(?:who (?:sings|sang|performs|recorded)|who is the singer (?:of|for)) (.+)",
+      "(.+?) (?:को किसने गाया(?: है)?|किसने गाया|कोणी (?:गायलं|गायले|गायलंय)|kisne gaya)",
+      "(?:.*?\\b(?:the |which )?)?(?:singer|vocalist|performer) (?:on|for) (.+)"
+    ],
+    "duration": [
+      "(?:how long is (?:the recording of )?|what is the duration of )(.+)",
+      "(.+?) (?:कितने मिनट (?:का|की) है|किती मिनिटांच[ेी] आहे)"
+    ],
+    "about": [
+      "(?:tell me (?:more )?about|what is the story behind) (.+)",
+      "(.+?) (?:के बारे में बताओ|बद्दल (?:सांगा|माहिती द्या))"
+    ],
+    "audio": [
+      "(?:does (.+?) have (?:an? )?(?:audio|recording)|is there (?:an? )?(?:audio|recording) (?:of|for) (.+))",
+      "(.+?) (?:का ऑडियो है|चा ऑडिओ आहे)(?: का)?"
+    ],
+    "availability": [
+      "(?:do you have|does (?:bhaktidhara|the app) (?:have|include)) (.+)",
+      "is (.+?) (?:available (?:here|in the app)|in (?:the|your) (?:app|catalog))",
+      "(.+?) (?:ऐप में है|अॅपमध्ये आहे का)"
+    ]
+  },
+  "catalog_replies": {
+    "singer": {
+      "en": "The listed performer for {title} is {value}.",
+      "hi": "{title} के लिए सूचीबद्ध गायक हैं {value}।",
+      "mr": "{title} यासाठी नोंद असलेले गायक आहेत {value}."
+    },
+    "duration": {
+      "en": "The catalog lists {title} at {value}.",
+      "hi": "{title} की सूचीबद्ध अवधि {value} है।",
+      "mr": "{title} साठी नोंदवलेला कालावधी {value} आहे."
+    },
+    "about": {
+      "en": "{value}",
+      "hi": "{value}",
+      "mr": "{value}"
+    },
+    "availability": {
+      "en": "Yes, {title} is in the catalog.",
+      "hi": "हाँ, {title} संग्रह में है।",
+      "mr": "हो, संग्रहात {title} आहे."
+    },
+    "audio_yes": {
+      "en": "{title} has a recording in the app.",
+      "hi": "{title} की रिकॉर्डिंग ऐप में है।",
+      "mr": "{title} ची ध्वनिमुद्रिका अॅपमध्ये आहे."
+    },
+    "audio_no": {
+      "en": "The catalog has lyrics for {title} and lists no recording.",
+      "hi": "{title} के लिए शब्द उपलब्ध हैं। रिकॉर्डिंग सूचीबद्ध नहीं है।",
+      "mr": "{title} चे शब्द आहेत. ध्वनिमुद्रिकेची नोंद नाही."
+    },
+    "missing": {
+      "en": "I found {title}. The catalog doesn’t list that detail.",
+      "hi": "{title} मिला। संग्रह में यह जानकारी नहीं दी गई है।",
+      "mr": "{title} सापडले. संग्रहात या तपशिलाची नोंद नाही."
+    }
+  },
+  "routes": {
+    "open_bhajans": {
+      "pattern": "^(?:(?:please |let me )?(?:open|show|browse|explore|take me to) (?:the )?)?(?:bhajans?|sacred collection|devotional collection|bhajan collection|bhajan library)(?: please| section)?[?!.]*$|^(?:भजन|भजने|भक्ति संग्रह|भक्ती संग्रह) (?:संग्रह |विभाग )?(?:उघडा|दाखवा|खोलो|दिखाओ)$",
+      "reply": {
+        "en": "Opening the devotional collection.",
+        "hi": "भक्ति संग्रह खोल रहे हैं।",
+        "mr": "भक्ती संग्रह उघडत आहे."
+      },
+      "examples": [
+        "Browse the bhajan collection",
+        "open bhajans",
+        "Sacred Collection",
+        "भजन संग्रह खोलो",
+        "भजन विभाग दाखवा"
+      ],
+      "cues": "collection of bhajans|devotional library|bhajan section|bhajanon|भजनांचा संग्रह"
+    },
+    "open_more": {
+      "pattern": "^(?:(?:open|show|go to|take me to) (?:the )?)?more (?:tab|screen|menu|page)[!?.]*$|^(?:more tab|अधिक|और का पेज) (?:खोलो|उघडा|दाखवा|kholo)$",
+      "reply": {
+        "en": "Opening More.",
+        "hi": "अधिक खोल रहे हैं।",
+        "mr": "अधिक उघडत आहे."
+      },
+      "examples": [
+        "Open the More menu",
+        "take me to the More screen",
+        "More tab kholo",
+        "अधिक उघडा",
+        "और का पेज खोलो"
+      ],
+      "cues": "more menu|more tab|more section|अधिक मेनू"
+    },
+    "open_feedback": {
+      "pattern": "(?:raise|file|log|report|record) (?:a |an )?(?:bug|complaint|issue|problem)|(?:suggest|request) (?:a |an )?(?:new|missing) (?:song|deity|feature)|(?:tell|let) .*(?:developers|people who make (?:this|the) app|app team).*(?:know|problem|mistake)|(?:बग|समस्या) की शिकायत|शिकायत (?:करनी|दर्ज)|त्रुटी (?:कळव|नोंदव)",
+      "reply": {
+        "en": "Opening the feedback form.",
+        "hi": "सुझाव फ़ॉर्म खोल रहे हैं।",
+        "mr": "अभिप्राय फॉर्म उघडत आहे."
+      },
+      "examples": [
+        "file a complaint",
+        "report an issue",
+        "request a missing deity",
+        "I would like to log a problem in the app"
+      ],
+      "cues": "complain|complaint|developers|app team|तक्रार|शिकायत|shikayat|bug report"
+    },
+    "ask_rashi": {
+      "status": "needs_clarification",
+      "pattern": "^(?:(?:please |can you |could you |मला |मुझे |mala |mujhe |aajcha |aajche |aaj ka |आजचं |आजचे |आजचं माझं |आज का |माझी |माझे |माझं |maajhi |aajchi |माझं |मेरी |mera |mazi |majhi |daily |my |today's |i'd like |i want |tell me |tell me my |what(?: is|'s) my |give me my |read my )*(?:ra+sh[iy]|raasi|rasi|rashifal|rashibhavishya|rashi bhavishya|rashi phal|star sign forecast|horoscope|daily horoscope|राशी|रास|राशि|राशिफल|राशीभविष्य|राशिभविष्य)(?: (?:phal|fal|bhavishya|भविष्य|सांगा|सांग|सांगाल का|sa+ng(?:a|aa|na)?|na|please|batao|bata do|बताओ|बताइए|today|for today|आज का|क्या है|काय आहे))*)[?!.।]*$",
+      "reply": {
+        "en": "Which zodiac sign would you like the horoscope for?",
+        "hi": "आप किस राशि का राशिफल जानना चाहते हैं?",
+        "mr": "कोणत्या राशीचं भविष्य सांगू?"
+      },
+      "examples": [
+        "rashi sanga",
+        "rashi sang",
+        "माझी राशी सांगा",
+        "आजचे राशीभविष्य सांगा",
+        "मला राशिभविष्य सांग",
+        "rashibhavishya sanga",
+        "mala rashi bhavishya sang",
+        "rashi batao",
+        "आज का राशिफल बताइए",
+        "मुझे राशिफल बताओ",
+        "mera rashifal bata do",
+        "Tell me my horoscope",
+        "Read my daily horoscope",
+        "What is my horoscope for today?",
+        "Give me my zodiac forecast",
+        "Which way will my stars go today?"
+      ]
+    },
+    "open_notifications": {
+      "pattern": "^(?:(?:(?:please|can you|could you|open|check|show|read|view|see|take me to|go to|my|me|the|app|unread|new|recent|any|are there any) )*(?:notifications?|notification (?:inbox|centre|center|panel)|inbox|announcements?|app notices)|(?:(?:माझ्या|मला|मेरी|मेरे|नवीन|नव्या|नई|naye|mere|majhe) )?(?:notifications?|inbox|नोटिफिकेशन(?:्स)?|नोटिफिकेशन्स|नोटिफिकेशंस|सूचना|सूचनाएं|सूचनाएँ|अधिसूचनाएं)(?: (?:उघड|उघडा|दाखवा|दाखव|खोलो|खोलें|दिखाओ|पहा|आहेत का|kholo|dikhao|dakhav|dakhva|ughad))?)(?: please)?[?!.।]*$",
+      "reply": {
+        "en": "Opening your notifications.",
+        "hi": "आपकी सूचनाएँ खोल रहे हैं।",
+        "mr": "तुमच्या सूचना उघडत आहे."
+      },
+      "examples": [
+        "open notification",
+        "open my notifications",
+        "notification inbox",
+        "Show me recent notifications",
+        "check the app inbox",
+        "Any new announcements?",
+        "read my app notices",
+        "माझ्या सूचना दाखवा",
+        "नोटिफिकेशन उघडा",
+        "नवीन सूचना आहेत का",
+        "नोटिफिकेशन्स दाखव",
+        "सूचनाएँ खोलें",
+        "मेरे नोटिफिकेशन दिखाओ",
+        "मुझे नई सूचनाएं दिखाओ",
+        "notification kholo",
+        "notifications dakhva",
+        "majhe notification ughad"
+      ],
+      "cues": "(?:messages|updates|announcements) (?:from|inside) (?:this app|bhaktidhara)|(?:bhaktidhara|in.app) (?:messages|inbox)"
+    },
+    "open_horoscope": {
+      "pattern": "^(?:(?:please )?(?:open|show|go to|take me to) (?:the )?(?:horoscope|rashi|rashifal)(?: (?:screen|tab|section|page))?|(?:rashi|horoscope|rashifal|राशीभविष्य|राशिफल)(?: (?:screen|tab|section|page|विभाग|पेज))? (?:kholo|ughda|उघडा|खोलो))[?!.।]*$",
+      "reply": {
+        "en": "Opening the horoscope screen.",
+        "hi": "राशिफल खोल रहे हैं।",
+        "mr": "राशीभविष्य उघडत आहे."
+      },
+      "examples": [
+        "Go to the horoscope section",
+        "horoscope tab ughda",
+        "राशिफल पेज खोलो"
+      ]
+    }
+  },
+  "catalog_clues": {
+    "singer": "vocalist|whose voice|credited artist|performer on|singer on|आवाज कोणाचा|गायक कौन",
+    "duration": "running time|track length|recording length|runtime of|अवधि|कालावधी",
+    "about": "background on|background of|catalog description|माहिती हवी|परिचय",
+    "audio": "audio track|audio available|recorded version|ध्वनिमुद्रण|रिकॉर्डिंग उपलब्ध"
+  },
+  "rashi_answer": "^(?:(?:my (?:zodiac |star )?sign is|my rashi is|i am|mine is|it's|it is|माझी (?:रास|राशी)|मेरी राशि|meri rashi|majhi (?:ras|rashi)|it would be) )?(?:an? )?([^\\s?!.।,]+)(?: (?:आहे|है|rashi|राशी|रास|राशि|please|for me))?[?!.।]*$",
+  "birth_rashi": {
+    "sign_terms": "ra+a?sh[iy]|raas|rasi|राशी?|रास|राशि|zodiac|moon sign|star sign|birth sign",
+    "uncertain": "don['’]?t know|do not know|no (?:idea|clue)|not (?:sure|certain)|unsure|never (?:knew|checked|found out)|can.?t remember|not know|माहि?त नाही|माहीत नाही|ठाऊक नाही|पता नहीं|नहीं पता|मालूम नहीं|mah[i]*t nah[iy]|pata nah[iy]|malum nah[iy]|no idea|माहिती नाही|माहित नाही|don't remember|do not remember|dont remember|no record|nobody told me|नहीं मालूम|नाही माहीत|नाही माहित",
+    "discover": "find out|find my|figure .{0,20}out|work .{0,20}out|calculate|determine|what(?: is|'s) my|शोध|काढा|काढून|कशी कळेल|कौन सी|कशी शोधू|पता करो|kaise pata|(?:माझी|मेरी).*(?:काय आहे|कौनसी है|क्या है)|काढून|काढ$",
+    "switch": "^(?:please )?(?:open|play|show|start|switch|change|cancel|stop|never mind|forget it|instead|go to|चालू|रद्द|थांब|बस|छोडो|छोड़ो)|(?:उघडा|लावा|खोलो|चलाओ|kholo|ughad)|notification|feedback|(?:don['’]?t|do not|never) (?:calculate|find|work out|look up|ask)|काढू नका|मत निकाल|नहीं निकाल|never mind|forget it",
+    "date_iso": "(?:^|[^0-9])([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})(?![0-9])",
+    "date_numeric": "(?:^|[^0-9])([0-9]{1,2})[/.-]([0-9]{1,2})[/.-]([0-9]{4})(?![0-9])",
+    "months": [
+      [
+        "january",
+        "jan",
+        "जनवरी",
+        "जानेवारी"
+      ],
+      [
+        "february",
+        "feb",
+        "फरवरी",
+        "फेब्रुवारी"
+      ],
+      [
+        "march",
+        "mar",
+        "मार्च"
+      ],
+      [
+        "april",
+        "apr",
+        "अप्रैल",
+        "एप्रिल"
+      ],
+      [
+        "may",
+        "मई",
+        "मे"
+      ],
+      [
+        "june",
+        "jun",
+        "जून"
+      ],
+      [
+        "july",
+        "jul",
+        "जुलाई",
+        "जुलै"
+      ],
+      [
+        "august",
+        "aug",
+        "अगस्त",
+        "ऑगस्ट"
+      ],
+      [
+        "september",
+        "sep",
+        "सितंबर",
+        "सप्टेंबर"
+      ],
+      [
+        "october",
+        "oct",
+        "अक्टूबर",
+        "ऑक्टोबर"
+      ],
+      [
+        "november",
+        "nov",
+        "नवंबर",
+        "नोव्हेंबर"
+      ],
+      [
+        "december",
+        "dec",
+        "दिसंबर",
+        "डिसेंबर"
+      ]
+    ],
+    "time": "(?:^|[^0-9:+-])(?:(सकाळी|सुबह|दुपारी|दोपहर|रात्री|रात|संध्याकाळी|शाम)\\s*)?([0-9]{1,2})(?::([0-9]{2}))?\\s*(a\\.?m\\.?|p\\.?m\\.?|वाजता|बजे)?(?![0-9:/.-])",
+    "zones": {
+      "Asia/Kolkata": "india|indian standard time|भारत|पुणे|पुण्यात|मुंबई|दिल्ली|नागपूर|नाशिक|pune|mumbai|nagpur|nashik|delhi|kolkata|bengaluru|bangalore|chennai|hyderabad|kolhapur|औरंगाबाद|कोल्हापूर|सातारा|सोलापूर|ahmedabad|पुण्यातील|उज्जैन|ujjain|वाराणसी|varanasi|अयोध्या|ayodhya|नासिक|कोल्हापुर|पंढरपूर|पंढरपुर|pandharpur|शिर्डी|shirdi|हरिद्वार|haridwar|तिरुपती|तिरुपति|tirupati|नागपुर|छत्रपती संभाजीनगर|छत्रपति संभाजीनगर|chh. sambhajinagar|ठाणे|thane|सोलापुर|solapur|सतारा|satara|नवी दिल्ली|नई दिल्ली|new delhi|बंगळूरू|बेंगलुरु|हैदराबाद|अहमदाबाद|कोलकाता|चेन्नई|जयपूर|जयपुर|jaipur|लखनौ|लखनऊ|lucknow|इंदूर|इंदौर|indore",
+      "Asia/Kathmandu": "nepal|kathmandu|नेपाल|काठमांडू",
+      "Europe/London": "london uk|london england|united kingdom|british time|लंडन|लंदन|london",
+      "America/New_York": "new york city|new york|manhattan|न्यूयॉर्क",
+      "Asia/Dubai": "dubai|दुबई",
+      "UTC": "utc|gmt",
+      "America/Los_Angeles": "सॅन फ्रान्सिस्को|सैन फ्रांसिस्को|san francisco",
+      "Asia/Singapore": "सिंगापूर|सिंगापुर|singapore",
+      "Australia/Sydney": "सिडनी|sydney"
+    },
+    "replies": {
+      "start": {
+        "en": "I can calculate your birth Moon sign. What is your date of birth, including the year, and where were you born? If you know the local birth time, you can include it.",
+        "hi": "मैं आपकी जन्म राशि निकाल सकती हूँ। आपकी जन्म तारीख, साल और जन्मस्थान क्या हैं? जन्म का स्थानीय समय पता हो तो वह भी बताइए।",
+        "mr": "मी तुमची जन्मरास काढू शकते. तुमची जन्मतारीख, जन्मवर्ष आणि जन्मठिकाण सांगा. जन्मवेळ माहीत असेल तर तीही सांगा."
+      },
+      "date": {
+        "en": "What was your date of birth? Please say the day, month name and year.",
+        "hi": "आपकी जन्म तारीख क्या है? दिन, महीने का नाम और साल बताइए।",
+        "mr": "तुमची जन्मतारीख काय आहे? दिवस, महिन्याचं नाव आणि वर्ष सांगा."
+      },
+      "zone": {
+        "en": "Where were you born? Please give the country if it uses one time zone, or your birth time zone, such as Asia/Kolkata.",
+        "hi": "आपका जन्म कहाँ हुआ था? एक समय क्षेत्र वाले देश का नाम या जन्म का समय क्षेत्र बताइए, जैसे Asia/Kolkata।",
+        "mr": "तुमचा जन्म कुठे झाला? एकच वेळक्षेत्र असलेला देश किंवा जन्मठिकाणाचं वेळक्षेत्र सांगा, उदा. Asia/Kolkata."
+      },
+      "time": {
+        "en": "On that date the Moon changed from {first} to {last}. What was your local birth time, including AM or PM?",
+        "hi": "उस दिन चंद्रमा {first} से {last} राशि में गया। जन्म का स्थानीय समय सुबह या शाम के साथ बताइए।",
+        "mr": "त्या दिवशी चंद्र {first} राशीतून {last} राशीत गेला. तुमचा जन्म किती वाजता झाला? सकाळ की संध्याकाळ तेही सांगा."
+      },
+      "uncertain": {
+        "en": "The two possible birth signs are {first} and {last}. The local birth time is needed to choose between them.",
+        "hi": "संभावित जन्म राशियाँ {first} और {last} हैं। सही राशि चुनने के लिए जन्म का स्थानीय समय चाहिए।",
+        "mr": "तुमची जन्मरास {first} किंवा {last} असू शकते. नेमकी रास सांगण्यासाठी जन्मवेळ लागेल."
+      },
+      "invalid_time": {
+        "en": "Please check the local birth time. Give the hour and minutes with AM or PM, or use a 24-hour time.",
+        "hi": "जन्म का स्थानीय समय जाँचकर घंटे और मिनट सुबह या शाम के साथ बताइए।",
+        "mr": "जन्मवेळ तपासून तास, मिनिटं आणि सकाळ की संध्याकाळ ते सांगा."
+      },
+      "result": {
+        "en": "Your birth Moon sign is {sign}.",
+        "hi": "आपकी जन्म राशि {sign} है।",
+        "mr": "तुमची जन्मरास {sign} आहे."
+      },
+      "cancel": {
+        "en": "Okay, I’ll stop the birth-sign lookup.",
+        "hi": "ठीक है, जन्म राशि की गणना यहीं रोकते हैं।",
+        "mr": "ठीक आहे, जन्मरास शोधणं इथे थांबवते."
+      },
+      "missing_date": {
+        "en": "I need the birth date, including the year, to calculate a Moon sign. You can ask again when you have it.",
+        "hi": "जन्म राशि निकालने के लिए जन्म की तारीख और साल चाहिए। पता चले तो फिर पूछिए।",
+        "mr": "जन्मरास काढण्यासाठी जन्मतारीख आणि वर्ष हवं. माहिती मिळाली की पुन्हा विचारा."
+      }
+    },
+    "reading": "horoscope|राशीभविष्य|राशिफल|forecast|राशीचे फळ|राशीचं फळ|राशीचे भविष्य|राशीचं भविष्य|राशि का फल",
+    "unknown_time": "(?:time|वेळ|समय|वक्त).{0,25}(?:unknown|माहि?त नाही|माहिती नाही|ठाऊक नाही|पता नहीं|नहीं पता)|(?:don['’]?t know|do not know|unsure|no record|can['’]?t remember).{0,25}(?:time|hour)",
+    "cancel": "^(?:(?:please )?(?:cancel(?: (?:this|lookup|that))?|stop|never mind|nevermind|forget it)|रद्द करा|थांबा|राहू द्या|बस|छोड़ो|रहने दो)[.!?। ]*$",
+    "missing_date": "(?:birth ?date|date of birth|birthday|जन्मतारीख|जन्म तारीख|जन्मदिन)",
+    "clock_words": {
+      "zero": "0",
+      "one": "1",
+      "two": "2",
+      "three": "3",
+      "four": "4",
+      "five": "5",
+      "six": "6",
+      "seven": "7",
+      "eight": "8",
+      "nine": "9",
+      "ten": "10",
+      "eleven": "11",
+      "twelve": "12"
+    },
+    "clock_phrases": {
+      "midnight": "00:00",
+      "noon": "12:00",
+      "in the morning": "am",
+      "in the afternoon": "pm",
+      "in the evening": "pm",
+      "at night": "pm",
+      "o'clock": "",
+      "o’clock": ""
+    },
+    "clock_minutes": {
+      "fifteen": "15",
+      "thirty": "30",
+      "forty five": "45",
+      "forty-five": "45"
+    },
+    "implicit_uncertainty": "^(?:i |sorry[, ]*|honestly |really |मला |मुझे |mala |mujhe |mai |main )*(?:{uncertain})(?: (?:it|mine|which one|which one it is|what mine is|actually|yet|at all))?[?.!। ]*$",
+    "personal_details": "\\b(?:born (?:in|at|on)|my (?:name|birthplace|birth date|birth time|birth city|birthday) is)|माझ[ंीा] (?:नाव|जन्म)|मेरा (?:नाम|जन्म)|माझा जन्म|मेरा जन्म"
+  },
+  "feature_screen_patterns": [
+    "^(?:(?:can|could|would) you |please |i(?:'d| would) (?:like|love) to )*(?:open|launch|visit|go to|access|bring up|take me(?: straight)? to|show(?: me)?|let me (?:see|visit|browse)) (?:the |my |your |app.s )?(.+?)(?: (?:for me|please))?[.?!।]*$",
+    "^(?:(?:मला|मुझे|जरा|कृपया) )?(.+?)(?: (?:उघडून द्या|उघडा|दाखवा|दाखव|खोलो|खोल दो|खोलें|दिखाओ|दिखाइए|पर ले चलो|वर घेऊन जा|पाहायचं आहे|kholo|dikhao|ughda|dakhva))[.?!।]*$",
+    "^(?:(?:can|could|may) (?:we|i) |let.s |please )?(?:look at|browse|view|visit|open) (?:the |my )?(.+?)(?: (?:page|tab|section|screen))?(?: please)?[?!.।]*$"
+  ],
+  "feature_inquiry": "^(?:(?:hey|hello) (?:bhakti|भक्ती)[, ]*)?(?:is there|is it possible|i(?:'m| am) (?:trying|curious|wondering|unsure)|i(?:'d| would) like to (?:understand|learn)|i need (?:help|guidance)|help me (?:use|figure out)|where in|what (?:can|does|is available|information)|could (?:i|you)|can you|can i|how would|do you have)|समजाव|समझा|माहिती हवी|जानकारी चाहिए|मदद चाहिए|कोणकोण|काय |क्या |कौन.कौन|कौनसे|कौन से",
+  "topic_priority": [
+    [
+      "milan",
+      "kundali"
+    ],
+    [
+      "akhand_diya",
+      "mandir"
+    ],
+    [
+      "jaap_stats",
+      "jaap"
+    ],
+    [
+      "reminders",
+      "notifications"
+    ],
+    [
+      "daily_aarti",
+      "reminders"
+    ],
+    [
+      "home_bells",
+      "notifications"
+    ],
+    [
+      "home_jaap_card",
+      "jaap"
+    ],
+    [
+      "home_order",
+      "home_cards"
+    ]
+  ],
+  "feature_navigation_hint": "^(?:i would love to (?:visit|browse|view)|pull up|get me (?:to|into)|could (?:you|we) (?:visit|browse|go to|bring up|open)|let.s (?:visit|browse)|मला .*(?:चं पान|विभागात) (?:जायचं|पाहायचं)|मुझे .* (?:पेज|स्क्रीन) (?:पर जाना|देखना))",
+  "feature_explanation": "where in (?:(?:this|the) app|bhaktidhara)|what (?:options|information|activities)|what.*(?:indicator|used for)|कोणकोण|काय .*(?:मिळ|येत)|क्या .*(?:सकत|मिल)|कौन.कौन",
+  "app_scope": "bhaktidhara|bhakti dhara|in (?:this|the) app|in here|भक्तिधारा|भक्तीधारा|(?:अॅप|ॲप|ऐप) (?:में|में से)|अॅपमध्ये|या अॅप",
+  "jaap_values": {
+    "today_count": {
+      "pattern": "^(?:how many (?:chants|jaaps?|japs?|repetitions) (?:did i (?:do|complete)|have i (?:done|completed)) today|how (?:many times|much) (?:did i chant|have i chanted) today|what.s my (?:jaap|chant) count (?:for )?today|आज (?:मी |माझा |मैंने )?कित[नीाे]+ (?:बार )?(?:जप|जाप)(?: (?:केला|किया|झाला|किए|केले))?|मी आज किती जप केला)[?!.।]*$",
+      "reply": {
+        "en": "Your jaap count today is {n}.",
+        "hi": "आज आपकी जप संख्या {n} है।",
+        "mr": "आजचा तुमचा जप {n} आहे."
+      }
+    },
+    "lifetime_count": {
+      "pattern": "^(?:what(?: is|.s) my (?:lifetime|total|all.time) (?:jaap|chant|jap)(?: count| total)?|how many (?:chants|jaaps?|japs?) have i (?:done|completed) (?:in total|altogether)|माझा एकूण जप किती(?: आहे)?|मेरा कुल जाप कितना है)[?!.।]*$",
+      "reply": {
+        "en": "Your lifetime jaap count is {n}.",
+        "hi": "आपकी अब तक की जप संख्या {n} है।",
+        "mr": "तुमचा आतापर्यंतचा एकूण जप {n} आहे."
+      }
+    },
+    "streak": {
+      "pattern": "^(?:what(?: is|.s) my (?:current )?(?:jaap|japa|chanting|jap) streak|(?:how long is|what is|can you tell me|show me) my (?:current )?(?:(?:jaap|chanting) )?streak|माझ्या जपाचे सलग किती दिवस झाले|मेरी जाप स्ट्रीक कितने दिन की है)[?!.।]*$",
+      "reply": {
+        "en": "Days in your current chanting streak: {n}.",
+        "hi": "आपकी मौजूदा जप श्रृंखला {n} दिन की है।",
+        "mr": "तुमच्या जपाचे सलग {n} दिवस झाले आहेत."
+      }
+    }
+  }
+}

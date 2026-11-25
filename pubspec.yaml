@@ -1,7 +1,7 @@
 name: nitya_aarti
 description: "BhaktiDhara: Aarti Sangrah"
 publish_to: 'none'
-version: 1.2.16+38
+version: 1.2.20+42
 
 environment:
   sdk: ^3.12.2
@@ -66,6 +66,9 @@ dependencies:
   pdfrx: ^2.4.8
   device_info_plus: ^13.3.0
   pdf: ^3.13.1
+  flutter_tts: ^4.2.5
+  sherpa_onnx: ^2.0.3
+  record: ^7.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -82,6 +85,8 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
+    - assets/bhakti_wake/
+    - backend/app/voice_agent/app_help.json
     - assets/devotional_catalog.json
     - assets/decorations/
     - assets/aarti_screen/

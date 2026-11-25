@@ -1,22 +1,23 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../core/analytics/analytics_service.dart';
 import '../../core/theme/theme.dart';
-import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../domain/entities/app_remote_config.dart';
 import '../../domain/entities/aarti_item.dart';
+import '../../domain/entities/granth.dart';
+import '../../features/voice_agent/domain/home_voice_commands.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/bhakti_darshan_providers.dart';
 import '../providers/deity_affinity_provider.dart';
@@ -27,6 +28,7 @@ import '../providers/review_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../widgets/app_banner_ad.dart';
 import '../widgets/akhand_jyot_bar.dart' show openGarbhagriha;
+import '../widgets/bhakti/deity_cutout_image.dart';
 import '../widgets/festive_offer_popup.dart';
 import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
@@ -41,6 +43,8 @@ import '../../services/ad_units.dart';
 import '../../services/app_permission_service.dart';
 import '../providers/granth_providers.dart';
 import 'granth_chapter_list_screen.dart';
+import '../../features/voice_agent/presentation/widgets/floating_bhakti_orb.dart';
+import '../../features/voice_agent/presentation/widgets/bhakti_voice_modal.dart';
 
 /// Order must match the [IndexedStack] children in the dashboard.
 /// [mandir] never becomes the current tab: tapping it opens the Garbhagriha.
@@ -56,6 +60,10 @@ class MandirDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
+  late final HomeVoiceBinding _voiceBinding;
+  late final _voiceEntry = _activeVoiceHandler;
+  MaterialPageRoute<void>? _voiceResultRoute;
+
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
   _DashTab _tab = _DashTab.home;
@@ -64,9 +72,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   // Search and voice recognition controllers
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _homeScrollController = ScrollController();
-  final stt.SpeechToText _speechToText = stt.SpeechToText();
-  bool _speechEnabled = false;
-  bool _isListening = false;
   bool _showScrollToTop = false;
   DateTime? _lastBackPressTime;
 
@@ -82,6 +87,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _voiceBinding = ref.read(homeVoiceBindingProvider)..homeHandler = _homeVoice
+      ..activeHandler = _voiceEntry;
     _lifecycleListener = AppLifecycleListener(
       onResume: () => ref.read(deityAffinityProvider.notifier).refreshTop(),
     );
@@ -127,12 +134,23 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   void _scheduleDeityImageWarmup(List<AartiItem> catalog) {
     if (_deityImagesWarmed || catalog.isEmpty) return;
     _deityImagesWarmed = true;
-    final assets = {for (final item in catalog) _getDeityImageAsset(item.deity)};
+    final deities = ref.read(allBhaktiDeitiesProvider);
+    final portraits = {
+      for (final item in catalog) resolveDeityPortrait(item.deity, deities: deities),
+    };
     _deityWarmupTimer = Timer(const Duration(seconds: 2), () async {
-      for (final asset in assets) {
+      for (final portrait in portraits) {
         if (!mounted) return;
+        if (portrait.url.isNotEmpty) {
+          await precacheImage(
+            CachedNetworkImageProvider(portrait.url),
+            context,
+            onError: (_, _) {},
+          );
+          continue;
+        }
         await precacheImage(
-          ResizeImage.resizeIfNeeded(null, 240, AssetImage(asset)),
+          ResizeImage.resizeIfNeeded(null, 240, AssetImage(portrait.asset)),
           context,
           onError: (_, _) {},
         );
@@ -161,7 +179,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   void _loadBannerAd() {
     if (kIsWeb) return;
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-2701330811649318/2466602925', // Production Banner Ad Unit ID
+      adUnitId: AdUnits.homeBanner,
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
@@ -179,6 +197,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
   @override
   void dispose() {
+    if (_voiceBinding.activeHandler == _voiceEntry) {
+      _voiceBinding.activeHandler = null;
+      _voiceBinding.homeHandler = null;
+    }
     _lifecycleListener.dispose();
     _searchDebounce?.cancel();
     _deityWarmupTimer?.cancel();
@@ -187,20 +209,210 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     _homeScrollController.removeListener(_onHomeScroll);
     _searchController.dispose();
     _homeScrollController.dispose();
-    _speechToText.stop();
     _bannerAd?.dispose();
     super.dispose();
   }
 
+  HomeVoiceHandler? _activeVoiceHandler() {
+    final detail = _voiceResultRoute;
+    if (detail?.isCurrent == true) {
+      return (text, lang, {prediction}) {
+        if (!RegExp(
+          r'^(?:go back|back to home|वापस जाओ|मागे जा|wapas jao)[.!।]?$',
+          caseSensitive: false,
+        ).hasMatch(text.trim()))
+          return null;
+        return (
+          text: lang == 'en'
+              ? 'Going back.'
+              : lang == 'hi'
+              ? 'वापस जा रही हूँ।'
+              : 'मागे जात आहे.',
+          apply: () {
+            if (mounted && detail!.isCurrent) Navigator.of(context).pop();
+          },
+        );
+      };
+    }
+    if (_tab != _DashTab.home || ModalRoute.of(context)?.isCurrent != true)
+      return null;
+    return _homeVoice;
+  }
+
+  HomeVoiceReply? _homeVoice(String text, String lang, {HomeCommand? prediction}) {
+    if (!mounted) return null;
+    final cmd = prediction ?? HomeCommand.parse(text);
+    String say(String en, String hi, String mr) => lang == 'en'
+        ? en
+        : lang == 'hi'
+        ? hi
+        : mr;
+    HomeVoiceReply reply(String message, VoidCallback apply) => (
+      text: message,
+      apply: () {
+        if (mounted &&
+            _tab == _DashTab.home &&
+            ModalRoute.of(context)?.isCurrent == true)
+          apply();
+      },
+    );
+    switch (cmd) {
+      case null:
+        return null;
+      case CancelHomeCommand():
+        return (text: say('Okay.', 'ठीक है।', 'ठीक आहे.'), apply: null);
+      case HomeExplanation(:final text):
+        return (text: text, apply: null);
+      case ReadHomeRegion():
+        final name =
+            ref.read(selectedRegionProvider)?.label(lang) ??
+            say('All', 'सभी', 'सर्व');
+        return (
+          text: say(
+            'Selected region: $name.',
+            'चुना हुआ क्षेत्र: $name।',
+            'निवडलेला प्रदेश: $name.',
+          ),
+          apply: null,
+        );
+      case ReadHomeSearch():
+        final text = _searchController.text.trim();
+        return (
+          text: text.isEmpty
+              ? say(
+                  'The search box is empty.',
+                  'खोज खाली है।',
+                  'शोधपेटी रिकामी आहे.',
+                )
+              : text,
+          apply: null,
+        );
+      case SearchHome(:final query):
+        return reply(
+          query.isEmpty
+              ? say(
+                  'Clearing search.',
+                  'खोज साफ कर रही हूँ।',
+                  'शोध साफ करत आहे.',
+                )
+              : say(
+                  'Searching for $query.',
+                  '$query खोज रही हूँ।',
+                  '$query शोधत आहे.',
+                ),
+          () {
+            _searchDebounce?.cancel();
+            _searchController.value = TextEditingValue(
+              text: query,
+              selection: TextSelection.collapsed(offset: query.length),
+            );
+            ref.read(searchQueryProvider.notifier).state = query;
+            _scrollToTop();
+          },
+        );
+      case FilterHome(:final region):
+        final name = region?.label(lang) ?? say('All', 'सभी', 'सर्व');
+        return reply(
+          say('Selecting $name.', '$name चुन रही हूँ।', '$name निवडत आहे.'),
+          () {
+            ref.read(selectedRegionProvider.notifier).state = region;
+            _scrollToTop();
+          },
+        );
+      case OpenHomeResult(:final position, :final section):
+        final books = section == 'aartis'
+            ? <GranthBook>[]
+            : _matchingBooks(lang);
+        final items = section == 'books'
+            ? <AartiItem>[]
+            : ref.read(filteredCatalogProvider).asData?.value ?? <AartiItem>[];
+        final count = books.length + items.length;
+        if (position < 1 || position > count) {
+          final catalog = ref.read(filteredCatalogProvider);
+          if (section != 'books' && catalog.isLoading) {
+            return (
+              text: say(
+                'The collection is loading.',
+                'संग्रह लोड हो रहा है।',
+                'संग्रह लोड होत आहे.',
+              ),
+              apply: null,
+            );
+          }
+          if (section != 'books' && catalog.hasError) {
+            return (
+              text: say(
+                'The collection could not be loaded.',
+                'संग्रह लोड नहीं हो पाया।',
+                'संग्रह लोड झाला नाही.',
+              ),
+              apply: null,
+            );
+          }
+          if (section != 'aartis' &&
+              ref.read(searchQueryProvider).isNotEmpty &&
+              ref.read(granthBooksProvider).isLoading) {
+            return (
+              text: say(
+                'The book results are loading.',
+                'ग्रंथ लोड हो रहे हैं।',
+                'ग्रंथ लोड होत आहेत.',
+              ),
+              apply: null,
+            );
+          }
+          return (
+            text: say(
+              'There are $count results in that list.',
+              'उस सूची में $count परिणाम हैं।',
+              'त्या यादीत $count निकाल आहेत.',
+            ),
+            apply: null,
+          );
+        }
+        // Capture the item before speaking so a catalog refresh cannot change the selection.
+        if (position <= books.length) {
+          final book = books[position - 1];
+          return reply(book.titleFor(lang), () => _openBook(book));
+        }
+        final item = items[position - books.length - 1];
+        return reply(item.localizedTitle(lang), () => _openAarti(item));
+    }
+  }
+
+  List<GranthBook> _matchingBooks(String lang) {
+    final query = ref.read(searchQueryProvider).trim().toLowerCase();
+    if (query.isEmpty) return [];
+    return ref
+            .read(granthBooksProvider)
+            .asData
+            ?.value
+            .where(
+              (book) =>
+                  book.titleFor(lang).toLowerCase().contains(query) ||
+                  book.subtitleFor(lang).toLowerCase().contains(query) ||
+                  book.slug.toLowerCase().contains(query),
+            )
+            .toList() ??
+        [];
+  }
+
+  void _openBook(GranthBook book) {
+    final route = MaterialPageRoute<void>(
+      builder: (_) => GranthChapterListScreen(book: book),
+    );
+    _voiceResultRoute = route;
+    Navigator.of(context).push(route);
+  }
+
   void _openAarti(AartiItem item) {
     ref.read(recentDeitiesProvider.notifier).recordDeityOpened(item.deity);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            DeityAartiListScreen(deity: item.deity, initialItem: item),
-      ),
+    final route = MaterialPageRoute<void>(
+      builder: (_) =>
+          DeityAartiListScreen(deity: item.deity, initialItem: item),
     );
+    _voiceResultRoute = route;
+    Navigator.of(context).push(route);
   }
 
   @override
@@ -253,12 +465,17 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
     // Hidden tabs stay alive in the IndexedStack, so their banner lives here
     // and only exists while the tab is on screen.
-    final showTabBanner =
-        currentTab == _DashTab.panchang || currentTab == _DashTab.horoscope;
+    final tabBannerId = switch (currentTab) {
+      _DashTab.horoscope => AdUnits.horoscopeBanner,
+      _DashTab.panchang => AdUnits.panchangBanner,
+      _DashTab.more => AdUnits.moreTabBanner,
+      _ => null,
+    };
     final tabBody = Column(
       children: [
         Expanded(child: tabStack),
-        if (showTabBanner) AppBannerAd(key: ValueKey(currentTab), adUnitId: AdUnits.tabBanner),
+        if (tabBannerId != null)
+          AppBannerAd(key: ValueKey(currentTab), adUnitId: tabBannerId),
       ],
     );
 
@@ -341,9 +558,13 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               )
             : tabBody,
 
-        // ── Scroll-to-Top Floating Action Button ───────────────────────────
-        floatingActionButton: (currentTab == _DashTab.home && _showScrollToTop)
-            ? FloatingActionButton(
+        // ── Floating Bhakti AI Orb & Scroll-to-Top ───────────────────────────
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (currentTab == _DashTab.home && _showScrollToTop) ...[
+              FloatingActionButton(
                 onPressed: _scrollToTop,
                 mini: true,
                 backgroundColor: MandirTheme.primarySaffron,
@@ -354,8 +575,14 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     ? 'वर जा'
                     : (localeCode == 'hi' ? 'ऊपर जाएं' : 'Scroll to top'),
                 child: const Icon(Icons.arrow_upward_rounded, size: 22),
-              )
-            : null,
+              ),
+              const SizedBox(height: 12),
+            ],
+            FloatingBhaktiOrb(
+              onTap: () => BhaktiVoiceModal.show(context, ref),
+            ),
+          ],
+        ),
 
         // ── Bottom Navigation ──────────────────────────────────────────────
         // BottomNavigationBar needs at least two items.
@@ -468,8 +695,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 // ── Decorative Header (collapses to a compact bar) ───────
                 _buildSliverHeader(l10n),
 
-                const SliverToBoxAdapter(child: AnnouncementCards()),
-
                 // ── Naam Jaap entry ──────────────────────────────────────
                 if (ref.watch(featureEnabledProvider(AppRemoteConfig.jaap)))
                   const SliverToBoxAdapter(child: JaapDashboardCard()),
@@ -494,6 +719,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        const HomeNotificationsButton(compact: true),
                         const SizedBox(width: 8),
                         _buildLanguageDropdown(localeCode, l10n),
                       ],
@@ -823,20 +1050,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     WidgetRef ref,
     String localeCode,
   ) {
-    final query = ref.watch(searchQueryProvider).trim().toLowerCase();
     final booksAsync = ref.watch(granthBooksProvider);
-
     return booksAsync.maybeWhen(
-      data: (books) {
-        final matches = books.where((b) {
-          final title = b.titleFor(localeCode).toLowerCase();
-          final subtitle = b.subtitleFor(localeCode).toLowerCase();
-          final slug = b.slug.toLowerCase();
-          return title.contains(query) ||
-              subtitle.contains(query) ||
-              slug.contains(query);
-        }).toList();
-
+      data: (_) {
+        final matches = _matchingBooks(localeCode);
         if (matches.isEmpty) return const [];
 
         return [
@@ -895,14 +1112,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => GranthChapterListScreen(book: b),
-                            ),
-                          );
-                        },
+                        onTap: () => _openBook(b),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -1075,7 +1285,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Image.asset('assets/decorations/om.png', height: 28, width: 28),
+          Image.asset('assets/decorations/om.webp', height: 28, width: 28),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -1128,7 +1338,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         left: 12,
                         top: -15,
                         child: Image.asset(
-                          'assets/decorations/bell.png',
+                          'assets/decorations/bell.webp',
                           width: 48,
                           height: 96,
                           fit: BoxFit.contain,
@@ -1140,7 +1350,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         right: 12,
                         top: -15,
                         child: Image.asset(
-                          'assets/decorations/bell.png',
+                          'assets/decorations/bell.webp',
                           width: 48,
                           height: 96,
                           fit: BoxFit.contain,
@@ -1155,7 +1365,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                           children: [
                             // Om symbol (decorative image)
                             Image.asset(
-                              'assets/decorations/om.png',
+                              'assets/decorations/om.webp',
                               height: 42,
                               width: 42,
                             ),
@@ -1588,7 +1798,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               Row(
                 children: [
                   Image.asset(
-                    'assets/decorations/om.png',
+                    'assets/decorations/om.webp',
                     height: 26,
                     width: 26,
                   ),
@@ -2052,15 +2262,13 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   ),
                 IconButton(
                   icon: Icon(
-                    _isListening ? Icons.mic : Icons.mic_none,
-                    color: _isListening
-                        ? MandirTheme.primarySaffron
-                        : MandirTheme.textMuted,
+                    Icons.mic_none,
+                    color: MandirTheme.textMuted,
                     size: 21,
                   ),
                   tooltip: l10n.voiceSearch,
                   splashRadius: 18,
-                  onPressed: () => _handleVoiceSearch(l10n, localeCode),
+                  onPressed: () => BhaktiVoiceModal.show(context, ref),
                 ),
                 const SizedBox(width: 4),
               ],
@@ -2075,321 +2283,6 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _handleVoiceSearch(
-    AppLocalizations l10n,
-    String localeCode,
-  ) async {
-    if (!_speechEnabled) {
-      final available = await _speechToText.initialize(
-        onError: (_) {
-          if (mounted) setState(() => _isListening = false);
-        },
-        onStatus: (status) {
-          if (status == 'done' || status == 'notListening') {
-            if (mounted) setState(() => _isListening = false);
-          }
-        },
-      );
-      _speechEnabled = available;
-      if (!available) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.speechNotAvailable),
-              backgroundColor: MandirTheme.secondaryMaroon,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        return;
-      }
-    }
-
-    String targetLocaleId = 'en_IN';
-    try {
-      final locales = await _speechToText.locales();
-      if (localeCode == 'hi') {
-        final match = locales
-            .where((l) => l.localeId.toLowerCase().startsWith('hi'))
-            .toList();
-        if (match.isNotEmpty) {
-          targetLocaleId = match.first.localeId;
-        }
-      } else if (localeCode == 'mr') {
-        final match = locales
-            .where((l) => l.localeId.toLowerCase().startsWith('mr'))
-            .toList();
-        if (match.isNotEmpty) {
-          targetLocaleId = match.first.localeId;
-        } else {
-          final hiMatch = locales
-              .where((l) => l.localeId.toLowerCase().startsWith('hi'))
-              .toList();
-          if (hiMatch.isNotEmpty) {
-            targetLocaleId = hiMatch.first.localeId;
-          }
-        }
-      } else {
-        final match = locales
-            .where((l) => l.localeId.toLowerCase().startsWith('en'))
-            .toList();
-        if (match.isNotEmpty) {
-          targetLocaleId = match.first.localeId;
-        }
-      }
-    } catch (_) {}
-
-    if (!mounted) return;
-    _openVoiceSearchModal(l10n, targetLocaleId);
-  }
-
-  void _openVoiceSearchModal(AppLocalizations l10n, String targetLocaleId) {
-    String recognizedQuery = '';
-    bool isListeningNow = true;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: MandirTheme.backgroundCream,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (modalContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final cancelLabel = MaterialLocalizations.of(
-              context,
-            ).cancelButtonLabel;
-            final searchLabel = MaterialLocalizations.of(
-              context,
-            ).searchFieldLabel;
-
-            void startListening() async {
-              try {
-                if (mounted) setState(() => _isListening = true);
-                await _speechToText.listen(
-                  onResult: (result) {
-                    setModalState(() {
-                      recognizedQuery = result.recognizedWords;
-                    });
-                    if (result.finalResult &&
-                        recognizedQuery.trim().isNotEmpty) {
-                      _applyVoiceQuery(recognizedQuery);
-                      if (modalContext.mounted &&
-                          Navigator.of(modalContext).canPop()) {
-                        Navigator.of(modalContext).pop();
-                      }
-                    }
-                  },
-                  listenOptions: stt.SpeechListenOptions(
-                    localeId: targetLocaleId,
-                    listenMode: stt.ListenMode.search,
-                    cancelOnError: false,
-                    partialResults: true,
-                  ),
-                );
-              } catch (_) {}
-            }
-
-            if (!_speechToText.isListening && isListeningNow) {
-              startListening();
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.brown.shade200,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      l10n.voiceSearch,
-                      style: GoogleFonts.mukta(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: MandirTheme.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      isListeningNow ? l10n.listening : l10n.speakNow,
-                      style: GoogleFonts.mukta(
-                        fontSize: 16,
-                        color: MandirTheme.primarySaffron,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    GestureDetector(
-                      onTap: () async {
-                        if (_speechToText.isListening) {
-                          await _speechToText.stop();
-                          setModalState(() => isListeningNow = false);
-                          if (recognizedQuery.trim().isNotEmpty) {
-                            _applyVoiceQuery(recognizedQuery);
-                            if (modalContext.mounted &&
-                                Navigator.of(modalContext).canPop()) {
-                              Navigator.of(modalContext).pop();
-                            }
-                          }
-                        } else {
-                          setModalState(() => isListeningNow = true);
-                          startListening();
-                        }
-                      },
-                      child: Container(
-                        width: 86,
-                        height: 86,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: MandirTheme.primarySaffron,
-                          boxShadow: [
-                            BoxShadow(
-                              color: MandirTheme.primarySaffron.withValues(
-                                alpha: 0.35,
-                              ),
-                              blurRadius: 20,
-                              spreadRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          isListeningNow ? Icons.mic : Icons.mic_none,
-                          color: Colors.white,
-                          size: 42,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    Container(
-                      width: double.infinity,
-                      constraints: const BoxConstraints(minHeight: 56),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: MandirTheme.surfaceWhite,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFEBE3D5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        recognizedQuery.isNotEmpty
-                            ? recognizedQuery
-                            : l10n.speakNow,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.mukta(
-                          fontSize: 19,
-                          fontWeight: recognizedQuery.isNotEmpty
-                              ? FontWeight.bold
-                              : FontWeight.w400,
-                          color: recognizedQuery.isNotEmpty
-                              ? MandirTheme.textDark
-                              : MandirTheme.textMuted,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () async {
-                              await _speechToText.stop();
-                              if (modalContext.mounted &&
-                                  Navigator.of(modalContext).canPop()) {
-                                Navigator.of(modalContext).pop();
-                              }
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: MandirTheme.textMuted,
-                              side: const BorderSide(color: Color(0xFFEBE3D5)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: Text(
-                              cancelLabel,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (recognizedQuery.trim().isNotEmpty) ...[
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                await _speechToText.stop();
-                                _applyVoiceQuery(recognizedQuery);
-                                if (modalContext.mounted &&
-                                    Navigator.of(modalContext).canPop()) {
-                                  Navigator.of(modalContext).pop();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: MandirTheme.primarySaffron,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.search, size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    searchLabel,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    ).whenComplete(() async {
-      if (_speechToText.isListening) {
-        await _speechToText.stop();
-      }
-      if (mounted) setState(() => _isListening = false);
-    });
-  }
-
-  void _applyVoiceQuery(String query) {
-    final clean = query.trim();
-    if (clean.isNotEmpty) {
-      _searchController.text = clean;
-      ref.read(searchQueryProvider.notifier).state = clean;
-      setState(() {});
-    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2423,6 +2316,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         subtitle = item.deityAartiTitle('en');
       }
     }
+
+    final portrait = _resolveDeityPortrait(item.deity);
 
     return Container(
       decoration: BoxDecoration(
@@ -2476,13 +2371,14 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(4.0),
-                          child: Image.asset(
-                            _getDeityImageAsset(item.deity),
+                          child: DeityPortraitImage(
+                            imageAsset: portrait.asset,
+                            imageUrl: portrait.url,
                             fit: BoxFit.contain,
                             cacheHeight: 240,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(
-                                'assets/decorations/om.png',
+                                'assets/decorations/om.webp',
                                 fit: BoxFit.contain,
                                 errorBuilder: (_, _, _) => Center(
                                   child: Text(
@@ -2709,15 +2605,11 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   // ═══════════════════════════════════════════════════════════════════════════
   //  DEITY IMAGE ASSETS
   // ═══════════════════════════════════════════════════════════════════════════
-  static final Map<String, String> _deityImageCache = {};
-
-  String _getDeityImageAsset(String deity) {
-    return _deityImageCache.putIfAbsent(deity, () {
-      for (final bhaktiDeity in kBhaktiDeities) {
-        if (bhaktiDeity.matches(deity)) return bhaktiDeity.imageAsset;
-      }
-      return MandirTheme.getDeityImageAsset(deity);
-    });
+  ({String asset, String url}) _resolveDeityPortrait(String deity) {
+    return resolveDeityPortrait(
+      deity,
+      deities: ref.read(allBhaktiDeitiesProvider),
+    );
   }
 }
 

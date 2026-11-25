@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>BhaktiDhara uses the microphone for voice commands and, when enabled, to listen for “Bhakti” while the app is open.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>BhaktiDhara recognizes spoken commands for its voice assistant.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>

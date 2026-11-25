@@ -1,0 +1,13 @@
+[
+  {"locale":"mr-IN","turns":[["rashi sanga","ask_rashi"],["I dont know my rashi","start"],["१५ मे १९९०","zone"],["पुणे","time"],["दुपारी २:३०","capricorn"]]},
+  {"locale":"en-IN","turns":[["Could you find my Moon sign?","start"],["I was born in Pune","date"],["May 12th, 2000","leo"]]},
+  {"locale":"en-IN","turns":[["rashi sanga","ask_rashi"],["I was born on 15 May 1990 in Pune at 12 am","sagittarius"]]},
+  {"locale":"hi-IN","turns":[["मुझे मेरी राशि पता नहीं","start"],["१० मार्च १९४३ सुबह ११ बजे मुंबई","aries"]]},
+  {"locale":"en-IN","turns":[["What is my birth sign?","start"],["My birthday is 03/04/2000 in India","date"],["April 7, 2000","time"],["I can't remember the time","answered"]]},
+  {"locale":"mr-IN","turns":[["मला माझी रास माहीत नाही","start"],["३१ फेब्रुवारी २०००","date"],["माझी जन्मतारीख माहीत नाही","answered"]]},
+  {"locale":"en-IN","turns":[["Can you calculate my rashi?","start"],["9 November 1998 in Kathmandu","time"],["open notification","open_notifications"]]},
+  {"locale":"en-IN","turns":[["I have no idea what my zodiac sign is","start"],["cancel","answered"]]},
+  {"locale":"en-IN","turns":[["Find my moon sign","start"],["New York March 13, 2016 at 2:30 am","invalid_time"],["3:30 am","aries"]]},
+  {"locale":"en-IN","turns":[["Calculate my birth sign","start"],["I was born on 12 May 2000 in an unknown town","zone"],["Asia/Kolkata","leo"]]},
+  {"locale":"en-IN","turns":[["I don’t know my rashi","start"],["15 May 1990 in Pune","time"],["two thirty in the afternoon","capricorn"]]}
+]

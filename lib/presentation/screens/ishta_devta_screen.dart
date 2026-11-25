@@ -8,11 +8,13 @@ import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/bhakti_deity.dart';
 import '../../domain/logic/ishta_devta.dart';
+import '../../services/ad_units.dart';
 import '../../services/backend_service.dart';
 import '../providers/aarti_favorites_provider.dart';
 import '../providers/aarti_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/nitya_onboarding_providers.dart';
+import '../widgets/app_banner_ad.dart';
 import '../widgets/request_deity_sheet.dart';
 import 'dashboard_screen.dart';
 
@@ -329,7 +331,7 @@ class _IshtaDevtaScreenState extends ConsumerState<IshtaDevtaScreen> {
 
               // ── "Can't find your deity?" Banner at Bottom ──────────
               Container(
-                margin: const EdgeInsets.only(bottom: 12, top: 4),
+                margin: const EdgeInsets.only(bottom: 8, top: 4),
                 child: InkWell(
                   onTap: () => _showRequestDeitySheet(
                     context,
@@ -376,6 +378,7 @@ class _IshtaDevtaScreenState extends ConsumerState<IshtaDevtaScreen> {
                   ),
                 ),
               ),
+              const AppBannerAd(adUnitId: AdUnits.ishtaDevtaBanner),
             ],
           ),
         ),

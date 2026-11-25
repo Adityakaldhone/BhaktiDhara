@@ -1,4 +1,5 @@
 import 'core/analytics/analytics_service.dart';
+import 'features/voice_agent/presentation/widgets/bhakti_wake_host.dart';
 import 'core/analytics/clarity_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'l10n/app_localizations.dart';
 import 'core/theme/theme.dart';
 import 'presentation/providers/locale_provider.dart';
 import 'presentation/providers/premium_provider.dart';
+import 'presentation/providers/remote_catalog_provider.dart';
 import 'presentation/providers/remote_config_provider.dart';
 import 'presentation/providers/subscription_provider.dart';
 import 'presentation/providers/horoscope_provider.dart';
@@ -60,8 +62,10 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp>
         ref.read(localeProvider.notifier).state = Locale(savedLang);
       }
 
-      // 2. Pre-warm remote config cache in background
+      // 2. Pre-warm remote config + catalog caches in background
       BackendService.loadCachedRemoteConfig();
+      BackendService.loadCachedRemoteCatalog();
+      ref.read(remoteCatalogProvider); // starts network refresh
 
       // 3. Initialize AdMob with a short delay so cold startup and frame 0 remain 100% responsive.
       // This completely prevents Dynamite classloading (m2.au.loadClass) & Chromium WebView (J.N.IZ)
@@ -109,8 +113,10 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(remoteConfigProvider.notifier).refresh();
+      ref.read(remoteCatalogProvider.notifier).refresh();
       ref.invalidate(appVersionProvider);
       ref.invalidate(announcementsProvider);
+      ref.invalidate(inAppNotificationsProvider);
       AppUpdateService.checkForUpdateAutomatically();
     }
   }
@@ -152,7 +158,9 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp>
         Locale('hi'), // Hindi
         Locale('mr'), // Marathi
       ],
-      builder: (context, child) => ForceUpdateGate(child: child!),
+      builder: (context, child) => ForceUpdateGate(child: BhaktiWakeHost(
+        navigator: PushNotificationService.navigatorKey, child: child!,
+      )),
       home: const _StartupGate(),
     );
   }

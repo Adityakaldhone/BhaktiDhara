@@ -237,6 +237,7 @@ async def init_db():
                 image_url TEXT DEFAULT '',
                 route TEXT DEFAULT '',
                 aarti_id TEXT DEFAULT '',
+                deity_key TEXT DEFAULT '',
                 audience TEXT DEFAULT 'all',
                 locale TEXT DEFAULT '',
                 platform TEXT DEFAULT '',
@@ -254,6 +255,12 @@ async def init_db():
                 last_error TEXT DEFAULT ''
             )
         """)
+        async with db.execute("PRAGMA table_info(push_campaigns)") as cur:
+            push_cols = {row[1] for row in await cur.fetchall()}
+        if "deity_key" not in push_cols:
+            await db.execute(
+                "ALTER TABLE push_campaigns ADD COLUMN deity_key TEXT DEFAULT ''"
+            )
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS subscriptions (
@@ -359,6 +366,53 @@ async def init_db():
                 UNIQUE(book_slug, chapter_number, verse_number)
             )
         """)
+
+        # ── Remote aarti / deity catalog (hot-published without app update) ──
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS remote_aartis (
+                id TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS remote_deities (
+                key TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        async with db.execute("PRAGMA table_info(remote_deities)") as cur:
+            deity_cols = {row[1] for row in await cur.fetchall()}
+        if "sort_order" not in deity_cols:
+            await db.execute(
+                "ALTER TABLE remote_deities ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"
+            )
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS catalog_sort_overrides (
+                target_type TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (target_type, target_id)
+            )
+        """)
+
+        # Deep-link fields for in-app inbox (push tap parity).
+        async with db.execute("PRAGMA table_info(in_app_notifications)") as cur:
+            inbox_cols = {row[1] for row in await cur.fetchall()}
+        for col, decl in (
+            ("route", "TEXT DEFAULT ''"),
+            ("aarti_id", "TEXT DEFAULT ''"),
+            ("deity_key", "TEXT DEFAULT ''"),
+        ):
+            if col not in inbox_cols:
+                await db.execute(f"ALTER TABLE in_app_notifications ADD COLUMN {col} {decl}")
 
         await db.commit()
 
@@ -1224,13 +1278,17 @@ async def create_in_app_notification(
     body: str,
     campaign_id: Optional[int] = None,
     request_event_id: Optional[int] = None,
+    route: str = "",
+    aarti_id: str = "",
+    deity_key: str = "",
 ) -> int:
     """Creates a per-device in-app inbox message (visible without push permission)."""
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
             "INSERT INTO in_app_notifications "
-            "(device_id, title, body, campaign_id, request_event_id, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "(device_id, title, body, campaign_id, request_event_id, created_at, "
+            "route, aarti_id, deity_key) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 device_id[:64],
                 title.strip()[:200],
@@ -1238,6 +1296,9 @@ async def create_in_app_notification(
                 campaign_id,
                 request_event_id,
                 utc_now_iso(),
+                (route or "").strip()[:32],
+                (aarti_id or "").strip()[:128],
+                (deity_key or "").strip()[:128],
             ),
         )
         await db.commit()
@@ -1250,7 +1311,8 @@ async def list_in_app_notifications(device_id: str, limit: int = 20) -> List[Dic
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
-            "SELECT id, title, body, campaign_id, created_at, opened_at "
+            "SELECT id, title, body, campaign_id, created_at, opened_at, "
+            "route, aarti_id, deity_key "
             "FROM in_app_notifications "
             "WHERE device_id = ? AND dismissed_at IS NULL "
             "ORDER BY id DESC LIMIT ?",
@@ -1263,6 +1325,9 @@ async def list_in_app_notifications(device_id: str, limit: int = 20) -> List[Dic
             "title": r["title"],
             "body": r["body"],
             "campaignId": r["campaign_id"],
+            "route": r["route"] or "",
+            "aartiId": r["aarti_id"] or "",
+            "deityKey": r["deity_key"] or "",
             "createdAt": r["created_at"],
             "opened": bool(r["opened_at"]),
             "openedAt": r["opened_at"] or "",
@@ -1327,6 +1392,9 @@ async def mark_event_notified(
     title: str = "",
     body: str = "",
     create_inbox: bool = True,
+    route: str = "",
+    aarti_id: str = "",
+    deity_key: str = "",
 ) -> bool:
     """Stamps an event with the notify campaign and creates an in-app inbox item."""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -1346,6 +1414,12 @@ async def mark_event_notified(
             props = {}
         props["notify_campaign_id"] = int(campaign_id)
         props["notified_at"] = utc_now_iso()
+        if route:
+            props["notify_route"] = route[:32]
+        if aarti_id:
+            props["notify_aarti_id"] = aarti_id[:128]
+        if deity_key:
+            props["notify_deity_key"] = deity_key[:128]
         await db.execute(
             "UPDATE events SET props_json = ? WHERE id = ?",
             (json.dumps(props, ensure_ascii=False)[:2000], event_id),
@@ -1360,6 +1434,9 @@ async def mark_event_notified(
             body=body.strip(),
             campaign_id=campaign_id,
             request_event_id=event_id,
+            route=route,
+            aarti_id=aarti_id,
+            deity_key=deity_key,
         )
     return True
 
@@ -1371,6 +1448,9 @@ async def mark_deity_request_notified(
     title: str = "",
     body: str = "",
     create_inbox: bool = True,
+    route: str = "",
+    aarti_id: str = "",
+    deity_key: str = "",
 ) -> bool:
     """Stamps a deity_requested event with the notify campaign and creates an in-app inbox item."""
     return await mark_event_notified(
@@ -1380,6 +1460,9 @@ async def mark_deity_request_notified(
         title=title,
         body=body,
         create_inbox=create_inbox,
+        route=route,
+        aarti_id=aarti_id,
+        deity_key=deity_key,
     )
 
 
@@ -1916,8 +1999,8 @@ async def estimate_push_reach(
 
 
 _CAMPAIGN_FIELDS = (
-    "title", "body", "image_url", "route", "aarti_id", "audience", "locale", "platform",
-    "target_device_id", "dormant_days", "status", "scheduled_at", "repeat",
+    "title", "body", "image_url", "route", "aarti_id", "deity_key", "audience", "locale",
+    "platform", "target_device_id", "dormant_days", "status", "scheduled_at", "repeat",
 )
 
 

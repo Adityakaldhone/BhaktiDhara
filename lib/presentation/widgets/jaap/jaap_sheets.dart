@@ -6,9 +6,11 @@ import '../../../core/theme/theme.dart';
 import '../../../data/datasources/jaap_mantra_catalog.dart';
 import '../../../domain/entities/jaap_mantra.dart';
 import '../../../domain/entities/jaap_progress.dart';
+import '../../../services/ad_units.dart';
 import '../../jaap/jaap_colors.dart';
 import '../../jaap/jaap_strings.dart';
 import '../../providers/jaap_providers.dart';
+import '../app_banner_ad.dart';
 
 /// Large, tappable mantra row used in onboarding and the mantra picker.
 class JaapMantraTile extends StatelessWidget {
@@ -242,6 +244,11 @@ Future<String?> showJaapEntrySheet(
                           ),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    const AppBannerAd(
+                      adUnitId: AdUnits.naamJaapBanner,
+                      safeArea: false,
                     ),
                   ],
                 ),

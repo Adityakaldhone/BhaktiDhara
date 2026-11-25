@@ -79,6 +79,62 @@ class Rashi {
   };
 }
 
+/// Maps Vedic / Romanized / English / Devanagari rashi tokens to [kAllRashis] ids.
+/// Backend voice agent uses Vedic ids (`kumbh`); the Flutter catalog uses English ids (`aquarius`).
+const Map<String, String> kRashiAliasToId = {
+  // Aries / मेष
+  'aries': 'aries', 'mesh': 'aries', 'mesha': 'aries', 'मेष': 'aries',
+  // Taurus / वृषभ
+  'taurus': 'taurus', 'vrishabh': 'taurus', 'vrushabh': 'taurus',
+  'vrushab': 'taurus', 'vrishab': 'taurus', 'वृषभ': 'taurus', 'वृष': 'taurus',
+  // Gemini / मिथुन
+  'gemini': 'gemini', 'mithun': 'gemini', 'mithuna': 'gemini', 'मिथुन': 'gemini',
+  // Cancer / कर्क
+  'cancer': 'cancer', 'kark': 'cancer', 'karka': 'cancer', 'karkat': 'cancer',
+  'कर्क': 'cancer',
+  // Leo / सिंह
+  'leo': 'leo', 'singh': 'leo', 'simha': 'leo', 'sinha': 'leo', 'सिंह': 'leo',
+  // Virgo / कन्या
+  'virgo': 'virgo', 'kanya': 'virgo', 'कन्या': 'virgo',
+  // Libra / तुला / तूळ
+  'libra': 'libra', 'tula': 'libra', 'tul': 'libra', 'तुला': 'libra', 'तूळ': 'libra',
+  // Scorpio / वृश्चिक
+  'scorpio': 'scorpio', 'scorpius': 'scorpio', 'vrishchik': 'scorpio',
+  'vrushchik': 'scorpio', 'vrischik': 'scorpio', 'वृश्चिक': 'scorpio',
+  // Sagittarius / धनु
+  'sagittarius': 'sagittarius', 'dhanu': 'sagittarius', 'dhanur': 'sagittarius',
+  'धनु': 'sagittarius', 'धनुष्य': 'sagittarius',
+  // Capricorn / मकर
+  'capricorn': 'capricorn', 'makar': 'capricorn', 'makara': 'capricorn',
+  'मकर': 'capricorn',
+  // Aquarius / कुंभ
+  'aquarius': 'aquarius', 'kumbh': 'aquarius', 'kumbha': 'aquarius', 'kumb': 'aquarius',
+  'कुंभ': 'aquarius', 'कुम्भ': 'aquarius',
+  // Pisces / मीन
+  'pisces': 'pisces', 'meen': 'pisces', 'meena': 'pisces', 'mina': 'pisces',
+  'मीन': 'pisces',
+};
+
+/// Resolves a raw voice/backend rashi token to a [Rashi] from [kAllRashis].
+Rashi? resolveRashi(String? raw) {
+  if (raw == null) return null;
+  final token = raw.trim().toLowerCase();
+  if (token.isEmpty) return null;
+
+  final direct = kRashiAliasToId[token];
+  if (direct != null) {
+    return kAllRashis.firstWhere((r) => r.id == direct);
+  }
+
+  // Contained-token fallback (e.g. "kumbh_rashi", "कुंभ राशि")
+  for (final entry in kRashiAliasToId.entries) {
+    if (token.contains(entry.key.toLowerCase())) {
+      return kAllRashis.firstWhere((r) => r.id == entry.value);
+    }
+  }
+  return null;
+}
+
 /// The 12 sacred Vedic Rashis (Zodiac signs).
 const List<Rashi> kAllRashis = [
   Rashi(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/bhakti_deity.dart';
+import 'deity_cutout_image.dart';
 
 /// Previous / next deity preview, tilted in perspective so it recedes behind the shrine.
 class SideDeityCard extends StatelessWidget {
@@ -62,11 +63,10 @@ class SideDeityCard extends StatelessWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.only(top: height * 0.08, bottom: height * 0.03),
-                  child: Image.asset(
-                    deity.imageAsset,
+                  child: DeityCutoutImage(
+                    deity: deity,
                     fit: BoxFit.contain,
                     alignment: Alignment.bottomCenter,
-                    cacheWidth: 360,
                   ),
                 ),
                 DecoratedBox(

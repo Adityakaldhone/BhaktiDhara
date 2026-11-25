@@ -15,6 +15,21 @@ class LanguageDropdown extends ConsumerWidget {
     ('English', Locale('en')),
   ];
 
+  static Future<Locale?> pickLanguage(BuildContext context) {
+    return showDialog<Locale>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        children: [
+          for (final (label, locale) in _languages)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, locale),
+              child: Text(label),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(localeProvider).languageCode;

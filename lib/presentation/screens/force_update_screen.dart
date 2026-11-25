@@ -121,7 +121,7 @@ class _ForceUpdateScreenState extends ConsumerState<ForceUpdateScreen> {
                       ),
                       padding: const EdgeInsets.all(16),
                       child: Image.asset(
-                        'assets/decorations/om.png',
+                        'assets/decorations/om.webp',
                         fit: BoxFit.contain,
                       ),
                     ),

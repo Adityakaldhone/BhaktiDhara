@@ -66,7 +66,7 @@
 		<key>NSPhotoLibraryAddUsageDescription</key>
 		<string>BhaktiDhara saves the greeting images you choose to your Photos.</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>BhaktiDhara requires microphone access to enable voice search for Aartis, Chalisas, and prayers.</string>
+		<string>BhaktiDhara uses the microphone for voice commands and, when enabled, to listen for “Bhakti” while the app is open.</string>
 		<key>NSSpeechRecognitionUsageDescription</key>
 		<string>BhaktiDhara uses speech recognition to help you search for devotional prayers using your voice.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>

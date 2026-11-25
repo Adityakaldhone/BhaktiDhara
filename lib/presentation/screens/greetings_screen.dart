@@ -8,11 +8,13 @@ import '../../core/analytics/analytics_service.dart';
 import '../../core/theme/motion.dart';
 import '../../core/theme/theme.dart';
 import '../../domain/entities/greeting_image.dart';
+import '../../services/ad_units.dart';
 import '../../services/backend_service.dart';
 import '../greeting/greeting_strings.dart';
 import '../providers/greeting_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/remote_config_provider.dart';
+import '../widgets/app_banner_ad.dart';
 import '../widgets/greeting/greeting_tile.dart';
 import 'greeting_viewer_screen.dart';
 
@@ -78,8 +80,9 @@ class _GreetingsScreenState extends ConsumerState<GreetingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const AppBannerAd(adUnitId: AdUnits.greetingsBanner),
             Padding(
-              padding: const EdgeInsets.fromLTRB(_gutter, 4, _gutter, 10),
+              padding: const EdgeInsets.fromLTRB(_gutter, 8, _gutter, 10),
               child: Text(
                 s.popularCategories,
                 style: GoogleFonts.mukta(

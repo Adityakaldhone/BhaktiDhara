@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nitya_aarti/data/repositories/deity_affinity_repository.dart';
 import 'package:nitya_aarti/domain/logic/deity_affinity_ranker.dart';
+import 'package:nitya_aarti/domain/logic/festival_featured_deities.dart';
 import 'package:nitya_aarti/presentation/providers/deity_affinity_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -81,6 +82,25 @@ void main() {
         (s) => s,
       );
       expect(result, ['D', 'B', 'A', 'C', 'E']);
+    });
+  });
+
+  group('festivalFeaturedDeityKeys', () {
+    test('promotes Tulsi Mata during Tulsi Vivah 2026 window', () {
+      expect(
+        festivalFeaturedDeityKeys(DateTime(2026, 11, 21)),
+        ['Goddess Tulsi'],
+      );
+      expect(festivalFeaturedDeityKeys(DateTime(2026, 11, 10)), isEmpty);
+    });
+
+    test('festival featured keys sit ahead of affinity tops', () {
+      final result = DeityAffinityRanker.applyTopBand(
+        ['Lord Ganesha', 'Goddess Tulsi', 'Lord Hanuman'],
+        ['Goddess Tulsi', 'Lord Hanuman'],
+        (s) => s,
+      );
+      expect(result.first, 'Goddess Tulsi');
     });
   });
 

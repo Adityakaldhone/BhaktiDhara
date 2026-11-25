@@ -1,0 +1,425 @@
+{
+  "prompt": "Route a BhaktiDhara Mandir utterance in English, Hindi, Marathi or mixed speech. Return JSON {\"action\":{\"type\":\"LABEL\"}}. Distinguish requests to perform a ritual from instructions and questions about current state. Never invent device state. If the requested offering is missing ask which one. Cancel negated requests. Use other for requests outside the shrine. Labels: offer_ghee, read_ghee, read_time, read_streak, explain_ghee, ring_bell, explain_bell, blow_conch, explain_conch, offer_flowers, explain_flowers, offer_food, read_food, explain_food, start_aarti, stop_aarti, read_aarti, explain_aarti, explain_player, change_deity, read_deity, explain_deity, overview, clarify_offering, clarify, cancel, unavailable, other.",
+  "topics": {
+    "offer_ghee": {
+      "reply": {
+        "en": "Offering ghee to the lamp.",
+        "hi": "दीये में घी अर्पित कर रही हूँ।",
+        "mr": "दिव्याला तूप अर्पण करत आहे."
+      },
+      "examples": [
+        "Refill the lamp",
+        "दीये में घी डाल दो",
+        "दिव्यात तूप घाला",
+        "ghee chadha do",
+        "kalash madhun tup taka",
+        "दीया refill करो"
+      ]
+    },
+    "read_ghee": {
+      "reply": {
+        "en": "The lamp has {pct}% ghee left.",
+        "hi": "दीये में {pct}% घी बचा है।",
+        "mr": "दिव्यात {pct}% तूप शिल्लक आहे."
+      },
+      "examples": [
+        "How much ghee is left?",
+        "दीये में कितना घी है?",
+        "दिव्यात किती तूप उरलंय?",
+        "ghee level kitna hai",
+        "tup kiti urla aahe",
+        "दीये का percentage बताओ"
+      ]
+    },
+    "read_time": {
+      "reply": {
+        "en": "{time}.",
+        "hi": "{time}।",
+        "mr": "{time}."
+      },
+      "examples": [
+        "How long until this lamp runs out?",
+        "मेरा दीया कितनी देर और जलेगा?",
+        "माझा दिवा अजून किती वेळ जळेल?",
+        "diya ka remaining time kya hai",
+        "jyot ajun kiti vel jalel",
+        "दीपक का time left बताओ"
+      ]
+    },
+    "read_streak": {
+      "reply": {
+        "en": "Your lamp streak is {days} days.",
+        "hi": "दीये का आपका क्रम {days} दिन है।",
+        "mr": "दिव्याचे सलग दिवस {days} आहेत."
+      },
+      "examples": [
+        "What is my lamp streak?",
+        "मेरी अखंड ज्योत कितने दिनों से है?",
+        "माझ्या अखंड दिव्याचे सलग दिवस किती?",
+        "diya ka streak batao",
+        "majha divyacha streak kiti",
+        "मंदिर का day count बताओ"
+      ]
+    },
+    "explain_ghee": {
+      "reply": {
+        "en": "Tap Offer ghee or the ghee pot to refill the lamp. A full pot lasts 24 hours. Refilling can advance your streak once per calendar day.",
+        "hi": "घी अर्पण करें या कलश दबाकर दीया भरें। पूरा कलश 24 घंटे चलता है। एक दिन में लगातार दिनों की गिनती एक बार बढ़ सकती है।",
+        "mr": "तूप अर्पण करा किंवा कलशावर टॅप करून दिवा भरा. भरलेला कलश २४ तास पुरतो. सलग दिवसांची नोंद एका दिवशी एकदाच वाढू शकते."
+      },
+      "examples": [
+        "How do I refill the diya?",
+        "अखंड ज्योत में घी कैसे चढ़ाऊँ?",
+        "तूप दोनदा घातलं तर सलग दिवस दोनने वाढतील का?",
+        "diya refill kaise karu",
+        "ghee kalash kasa vapru",
+        "full कलश कितने घंटे चलता है"
+      ]
+    },
+    "ring_bell": {
+      "reply": {
+        "en": "Ringing the temple bells.",
+        "hi": "मंदिर की घंटियाँ बजा रही हूँ।",
+        "mr": "मंदिरातील घंटा वाजवत आहे."
+      },
+      "examples": [
+        "Ring the temple bells",
+        "मंदिर की घंटी बजाओ",
+        "मंदिरातील घंटा वाजवा",
+        "ghanta baja do",
+        "ghantanad kara",
+        "bell वाजव"
+      ]
+    },
+    "explain_bell": {
+      "reply": {
+        "en": "Tap a hanging bell to ring it, or choose Ring bell to ring both in sequence.",
+        "hi": "किसी लटकती घंटी को दबाएँ या दोनों घंटियाँ क्रम से बजाने के लिए घंटा नाद चुनें।",
+        "mr": "एखाद्या लटकत्या घंटेवर टॅप करा किंवा दोन्ही क्रमाने वाजवण्यासाठी घंटानाद निवडा."
+      },
+      "examples": [
+        "How do I ring the bell here?",
+        "ऊपर की घंटी कैसे बजती है?",
+        "घंटानाद कसा करायचा?",
+        "ghanti kaise bajti hai",
+        "bell kasa vajvu",
+        "घंटी का button क्या करता है"
+      ]
+    },
+    "blow_conch": {
+      "reply": {
+        "en": "Sounding the conch.",
+        "hi": "शंख बजा रही हूँ।",
+        "mr": "शंख वाजवत आहे."
+      },
+      "examples": [
+        "Sound the conch",
+        "शंखनाद कर दो",
+        "शंख वाजवा",
+        "shankh bajao",
+        "shankh naad kara",
+        "conch बजा दो"
+      ]
+    },
+    "explain_conch": {
+      "reply": {
+        "en": "Choose Shankh naad on the right to sound the conch.",
+        "hi": "दाईं ओर शंखनाद चुनकर शंख बजाएँ।",
+        "mr": "उजवीकडील शंखनाद निवडून शंख वाजवा."
+      },
+      "examples": [
+        "How do I sound the conch?",
+        "शंख कहाँ से बजाऊँ?",
+        "शंखनाद कसा करायचा?",
+        "shankh ka option kidhar hai",
+        "conch kasa vajvaycha",
+        "शंख का control कहाँ है"
+      ]
+    },
+    "offer_flowers": {
+      "reply": {
+        "en": "Offering flowers to the deity.",
+        "hi": "देवता को फूल अर्पित कर रही हूँ।",
+        "mr": "देवाला फुले अर्पण करत आहे."
+      },
+      "examples": [
+        "Offer flowers",
+        "भगवान को फूल चढ़ा दो",
+        "देवाला फुले वाहा",
+        "phool arpan karo",
+        "pushpanjali kara",
+        "फूलों की offering करा दो"
+      ]
+    },
+    "explain_flowers": {
+      "reply": {
+        "en": "Choose Pushpanjali to offer flowers. Petals fall and a garland appears around the deity.",
+        "hi": "फूल चढ़ाने के लिए पुष्पांजलि चुनें। पंखुड़ियाँ गिरती हैं और देवता के चारों ओर माला दिखती है।",
+        "mr": "फुले वाहण्यासाठी पुष्पांजली निवडा. पाकळ्या पडतात आणि देवाला हार दिसतो."
+      },
+      "examples": [
+        "How do I offer flowers?",
+        "पुष्पांजलि से क्या होता है?",
+        "देवाला फुले कशी वाहू?",
+        "phool kaise chadhau",
+        "pushpanjali mhanje ithe kay",
+        "flowers वाला option समझाओ"
+      ]
+    },
+    "offer_food": {
+      "reply": {
+        "en": "Placing naivedya before the deity.",
+        "hi": "देवता के सामने नैवेद्य रख रही हूँ।",
+        "mr": "देवासमोर नैवेद्य ठेवत आहे."
+      },
+      "examples": [
+        "Place the food offering",
+        "भगवान को भोग लगाओ",
+        "देवासमोर नैवेद्य ठेवा",
+        "bhog lagao",
+        "naivedya theva",
+        "नैवेद्य offer करा"
+      ]
+    },
+    "read_food": {
+      "reply": {
+        "en": "{food}",
+        "hi": "{food}",
+        "mr": "{food}"
+      },
+      "examples": [
+        "Have I placed naivedya yet?",
+        "क्या भोग रखा हुआ है?",
+        "नैवेद्य आधीच ठेवला आहे का?",
+        "bhog already rakha hai kya",
+        "naivedya thevlay ka",
+        "भोग का current status बताओ"
+      ]
+    },
+    "explain_food": {
+      "reply": {
+        "en": "Choose Naivedya on the right to place a food offering in front of the deity.",
+        "hi": "देवता के सामने भोग रखने के लिए दाईं ओर नैवेद्य भोग चुनें।",
+        "mr": "देवासमोर भोग ठेवण्यासाठी उजवीकडील नैवेद्य निवडा."
+      },
+      "examples": [
+        "How does naivedya work here?",
+        "भोग लगाने के लिए क्या दबाना है?",
+        "नैवेद्य कसा ठेवू?",
+        "bhog kaise lagau",
+        "naivedya kasa arpan karu",
+        "भोग वाली सेवा explain करो"
+      ]
+    },
+    "start_aarti": {
+      "reply": {
+        "en": "Opening the aarti thali.",
+        "hi": "आरती की थाली खोल रही हूँ।",
+        "mr": "आरतीचे ताट उघडत आहे."
+      },
+      "examples": [
+        "Start the aarti thali",
+        "आरती की थाली शुरू करो",
+        "आरतीचे ताट सुरू करा",
+        "aarti thali chalu karo",
+        "arti che taat suru kara",
+        "आरती thali खोलो"
+      ]
+    },
+    "stop_aarti": {
+      "reply": {
+        "en": "Closing the aarti thali.",
+        "hi": "आरती की थाली बंद कर रही हूँ।",
+        "mr": "आरतीचे ताट बंद करत आहे."
+      },
+      "examples": [
+        "Put away the aarti thali",
+        "आरती की थाली बंद कर दो",
+        "आरतीचे ताट बंद करा",
+        "aarti thali hata do",
+        "thali band kara",
+        "thali mode बंद करो"
+      ]
+    },
+    "read_aarti": {
+      "reply": {
+        "en": "{aarti}",
+        "hi": "{aarti}",
+        "mr": "{aarti}"
+      },
+      "examples": [
+        "Is the aarti thali open?",
+        "क्या आरती की थाली अभी खुली है?",
+        "आरतीचे ताट चालू आहे का?",
+        "thali on hai kya",
+        "aarti session chalu aahe ka",
+        "थाली का status क्या है"
+      ]
+    },
+    "explain_aarti": {
+      "reply": {
+        "en": "Open Aarti thali and drag the thali with your finger. The lyrics panel lets you choose an aarti and move between verses.",
+        "hi": "आरती थाली खोलें और उंगली से थाली घुमाएँ। बोलों के पैनल में आरती चुनें और पद बदलें।",
+        "mr": "आरती ताट उघडा आणि बोटाने ताट फिरवा. बोलांच्या पॅनेलमध्ये आरती निवडा आणि कडवी बदला."
+      },
+      "examples": [
+        "How do I move the aarti thali?",
+        "आरती की थाली कैसे घुमाऊँ?",
+        "आरतीचे ताट कसे फिरवायचे?",
+        "thali kaise ghumau",
+        "taat kasa firvu",
+        "आरती thali कैसे use करूँ"
+      ]
+    },
+    "explain_player": {
+      "reply": {
+        "en": "With the thali open, use the arrows to move between verses. Choose Sing myself for manual singing, or Video for the recording when available. Drag the video to move it.",
+        "hi": "थाली खुली हो तो तीरों से पद बदलें। स्वयं गाएं चुनकर खुद गाएँ या उपलब्ध हो तो वीडियो चुनें। वीडियो को खींचकर हटा सकते हैं।",
+        "mr": "ताट उघडे असताना बाणांनी कडवे बदला. स्वतः गा निवडून स्वतः गा किंवा उपलब्ध असल्यास व्हिडिओ निवडा. व्हिडिओ ओढून हलवता येतो."
+      },
+      "examples": [
+        "How do I sing without the video?",
+        "अगला पद देखने के लिए क्या दबाऊँ?",
+        "व्हिडिओ बाजूला कसा हलवू?",
+        "manual singing kaise karu",
+        "pudhcha verse kasa pahu",
+        "lyrics panel कैसे चलता है"
+      ]
+    },
+    "change_deity": {
+      "reply": {
+        "en": "Opening the deity picker. Choose the deity you want to seat.",
+        "hi": "देवता चुनने की सूची खोल रही हूँ। अपने इच्छित देवता चुनें।",
+        "mr": "देवता निवडण्याची यादी उघडत आहे. हवे ते दैवत निवडा."
+      },
+      "examples": [
+        "Let me change the seated deity",
+        "दूसरे देवता चुनने हैं",
+        "मला देवता बदलायचा आहे",
+        "devta badalna hai",
+        "dev badlaycha aahe",
+        "deity picker खोलो"
+      ]
+    },
+    "read_deity": {
+      "reply": {
+        "en": "The seated deity is {deity}.",
+        "hi": "अभी {deity} विराजमान हैं।",
+        "mr": "सध्या {deity} विराजमान आहेत."
+      },
+      "examples": [
+        "Which deity is seated here?",
+        "अभी मंदिर में कौन विराजमान है?",
+        "आता देवघरात कोणते दैवत आहे?",
+        "kaun se dev baithe hain",
+        "sadhya konta dev aahe",
+        "current देवता कौन है"
+      ]
+    },
+    "explain_deity": {
+      "reply": {
+        "en": "Choose Change deity, search for a name, then tap the deity. The picker also offers a request form for a missing deity.",
+        "hi": "देवता बदलें दबाएँ, नाम खोजें और देवता चुनें। नाम न मिले तो सूची में अनुरोध फ़ॉर्म भी है।",
+        "mr": "देवता बदला निवडा, नाव शोधा आणि दैवत निवडा. दैवत न मिळाल्यास यादीत विनंतीचा फॉर्मही आहे."
+      },
+      "examples": [
+        "How can I choose another deity?",
+        "देवता सूची में न मिले तो क्या करूँ?",
+        "आवडतं दैवत कसं निवडू?",
+        "devta change kaise karu",
+        "dev sapadla nahi kay karu",
+        "picker में देवता कैसे खोजूँ"
+      ]
+    },
+    "overview": {
+      "reply": {
+        "en": "Here you can have darshan, tend the lamp, offer flowers or naivedya, ring the bells, sound the conch and perform aarti.",
+        "hi": "यहाँ दर्शन करें, दीये में घी भरें, फूल या भोग चढ़ाएँ, घंटी या शंख बजाएँ और आरती करें।",
+        "mr": "इथे दर्शन घ्या, दिव्यात तूप घाला, फुले किंवा नैवेद्य अर्पण करा, घंटा किंवा शंख वाजवा आणि आरती करा."
+      },
+      "examples": [
+        "What can I do in this Mandir?",
+        "मंदिर में कौन सी सेवाएँ हैं?",
+        "देवघरात काय करता येतं?",
+        "mandir me kya kya kar sakte hain",
+        "mandirat kontya seva aahet",
+        "यहाँ rituals कौन से हैं"
+      ]
+    },
+    "clarify_offering": {
+      "reply": {
+        "en": "What would you like to offer: ghee, flowers or naivedya?",
+        "hi": "आप क्या चढ़ाना चाहेंगे: घी, फूल या नैवेद्य?",
+        "mr": "काय अर्पण करू: तूप, फुले की नैवेद्य?"
+      },
+      "examples": [
+        "Make an offering for me",
+        "कुछ अर्पण करना है",
+        "काहीतरी अर्पण करा",
+        "kuch chadhana hai",
+        "arpan karaychay",
+        "एक offering कर दो"
+      ]
+    },
+    "clarify": {
+      "reply": {
+        "en": "Which Mandir service do you mean?",
+        "hi": "मंदिर की किस सेवा की बात कर रहे हैं?",
+        "mr": "मंदिरातील कोणती सेवा हवी आहे?"
+      },
+      "examples": [
+        "Start that one",
+        "वो कर दो",
+        "ते सुरू कर",
+        "woh wala karo",
+        "te kar na",
+        "वही option कर दो"
+      ]
+    },
+    "cancel": {
+      "reply": {
+        "en": "Okay.",
+        "hi": "ठीक है।",
+        "mr": "ठीक आहे."
+      },
+      "examples": [
+        "Do not ring the bell",
+        "भोग अभी मत लगाना",
+        "दिव्यात तूप घालू नको",
+        "shankh mat bajao",
+        "phule nako vahu",
+        "thali start मत करना"
+      ]
+    },
+    "unavailable": {
+      "reply": {
+        "en": "That service is unavailable in this Mandir. You can offer flowers or naivedya here.",
+        "hi": "इस मंदिर में वह सेवा उपलब्ध नहीं है। यहाँ फूल या नैवेद्य अर्पित कर सकते हैं।",
+        "mr": "या मंदिरात ती सेवा उपलब्ध नाही. इथे फुले किंवा नैवेद्य अर्पण करता येतो."
+      },
+      "examples": [
+        "Apply kumkum tilak here",
+        "यहाँ चरण स्पर्श करवाओ",
+        "देवाला कुंकू लावा",
+        "charan sparsh karna hai",
+        "tilak lava",
+        "मेरा मंदिर दर्शन ticket book करो"
+      ]
+    },
+    "other": {
+      "reply": {
+        "en": "",
+        "hi": "",
+        "mr": ""
+      },
+      "examples": [
+        "Show my horoscope",
+        "त्योहारों का कैलेंडर दिखाओ",
+        "जपाची नोंद दाखवा",
+        "rashifal kholo",
+        "majhi kundali dakhav",
+        "language हिंदी करो"
+      ]
+    }
+  }
+}

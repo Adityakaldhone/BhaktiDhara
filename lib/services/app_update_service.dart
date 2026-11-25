@@ -86,7 +86,7 @@ class AppUpdateService {
       }
       if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable &&
           updateInfo.flexibleUpdateAllowed) {
-        return _downloadFlexible();
+        return await _downloadFlexible();
       }
     } catch (e) {
       debugPrint('[AppUpdateService] Play Store flexible update error (normal in debug/sideload): $e');

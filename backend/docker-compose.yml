@@ -14,6 +14,8 @@ services:
       - PRECACHE_RPM=${PRECACHE_RPM:-5}
       - ADMIN_SECRET=${ADMIN_SECRET:-mandir_secret_2026}
       - DB_PATH=/app/data/bhaktidhara.db
+      - DEITY_REQUEST_UPLOAD_DIR=/app/data/uploads/deity_requests
+      - REMOTE_DEITY_UPLOAD_DIR=/app/data/uploads/remote_deities
       - FIREBASE_SERVICE_ACCOUNT=/app/data/firebase-service-account.json
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - IMAGE_AI_PROVIDER=${IMAGE_AI_PROVIDER:-openai}

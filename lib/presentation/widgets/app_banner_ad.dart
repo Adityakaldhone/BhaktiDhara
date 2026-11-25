@@ -6,12 +6,18 @@ import '../../core/analytics/analytics_service.dart';
 import '../../core/theme/theme.dart';
 import '../providers/ads_provider.dart';
 
-/// Standard 320×50 banner pinned at the bottom of a screen. Takes no space
-/// until an ad has loaded, and none at all for VIP users.
+/// Standard 320×50 banner. Takes no space until an ad has loaded, and none
+/// at all for VIP users. Set [safeArea] false inside bottom sheets that
+/// already pad for the home indicator.
 class AppBannerAd extends ConsumerStatefulWidget {
-  const AppBannerAd({super.key, required this.adUnitId});
+  const AppBannerAd({
+    super.key,
+    required this.adUnitId,
+    this.safeArea = true,
+  });
 
   final String adUnitId;
+  final bool safeArea;
 
   @override
   ConsumerState<AppBannerAd> createState() => _AppBannerAdState();
@@ -54,17 +60,17 @@ class _AppBannerAdState extends ConsumerState<AppBannerAd> {
     if (!_loaded || ad == null || !ref.watch(showAdsProvider)) {
       return const SizedBox.shrink();
     }
-    return SafeArea(
-      top: false,
-      child: Container(
-        color: MandirTheme.backgroundCream,
-        alignment: Alignment.center,
-        height: ad.size.height.toDouble(),
-        child: SizedBox(
-          width: ad.size.width.toDouble(),
-          child: AdWidget(ad: ad),
-        ),
+    final banner = Container(
+      color: MandirTheme.backgroundCream,
+      alignment: Alignment.center,
+      width: double.infinity,
+      height: ad.size.height.toDouble(),
+      child: SizedBox(
+        width: ad.size.width.toDouble(),
+        child: AdWidget(ad: ad),
       ),
     );
+    if (!widget.safeArea) return banner;
+    return SafeArea(top: false, child: banner);
   }
 }

@@ -170,6 +170,9 @@ class InAppNotification {
     required this.body,
     this.campaignId,
     this.opened = false,
+    this.route = '',
+    this.aartiId = '',
+    this.deityKey = '',
   });
 
   final int id;
@@ -177,6 +180,9 @@ class InAppNotification {
   final String body;
   final int? campaignId;
   final bool opened;
+  final String route;
+  final String aartiId;
+  final String deityKey;
 
   static InAppNotification? fromJson(Object? json) {
     if (json is! Map) return null;
@@ -190,6 +196,16 @@ class InAppNotification {
       body: json['body']?.toString().trim() ?? '',
       campaignId: campaign is int ? campaign : int.tryParse('$campaign'),
       opened: json['opened'] == true,
+      route: json['route']?.toString().trim() ?? '',
+      aartiId: json['aartiId']?.toString().trim() ?? '',
+      deityKey: json['deityKey']?.toString().trim() ?? '',
     );
   }
+
+  Map<String, dynamic> toPushData() => {
+        if (campaignId != null) 'campaignId': '$campaignId',
+        if (route.isNotEmpty) 'route': route,
+        if (aartiId.isNotEmpty) 'aartiId': aartiId,
+        if (deityKey.isNotEmpty) 'deityKey': deityKey,
+      };
 }

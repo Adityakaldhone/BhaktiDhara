@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const String _diyaAsset = 'assets/aarti_screen/deepak.png';
+const String _diyaAsset = 'assets/aarti_screen/deepak.webp';
 
 const ColorFilter _greyscale = ColorFilter.matrix(<double>[
   0.2126, 0.7152, 0.0722, 0, 0,

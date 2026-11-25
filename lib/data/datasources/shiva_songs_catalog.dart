@@ -292,12 +292,12 @@ const List<DevotionalSongItem> kShivaSongsCatalog = [
   DevotionalSongItem(
     id: 'shiva_yt_27',
     song: "Shiv Chalisa",
-    artist: "T-Series Bhakti Sagar",
+    artist: "Ashwani Amarnath / T-Series Bhakti Sagar",
     videoId: '05g9Ua_M1xA',
     videoTitle: "शिव चालीसा, Shiv Chalisa with Hindi, English Lyrics By ASHWANI AMARNATH I Lyrical Video",
     channel: "T-Series Bhakti Sagar",
     category: 'Aarti & Chalisa',
-    durationText: '4:15',
+    durationText: '14:15',
     viewsText: '148.9M views',
   ),
   DevotionalSongItem(

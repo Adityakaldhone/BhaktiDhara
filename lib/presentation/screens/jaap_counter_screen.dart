@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/theme/theme.dart';
+import '../../data/datasources/jaap_mantra_catalog.dart';
 import '../../domain/entities/jaap_mantra.dart';
 import '../../domain/entities/jaap_progress.dart';
 import '../../services/backend_service.dart';
@@ -27,7 +28,17 @@ enum _ChantState { off, playing, paused }
 
 /// The digital mala. Almost the whole screen is one tap target.
 class JaapCounterScreen extends ConsumerStatefulWidget {
-  const JaapCounterScreen({super.key});
+  /// When set (e.g. voice "naam jaap radha"), skip the picker and use this mantra.
+  final String? initialMantraId;
+
+  /// Skip onboarding/entry sheet and go straight to counting.
+  final bool skipEntrySheet;
+
+  const JaapCounterScreen({
+    super.key,
+    this.initialMantraId,
+    this.skipEntrySheet = false,
+  });
 
   @override
   ConsumerState<JaapCounterScreen> createState() => _JaapCounterScreenState();
@@ -66,7 +77,31 @@ class _JaapCounterScreenState extends ConsumerState<JaapCounterScreen>
   Future<void> _ensureOnboarded() async {
     if (_entrySheetShown) return;
     final jaap = ref.read(jaapProvider);
-    if (!jaap.loaded || jaap.progress.isOnboarded) return;
+    if (!jaap.loaded) return;
+
+    final voiceMantra = widget.initialMantraId?.trim();
+    final skipSheet = widget.skipEntrySheet || (voiceMantra != null && voiceMantra.isNotEmpty);
+
+    // Voice deep-link: select mantra and continue without the picker.
+    if (skipSheet) {
+      _entrySheetShown = true;
+      final notifier = ref.read(jaapProvider.notifier);
+      final mid = (voiceMantra != null && voiceMantra.isNotEmpty)
+          ? voiceMantra
+          : (jaap.progress.mantraId ?? JaapMantraCatalog.defaultMantraId);
+      if (!jaap.progress.isOnboarded) {
+        await notifier.completeOnboarding(
+          mantraId: mid,
+          dailyGoalMalas: jaap.progress.dailyGoalMalas,
+        );
+      } else {
+        notifier.selectMantra(mid);
+      }
+      notifier.startSession();
+      return;
+    }
+
+    if (jaap.progress.isOnboarded) return;
     _entrySheetShown = true;
     final lang = ref.read(localeProvider).languageCode;
     final mantraId = await showJaapEntrySheet(

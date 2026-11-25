@@ -2,9 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/aarti_repository_impl.dart';
 import '../../domain/entities/aarti_item.dart';
+import '../../domain/entities/remote_devotional_catalog.dart';
 import '../../domain/logic/deity_affinity_ranker.dart';
 import '../../domain/repositories/aarti_repository.dart';
+import '../../services/backend_service.dart';
 import 'deity_affinity_provider.dart';
+import 'remote_catalog_provider.dart';
 
 /// Provider for the repository implementation
 final aartiRepositoryProvider = Provider<AartiRepository>((ref) {
@@ -12,7 +15,9 @@ final aartiRepositoryProvider = Provider<AartiRepository>((ref) {
 });
 
 /// FutureProvider that fetches the catalog from the repository.
+/// Rebuilds when [remoteCatalogProvider] publishes new server aartis.
 final aartiCatalogProvider = FutureProvider<List<AartiItem>>((ref) async {
+  ref.watch(remoteCatalogProvider);
   final repository = ref.watch(aartiRepositoryProvider);
   return repository.fetchCatalog();
 });
@@ -261,13 +266,21 @@ final filteredCatalogProvider = Provider<AsyncValue<List<AartiItem>>>((ref) {
       return catalog.where((item) => item.deity == filter).toList();
     }
 
-    // On the main dashboard (All deities): show one distinct card per deity
+    // On the main dashboard (All deities): show one distinct card per deity.
+    // Admin deity sort pins lead; affinity top-band applies only among unpinned.
     final seenDeities = <String>{};
     final distinct = catalog.where((item) => seenDeities.add(item.deity)).toList();
-    return DeityAffinityRanker.applyTopBand(
+    final deitySort = BackendService.remoteCatalog.deitySort;
+    final split = splitAdminPinnedDeities(
       distinct,
+      deitySort,
+      (item) => canonicalDeityKey(item.deity),
+    );
+    final rankedRest = DeityAffinityRanker.applyTopBand(
+      split.rest,
       ref.watch(sacredTopDeitiesProvider),
       (item) => canonicalDeityKey(item.deity),
     );
+    return [...split.pinned, ...rankedRest];
   });
 });

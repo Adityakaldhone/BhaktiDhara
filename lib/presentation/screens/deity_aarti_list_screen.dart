@@ -1,12 +1,12 @@
 import '../../core/analytics/analytics_service.dart';
-import '../../core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../domain/entities/aarti_item.dart';
+import '../../domain/entities/bhakti_deity.dart';
+import '../../domain/entities/remote_devotional_catalog.dart';
 import '../../domain/logic/deity_affinity_ranker.dart';
 import '../../services/ad_units.dart';
 import '../../services/backend_service.dart';
@@ -16,6 +16,7 @@ import '../providers/deity_affinity_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/review_provider.dart';
 import '../widgets/app_banner_ad.dart';
+import '../widgets/bhakti/deity_cutout_image.dart';
 import '../widgets/devotional_review_dialog.dart';
 import 'altar_screen.dart';
 
@@ -25,12 +26,14 @@ class _DeityHeaderInfo {
   final String subtitle;
   final String shloka;
   final String imagePath;
+  final String imageUrl;
 
   const _DeityHeaderInfo({
     required this.title,
     required this.subtitle,
     required this.shloka,
     required this.imagePath,
+    this.imageUrl = '',
   });
 }
 
@@ -77,7 +80,11 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
     super.dispose();
   }
 
-  _DeityHeaderInfo _getHeaderInfo(String deity, String localeCode) {
+  _DeityHeaderInfo _getHeaderInfo(
+    String deity,
+    String localeCode,
+    List<BhaktiDeity> deities,
+  ) {
     switch (deity) {
       case 'Lord Shiva':
         return const _DeityHeaderInfo(
@@ -366,12 +373,14 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           imagePath: 'assets/bhakti/khatu_shyam.webp',
         );
       default:
-        final bhaktiDeity = kBhaktiDeities.where((d) => d.matches(deity)).firstOrNull;
+        final bhaktiDeity = deities.where((d) => d.matches(deity)).firstOrNull;
+        final portrait = resolveDeityPortrait(deity, deities: deities);
         return _DeityHeaderInfo(
-          title: bhaktiDeity?.nameHi ?? deity,
+          title: bhaktiDeity?.localizedName(localeCode) ?? deity,
           subtitle: 'आरती संग्रह',
           shloka: 'ॐ',
-          imagePath: bhaktiDeity?.imageAsset ?? MandirTheme.getDeityImageAsset(deity),
+          imagePath: portrait.asset,
+          imageUrl: portrait.url,
         );
     }
   }
@@ -405,7 +414,8 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
   Widget build(BuildContext context) {
     final catalogAsync = ref.watch(aartiCatalogProvider);
     final localeCode = ref.watch(localeProvider).languageCode;
-    final headerInfo = _getHeaderInfo(widget.deity, localeCode);
+    final deities = ref.watch(allBhaktiDeitiesProvider);
+    final headerInfo = _getHeaderInfo(widget.deity, localeCode, deities);
 
     return PopScope(
       canPop: false,
@@ -440,10 +450,11 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                 ),
               ),
               data: (allAartis) {
-                // Filter items for this deity
-                final deityAartis = allAartis.where((item) {
-                  return item.deity == widget.deity;
-                }).toList();
+                // Filter items for this deity, then apply admin sortOrder pins.
+                final deityAartis = applyAartiSortOrder(
+                  allAartis.where((item) => item.deity == widget.deity).toList(),
+                  BackendService.remoteCatalog.aartiSort,
+                );
 
                 // Apply local search filtering
                 final filteredList = deityAartis.where((item) {
@@ -512,7 +523,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                       left: 60,
                       right: 60,
                       child: Image.asset(
-                        'assets/decorations/horizontal_bar_trimmed.png',
+                        'assets/decorations/horizontal_bar_trimmed.webp',
                         height: 14,
                         fit: BoxFit.contain,
                       ),
@@ -551,7 +562,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
 }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TOP BAR (Enlarged Back Button + assets/aarti_screen/om.png)
+  // TOP BAR (Enlarged Back Button + assets/aarti_screen/om.webp)
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildTopBar() {
     return Padding(
@@ -561,9 +572,9 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Center Om Image (assets/aarti_screen/om.png)
+            // Center Om Image (assets/aarti_screen/om.webp)
             Image.asset(
-              'assets/aarti_screen/om.png',
+              'assets/aarti_screen/om.webp',
               width: 150,
               height: 60,
               fit: BoxFit.contain,
@@ -601,12 +612,13 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
           Expanded(
             flex: 5,
             child: Center(
-              child: Image.asset(
-                info.imagePath,
+              child: DeityPortraitImage(
+                imageAsset: info.imagePath,
+                imageUrl: info.imageUrl,
                 height: 155,
                 fit: BoxFit.contain,
                 errorBuilder: (_, _, _) => Image.asset(
-                  'assets/aarti_screen/om.png',
+                  'assets/aarti_screen/om.webp',
                   height: 155,
                   fit: BoxFit.contain,
                 ),

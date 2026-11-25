@@ -14,7 +14,7 @@ class KundaliService {
   static const _userAgent = 'BhaktiDhara/1.2.16 (kundali-place-search)';
   static bool _tzReady = false;
 
-  static void _ensureTimezones() {
+  static void ensureTimezones() {
     if (_tzReady) return;
     tzdata.initializeTimeZones();
     _tzReady = true;
@@ -23,7 +23,7 @@ class KundaliService {
   /// Converts the wall-clock birth time to UTC using the historical rules of
   /// the place's zone (e.g. India's +6:30 war time in 1942–45).
   static DateTime birthUtc(BirthProfile p) {
-    _ensureTimezones();
+    ensureTimezones();
     final b = p.birthLocal;
     try {
       final location = tz.getLocation(p.place.timezone);

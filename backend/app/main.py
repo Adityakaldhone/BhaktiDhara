@@ -5,15 +5,17 @@ import io
 import json
 import os
 import logging
+import tempfile
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, Query, Header, HTTPException, Depends, status, File, Form, UploadFile
-from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
+from fastapi import FastAPI, Query, Header, HTTPException, Depends, status, File, Form, UploadFile, Request, Response
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from starlette.background import BackgroundTask
 import uuid
 import re
 # pyrefly: ignore [missing-import]
@@ -23,6 +25,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from app.ga4_forwarder import REVENUE_NOTIFICATION_TYPES, handle_subscription_notification
 from app.database import (
+    DB_PATH,
     init_db,
     ist_today_str,
     clear_cache,
@@ -101,6 +104,22 @@ from app.push_service import (
 from app.gemini_service import consult_vedic_ai, get_cached_horoscope
 from app.greetings import init_greetings_db, public_router as greetings_public_router, build_admin_router as build_greetings_admin_router
 from app.granth import router as granth_router
+from app.voice_agent.router import router as voice_router
+from app.remote_catalog import (
+    public_catalog_payload,
+    list_remote_aartis,
+    list_remote_deities,
+    upsert_remote_aarti,
+    upsert_remote_deity,
+    set_remote_aarti_enabled,
+    set_remote_deity_enabled,
+    delete_remote_aarti,
+    delete_remote_deity,
+    list_sort_overrides,
+    upsert_sort_override,
+    delete_sort_override,
+    _as_bool,
+)
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -235,6 +254,7 @@ async def require_admin(
 app.include_router(greetings_public_router)
 app.include_router(build_greetings_admin_router(require_admin))
 app.include_router(granth_router)
+app.include_router(voice_router)
 
 
 # ── Models ───────────────────────────────────────────────────────────────────
@@ -305,6 +325,28 @@ class AnnouncementUpdate(BaseModel):
     active: Optional[bool] = None
 
 
+class RemoteAartiUpsert(BaseModel):
+    aarti: Dict[str, Any]
+    enabled: bool = True
+    sortOrder: int = 0
+
+
+class RemoteEnabledUpdate(BaseModel):
+    enabled: bool
+
+
+class RemoteDeityUpsert(BaseModel):
+    deity: Dict[str, Any]
+    enabled: bool = True
+    sortOrder: int = 0
+
+
+class CatalogSortOverrideUpsert(BaseModel):
+    targetType: str = Field(..., description="aarti or deity")
+    targetId: str
+    sortOrder: int = 0
+
+
 _background_tasks: set = set()
 
 
@@ -327,8 +369,9 @@ class PushCampaignCreate(PushTarget):
     title: str
     body: str
     imageUrl: str = ""
-    route: str = Field("", description="'', aarti, panchang, jaap, horoscope, bhajan, mandir")
+    route: str = Field("", description="'', aarti, deity, panchang, jaap, horoscope, bhajan, mandir")
     aartiId: str = ""
+    deityKey: str = ""
     sendAt: Optional[str] = Field(None, description="ISO datetime; omit to send immediately")
     repeat: str = Field("none", description="none, daily")
 
@@ -620,6 +663,19 @@ async def public_config_endpoint():
     return await get_app_config()
 
 
+@app.get("/api/v1/catalog")
+async def public_catalog_endpoint(request: Request):
+    """Remote aartis + deities merged by the app on top of the bundled catalog."""
+    body, etag = await public_catalog_payload()
+    if_none_match = (request.headers.get("if-none-match") or "").strip()
+    if if_none_match and if_none_match == etag:
+        return Response(status_code=304, headers={"ETag": etag, "Cache-Control": "public, max-age=60"})
+    return JSONResponse(
+        content=body,
+        headers={"ETag": etag, "Cache-Control": "public, max-age=60"},
+    )
+
+
 @app.get("/api/v1/announcements")
 async def public_announcements_endpoint(locale: str = Query("", description="mr, hi, en")):
     """Live in-app announcements for the given language."""
@@ -844,6 +900,9 @@ class DeityRequestNotifyLink(BaseModel):
 class DeityRequestNotify(BaseModel):
     title: str
     body: str
+    route: str = Field("", description="'aarti' or 'deity' to deep-link on tap")
+    aartiId: str = ""
+    deityKey: str = ""
 
 
 @app.post("/api/v1/admin/deity-requests/{event_id}/link-notify", dependencies=admin)
@@ -871,6 +930,21 @@ async def admin_deity_request_notify(event_id: int, payload: DeityRequestNotify)
     if not body:
         raise HTTPException(status_code=400, detail="Message body is required")
 
+    aarti_id = payload.aartiId.strip()[:120]
+    deity_key = payload.deityKey.strip()[:128]
+    route = payload.route.strip().lower()
+    if not route:
+        if aarti_id:
+            route = "aarti"
+        elif deity_key:
+            route = "deity"
+    if route and route not in ("", "aarti", "deity"):
+        raise HTTPException(status_code=400, detail="route must be aarti or deity")
+    if route == "aarti" and not aarti_id:
+        raise HTTPException(status_code=400, detail="aartiId required for route=aarti")
+    if route == "deity" and not deity_key:
+        raise HTTPException(status_code=400, detail="deityKey required for route=deity")
+
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(
             "SELECT device_id FROM events WHERE id = ? AND name = 'deity_requested'",
@@ -884,12 +958,12 @@ async def admin_deity_request_notify(event_id: int, payload: DeityRequestNotify)
     campaign_id = 0
     push_result: Dict[str, Any] = {"success": 0, "failure": 0, "error": ""}
     try:
-        campaign_id = await create_push_campaign({
+        campaign_fields: Dict[str, Any] = {
             "title": title,
             "body": body,
             "image_url": "",
-            "route": "",
-            "aarti_id": "",
+            "route": route,
+            "aarti_id": aarti_id,
             "audience": "user",
             "locale": "",
             "platform": "",
@@ -898,7 +972,10 @@ async def admin_deity_request_notify(event_id: int, payload: DeityRequestNotify)
             "status": "scheduled",
             "scheduled_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "repeat": "none",
-        })
+        }
+        if deity_key:
+            campaign_fields["deity_key"] = deity_key
+        campaign_id = await create_push_campaign(campaign_fields)
         push_result = await dispatch_push_campaign(campaign_id)
     except Exception as e:
         logger.warning("Deity-request push failed for event %s: %s", event_id, e)
@@ -910,6 +987,9 @@ async def admin_deity_request_notify(event_id: int, payload: DeityRequestNotify)
         title=title,
         body=body,
         create_inbox=True,
+        route=route,
+        aarti_id=aarti_id,
+        deity_key=deity_key,
     )
     await log_admin_action("deity_request_notify", f"event#{event_id} device={device_id[:12]}…")
     return {
@@ -919,6 +999,9 @@ async def admin_deity_request_notify(event_id: int, payload: DeityRequestNotify)
         "pushFailure": int(push_result.get("failure") or 0),
         "pushError": push_result.get("error") or "",
         "inApp": True,
+        "route": route,
+        "aartiId": aarti_id,
+        "deityKey": deity_key,
     }
 
 
@@ -957,7 +1040,11 @@ async def dismiss_device_notification(notification_id: int, payload: InAppNotifi
     return {"status": "ok"}
 
 
-DEITY_REQUEST_UPLOAD_DIR = Path(os.getenv("DEITY_REQUEST_UPLOAD_DIR", "uploads/deity_requests"))
+# Keep under ./data so Docker volume `./data:/app/data` persists devotee uploads.
+DEITY_REQUEST_UPLOAD_DIR = Path(os.getenv("DEITY_REQUEST_UPLOAD_DIR", "data/uploads/deity_requests"))
+REMOTE_DEITY_UPLOAD_DIR = Path(os.getenv("REMOTE_DEITY_UPLOAD_DIR", "data/uploads/remote_deities"))
+REMOTE_DEITY_IMAGE_MAX_BYTES = 3 * 1024 * 1024
+REMOTE_DEITY_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 
 class FeedbackPayload(BaseModel):
@@ -1123,8 +1210,12 @@ async def submit_deity_request_endpoint(
 @app.get("/api/v1/admin/deity-request-images/{filename}", dependencies=admin)
 async def admin_deity_request_image(filename: str):
     safe = Path(filename).name
-    path = DEITY_REQUEST_UPLOAD_DIR / safe
-    if not path.is_file():
+    candidates = [
+        DEITY_REQUEST_UPLOAD_DIR / safe,
+        Path("uploads/deity_requests") / safe,  # legacy pre-volume path
+    ]
+    path = next((p for p in candidates if p.is_file()), None)
+    if path is None:
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(path)
 
@@ -1156,6 +1247,176 @@ async def admin_announcements_delete(ann_id: int):
     if not await delete_announcement(ann_id):
         raise HTTPException(status_code=404, detail="Announcement not found")
     await log_admin_action("delete_announcement", f"#{ann_id}")
+    return {"status": "deleted"}
+
+
+# ── Remote catalog (aartis + deities hot-published to the app) ───────────────
+
+@app.get("/api/v1/admin/catalog/aartis", dependencies=admin)
+async def admin_catalog_aartis_list():
+    return {"aartis": await list_remote_aartis(include_disabled=True)}
+
+
+@app.put("/api/v1/admin/catalog/aartis/{aarti_id}", dependencies=admin)
+async def admin_catalog_aarti_upsert(aarti_id: str, payload: RemoteAartiUpsert):
+    body = dict(payload.aarti or {})
+    body["id"] = aarti_id.strip()
+    try:
+        row = await upsert_remote_aarti(
+            body,
+            enabled=_as_bool(payload.enabled, True),
+            sort_order=int(payload.sortOrder or 0),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await log_admin_action("upsert_remote_aarti", aarti_id[:80])
+    return row
+
+
+@app.patch("/api/v1/admin/catalog/aartis/{aarti_id}", dependencies=admin)
+async def admin_catalog_aarti_toggle(aarti_id: str, payload: RemoteEnabledUpdate):
+    if not await set_remote_aarti_enabled(aarti_id, payload.enabled):
+        raise HTTPException(status_code=404, detail="Aarti not found")
+    await log_admin_action("toggle_remote_aarti", f"{aarti_id} enabled={payload.enabled}")
+    return {"status": "ok"}
+
+
+@app.delete("/api/v1/admin/catalog/aartis/{aarti_id}", dependencies=admin)
+async def admin_catalog_aarti_delete(aarti_id: str):
+    if not await delete_remote_aarti(aarti_id):
+        raise HTTPException(status_code=404, detail="Aarti not found")
+    await log_admin_action("delete_remote_aarti", aarti_id[:80])
+    return {"status": "deleted"}
+
+
+@app.get("/api/v1/admin/catalog/deities", dependencies=admin)
+async def admin_catalog_deities_list():
+    return {"deities": await list_remote_deities(include_disabled=True)}
+
+
+@app.post("/api/v1/admin/catalog/deity-images", dependencies=admin)
+async def admin_catalog_deity_image_upload(file: UploadFile = File(...)):
+    """Upload a deity cut-out; returns a public path the app can load as imageUrl."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="file is required")
+    raw = await file.read(REMOTE_DEITY_IMAGE_MAX_BYTES + 1)
+    if len(raw) > REMOTE_DEITY_IMAGE_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Image is larger than 3 MB")
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty image")
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in REMOTE_DEITY_IMAGE_EXTS:
+        # Sniff a few magic bytes when extension is missing/wrong.
+        if raw[:3] == b"\xff\xd8\xff":
+            ext = ".jpg"
+        elif raw[:8] == b"\x89PNG\r\n\x1a\n":
+            ext = ".png"
+        elif raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+            ext = ".webp"
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported image type (use JPG, PNG, WEBP, or GIF)",
+            )
+
+    REMOTE_DEITY_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    fname = f"{uuid.uuid4().hex}{ext}"
+    path = REMOTE_DEITY_UPLOAD_DIR / fname
+    path.write_bytes(raw)
+    media_path = f"/api/v1/catalog/deity-images/{fname}"
+    await log_admin_action("upload_remote_deity_image", fname)
+    return {
+        "status": "ok",
+        "filename": fname,
+        "path": media_path,
+        "imageUrl": media_path,
+    }
+
+
+@app.get("/api/v1/catalog/deity-images/{filename}")
+async def public_catalog_deity_image(filename: str):
+    """Public deity cut-out for the Flutter app (CachedNetworkImage)."""
+    safe = Path(filename).name
+    if safe != filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    path = REMOTE_DEITY_UPLOAD_DIR / safe
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found")
+    media = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+    }.get(path.suffix.lower(), "application/octet-stream")
+    return FileResponse(
+        path,
+        media_type=media,
+        headers={"Cache-Control": "public, max-age=604800"},
+    )
+
+
+@app.put("/api/v1/admin/catalog/deities/{deity_key}", dependencies=admin)
+async def admin_catalog_deity_upsert(deity_key: str, payload: RemoteDeityUpsert):
+    body = dict(payload.deity or {})
+    body["key"] = deity_key.strip()
+    try:
+        row = await upsert_remote_deity(
+            body,
+            enabled=_as_bool(payload.enabled, True),
+            sort_order=int(payload.sortOrder or 0),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await log_admin_action("upsert_remote_deity", deity_key[:80])
+    return row
+
+
+@app.patch("/api/v1/admin/catalog/deities/{deity_key}", dependencies=admin)
+async def admin_catalog_deity_toggle(deity_key: str, payload: RemoteEnabledUpdate):
+    if not await set_remote_deity_enabled(deity_key, payload.enabled):
+        raise HTTPException(status_code=404, detail="Deity not found")
+    await log_admin_action("toggle_remote_deity", f"{deity_key} enabled={payload.enabled}")
+    return {"status": "ok"}
+
+
+@app.delete("/api/v1/admin/catalog/deities/{deity_key}", dependencies=admin)
+async def admin_catalog_deity_delete(deity_key: str):
+    if not await delete_remote_deity(deity_key):
+        raise HTTPException(status_code=404, detail="Deity not found")
+    await log_admin_action("delete_remote_deity", deity_key[:80])
+    return {"status": "deleted"}
+
+
+@app.get("/api/v1/admin/catalog/sort", dependencies=admin)
+async def admin_catalog_sort_list():
+    """Pins that reorder Sacred Collection deities or aarti lists (including local ids)."""
+    return {"overrides": await list_sort_overrides()}
+
+
+@app.put("/api/v1/admin/catalog/sort", dependencies=admin)
+async def admin_catalog_sort_upsert(payload: CatalogSortOverrideUpsert):
+    try:
+        row = await upsert_sort_override(
+            payload.targetType,
+            payload.targetId,
+            int(payload.sortOrder or 0),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await log_admin_action(
+        "upsert_catalog_sort",
+        f"{row['targetType']}:{row['targetId']}={row['sortOrder']}",
+    )
+    return row
+
+
+@app.delete("/api/v1/admin/catalog/sort/{target_type}/{target_id}", dependencies=admin)
+async def admin_catalog_sort_delete(target_type: str, target_id: str):
+    if not await delete_sort_override(target_type, target_id):
+        raise HTTPException(status_code=404, detail="Sort override not found")
+    await log_admin_action("delete_catalog_sort", f"{target_type}:{target_id}")
     return {"status": "deleted"}
 
 
@@ -1217,9 +1478,44 @@ async def admin_cache_clear_endpoint(
     return result
 
 
+@app.get("/api/v1/admin/database/download", dependencies=admin)
+async def admin_database_download_endpoint():
+    """Consistent SQLite snapshot of the live app DB (WAL-safe via backup API).
+
+    Voice / model-training DBs are not included — this is only [DB_PATH]
+    (`bhaktidhara.db` by default).
+    """
+    # Local import keeps the module load light when admin tools are unused.
+    import aiosqlite
+
+    src = Path(DB_PATH).resolve()
+    if not src.is_file():
+        raise HTTPException(status_code=404, detail=f"Database not found at {src}")
+
+    fd, tmp_path = tempfile.mkstemp(prefix="bhaktidhara_backup_", suffix=".db")
+    os.close(fd)
+    try:
+        async with aiosqlite.connect(str(src)) as source:
+            async with aiosqlite.connect(tmp_path) as dest:
+                await source.backup(dest)
+    except Exception as exc:
+        Path(tmp_path).unlink(missing_ok=True)
+        logging.getLogger("uvicorn.error").exception("admin database backup failed")
+        raise HTTPException(status_code=500, detail=f"Database backup failed: {exc}") from exc
+
+    filename = f"bhaktidhara_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.db"
+    await log_admin_action("download_database", filename)
+    return FileResponse(
+        tmp_path,
+        media_type="application/x-sqlite3",
+        filename=filename,
+        background=BackgroundTask(lambda: Path(tmp_path).unlink(missing_ok=True)),
+    )
+
+
 # ── Push notifications ───────────────────────────────────────────────────────
 
-PUSH_ROUTES = {"", "aarti", "panchang", "jaap", "horoscope", "bhajan", "mandir"}
+PUSH_ROUTES = {"", "aarti", "deity", "panchang", "jaap", "horoscope", "bhajan", "mandir"}
 PUSH_AUDIENCES = {"all", "vip", "free", "dormant", "user"}
 
 
@@ -1314,6 +1610,8 @@ async def admin_push_create(payload: PushCampaignCreate):
         raise HTTPException(status_code=400, detail="Device ID is required for a single-user push")
     if payload.route == "aarti" and not payload.aartiId.strip():
         raise HTTPException(status_code=400, detail="Aarti ID is required to open an aarti")
+    if payload.route == "deity" and not payload.deityKey.strip():
+        raise HTTPException(status_code=400, detail="Deity key is required to open a deity list")
     if payload.repeat not in ("none", "daily"):
         raise HTTPException(status_code=400, detail="Repeat must be 'none' or 'daily'")
 
@@ -1330,6 +1628,7 @@ async def admin_push_create(payload: PushCampaignCreate):
         "image_url": payload.imageUrl.strip()[:500],
         "route": payload.route,
         "aarti_id": payload.aartiId.strip()[:120],
+        "deity_key": payload.deityKey.strip()[:128],
         "audience": payload.audience,
         "locale": payload.locale if payload.locale in ("mr", "hi", "en") else "",
         "platform": payload.platform if payload.platform in ("android", "ios") else "",

@@ -13,6 +13,15 @@ void main() {
     GoogleFonts.config.allowRuntimeFetching = false;
   });
 
+  // The voice orb continuously animates while the dashboard is visible.
+  Future<void> pumpDashboard(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+    await tester.pump();
+  }
+
   group('Dashboard Navbar & Language Dropdown Tests', () {
     testWidgets('Dashboard navbar has 5 tabs (Home, Bhajan, Horoscope, Panchang, More)',
         (WidgetTester tester) async {
@@ -39,7 +48,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       // Check BottomNavigationBar items
       final navBar = tester.widget<BottomNavigationBar>(find.byType(BottomNavigationBar));
@@ -98,14 +107,14 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       // Initial state is Marathi
       expect(find.text('भाषा: मराठी'), findsOneWidget);
 
       // Tap the dropdown button
       await tester.tap(find.text('भाषा: मराठी'));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       // Popup menu options with radio buttons should appear
       expect(find.text('हिंदी'), findsOneWidget);
@@ -115,7 +124,7 @@ void main() {
 
       // Select Hindi
       await tester.tap(find.text('हिंदी'));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       // Dropdown should now reflect Hindi
       expect(find.text('भाषा: हिंदी'), findsOneWidget);
@@ -146,7 +155,7 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       final context = tester.element(find.byType(MandirDashboardScreen));
       final l10n = AppLocalizations.of(context)!;
@@ -155,7 +164,7 @@ void main() {
       expect(find.text(l10n.appTitle), findsOneWidget);
 
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       // Collapsed: tagline gone, compact title shown, search still on screen
       expect(find.text(l10n.appTagline), findsNothing);
@@ -189,14 +198,14 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       // At first entry / top: FAB should not be present
       expect(find.byType(FloatingActionButton), findsNothing);
 
       // Scroll down
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       // FAB with upward arrow should now appear
       expect(find.byType(FloatingActionButton), findsOneWidget);
@@ -204,7 +213,7 @@ void main() {
 
       // Tap FAB
       await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester);
 
       // Scrolled back to top: FAB hides
       expect(find.byType(FloatingActionButton), findsNothing);

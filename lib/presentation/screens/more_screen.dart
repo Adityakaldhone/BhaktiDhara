@@ -1,3 +1,5 @@
+import '../../features/voice_agent/data/bhakti_wake_controller.dart';
+import '../../features/voice_agent/data/wake_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,6 +28,21 @@ import 'milan_screen.dart';
 /// - Clean Bento cards for Daily Practice and Vedic Astrology
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
+
+  static Future<void> showFeedback(BuildContext context) {
+    final lang = Localizations.localeOf(context).languageCode;
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          16, 16, 16, 24 + MediaQuery.viewInsetsOf(sheetContext).bottom,
+        ),
+        child: _FeedbackCard(lang: lang),
+      ),
+    );
+  }
 
   void _openDeityView(BuildContext context, WidgetRef ref, BhaktiDeity deity) {
     final catalog = ref.read(aartiCatalogProvider).valueOrNull ?? const [];
@@ -119,6 +136,31 @@ class MoreScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
+
+            if (WakeAudio.supported)
+              Consumer(builder: (context, ref, _) {
+                final wake = ref.watch(bhaktiWakeProvider);
+                return SwitchListTile(
+                  key: const Key('bhakti-wake-switch'),
+                  title: Text(switch (lang) {
+                    'hi' => '“हे भक्ति” सुनें',
+                    'mr' => '“हे भक्ती” ऐका',
+                    _ => 'Listen for “Hey Bhakti”',
+                  }),
+                  subtitle: Text(switch (lang) {
+                    'hi' => 'ऐप खुला हो तो “भक्ति” कहकर बोलना शुरू करें।',
+                    'mr' => 'अॅप उघडं असताना “भक्ती” म्हणा आणि मग तुमची विनंती सांगा.',
+                    _ => 'Say “Bhakti” while the app is open, then give your command.',
+                  }),
+                  value: wake.enabled,
+                  onChanged: wake.changing ? null : (value) async {
+                    final ok = await wake.setEnabled(value);
+                    if (!ok && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.speechNotAvailable)));
+                    }
+                  },
+                );
+              }),
 
             // Aarti Reminders Tile
             _AartiRemindersCard(

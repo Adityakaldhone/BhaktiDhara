@@ -44,7 +44,8 @@ class HoroscopeScreen extends ConsumerStatefulWidget {
 class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
   final ScrollController _rashiScrollController = ScrollController();
   final ScrollController _listScrollController = ScrollController();
-  final TextEditingController _questionInputController = TextEditingController();
+  final TextEditingController _questionInputController =
+      TextEditingController();
 
   bool _isConsultingAi = false;
   VedicAiConsultation? _consultationResult;
@@ -153,7 +154,7 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     return Scaffold(
       backgroundColor: _Tokens.paperBg,
       bottomNavigationBar: Navigator.canPop(context)
-          ? const AppBannerAd(adUnitId: AdUnits.tabBanner)
+          ? const AppBannerAd(adUnitId: AdUnits.horoscopeBanner)
           : null,
       body: SafeArea(
         bottom: false,
@@ -175,7 +176,8 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 langCode: langCode,
                 rashiScrollController: _rashiScrollController,
                 onSelectPeriod: (period) {
-                  ref.read(selectedHoroscopePeriodProvider.notifier).state = period;
+                  ref.read(selectedHoroscopePeriodProvider.notifier).state =
+                      period;
                 },
                 onSelectRashi: (rashi) {
                   ref.read(selectedRashiProvider.notifier).state = rashi;
@@ -212,7 +214,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                   ),
                 ),
                 error: (err, stack) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 60,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -233,7 +238,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       const SizedBox(height: 10),
                       ElevatedButton.icon(
                         onPressed: () {
-                          ref.read(horoscopeRefreshTriggerProvider.notifier).state++;
+                          ref
+                              .read(horoscopeRefreshTriggerProvider.notifier)
+                              .state++;
                         },
                         icon: const Icon(Icons.refresh, size: 18),
                         label: const Text('पुन्हा प्रयत्न करा'),
@@ -268,7 +275,11 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                       const SizedBox(height: 18),
 
                       // Vedic AI Consultation Card
-                      _buildVedicAiConsultCard(selectedRashi, langCode, isPremium),
+                      _buildVedicAiConsultCard(
+                        selectedRashi,
+                        langCode,
+                        isPremium,
+                      ),
 
                       const SizedBox(height: 18),
 
@@ -331,7 +342,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 onTap: () => showPremiumPaywallSheet(context, ref, langCode),
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: _Tokens.ivorySurface,
                     borderRadius: BorderRadius.circular(20),
@@ -487,7 +501,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                                 : (langCode == 'hi'
                                       ? '🎉 राशिफल 24 घंटे के लिए अनलॉक हो गया!'
                                       : '🎉 भविष्य २४ तासांसाठी अनलॉक झाले!'),
-                            style: GoogleFonts.mukta(fontWeight: FontWeight.w600),
+                            style: GoogleFonts.mukta(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           backgroundColor: const Color(0xFF2E7D32),
                           behavior: SnackBarBehavior.floating,
@@ -758,7 +774,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -815,7 +834,9 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                         ),
                         border: InputBorder.none,
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                       ),
                       onSubmitted: (text) => _handleConsultVedicAi(
                         selectedRashi,
@@ -832,7 +853,10 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
                     backgroundColor: _Tokens.navyHero,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -1393,7 +1417,9 @@ class _HoroscopeTrayHeaderDelegate extends SliverPersistentHeaderDelegate {
                       duration: const Duration(milliseconds: 180),
                       curve: Curves.easeInOut,
                       decoration: BoxDecoration(
-                        color: isToday ? _Tokens.ivorySurface : Colors.transparent,
+                        color: isToday
+                            ? _Tokens.ivorySurface
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(9),
                         border: isToday
                             ? Border.all(color: _Tokens.mainBorder, width: 1)
@@ -1413,8 +1439,9 @@ class _HoroscopeTrayHeaderDelegate extends SliverPersistentHeaderDelegate {
                         todayLabel,
                         style: GoogleFonts.mukta(
                           fontSize: 15.2,
-                          fontWeight:
-                              isToday ? FontWeight.w800 : FontWeight.w600,
+                          fontWeight: isToday
+                              ? FontWeight.w800
+                              : FontWeight.w600,
                           color: isToday
                               ? _Tokens.primaryInk
                               : _Tokens.mutedText,
@@ -1435,7 +1462,9 @@ class _HoroscopeTrayHeaderDelegate extends SliverPersistentHeaderDelegate {
                       duration: const Duration(milliseconds: 180),
                       curve: Curves.easeInOut,
                       decoration: BoxDecoration(
-                        color: !isToday ? _Tokens.ivorySurface : Colors.transparent,
+                        color: !isToday
+                            ? _Tokens.ivorySurface
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(9),
                         border: !isToday
                             ? Border.all(color: _Tokens.mainBorder, width: 1)
@@ -1455,8 +1484,9 @@ class _HoroscopeTrayHeaderDelegate extends SliverPersistentHeaderDelegate {
                         weeklyLabel,
                         style: GoogleFonts.mukta(
                           fontSize: 15.2,
-                          fontWeight:
-                              !isToday ? FontWeight.w800 : FontWeight.w600,
+                          fontWeight: !isToday
+                              ? FontWeight.w800
+                              : FontWeight.w600,
                           color: !isToday
                               ? _Tokens.primaryInk
                               : _Tokens.mutedText,
@@ -1523,8 +1553,9 @@ class _HoroscopeTrayHeaderDelegate extends SliverPersistentHeaderDelegate {
                           rashi.localizedName(langCode),
                           style: GoogleFonts.mukta(
                             fontSize: 14.2,
-                            fontWeight:
-                                isSelected ? FontWeight.w800 : FontWeight.w700,
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w700,
                             color: isSelected
                                 ? Colors.white
                                 : _Tokens.primaryInk,

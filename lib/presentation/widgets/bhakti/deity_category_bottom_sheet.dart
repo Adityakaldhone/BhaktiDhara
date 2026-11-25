@@ -17,6 +17,7 @@ import '../../providers/locale_provider.dart';
 import '../../providers/review_provider.dart';
 import '../../screens/altar_screen.dart';
 import '../../screens/deity_video_watch_screen.dart';
+import 'deity_cutout_image.dart';
 
 /// Single item in a deity category selection bottom sheet.
 class DeitySheetItem {
@@ -477,13 +478,9 @@ class _DeityCategoryBottomSheetState
                   child: ClipOval(
                     child: Container(
                       color: const Color(0xFF38150C),
-                      child: Image.asset(
-                        widget.deity.imageAsset,
+                      child: DeityCutoutImage(
+                        deity: widget.deity,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, _, _) => const Icon(
-                          Icons.temple_hindu_rounded,
-                          color: Color(0xFFE2B04F),
-                        ),
                       ),
                     ),
                   ),

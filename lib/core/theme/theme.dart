@@ -379,7 +379,7 @@ class MandirTheme {
         if (clean.contains('santoshi') || clean.contains('संतोषी')) return 'assets/decorations/santoshi_mata.webp';
         if (clean.contains('sant') || clean.contains('संत')) return 'assets/bhakti/dnyaneshwar.webp';
 
-        return 'assets/decorations/om.png';
+        return 'assets/decorations/om.webp';
     }
   }
 }

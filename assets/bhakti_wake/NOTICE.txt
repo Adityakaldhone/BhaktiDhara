@@ -1,0 +1,8 @@
+This directory includes the quantized encoder and joiner, decoder and tokens
+from sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20 (chunk 8, left context 64).
+The pretrained weights were published by the icefall/sherpa-onnx project
+under the Apache License, Version 2.0. The files have been renamed.
+The Bhakti pronunciation list is specific to this application.
+
+https://github.com/k2-fsa/sherpa-onnx/releases/tag/kws-models
+https://www.modelscope.cn/models/pkufool/icefall-kws-zipformer-zh-en-3M-2025-12-20

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/bhakti_deity.dart';
+import 'deity_cutout_image.dart';
 
 /// Golden mandap with the selected deity seated inside, behind the pillars and diyas.
 class DarshanShrine extends StatefulWidget {
@@ -96,12 +97,11 @@ class _DarshanShrineState extends State<DarshanShrine> with SingleTickerProvider
                   ),
                 );
               },
-              child: Image.asset(
-                widget.deity.imageAsset,
+              child: DeityCutoutImage(
                 key: ValueKey(widget.deity.key),
+                deity: widget.deity,
                 fit: BoxFit.contain,
                 alignment: Alignment.bottomCenter,
-                gaplessPlayback: true,
               ),
             ),
           ),

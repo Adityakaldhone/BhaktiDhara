@@ -531,6 +531,55 @@
   .modal-body { font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 22px; word-break: break-word; }
   .modal-actions { display: flex; gap: 10px; justify-content: center; }
   .modal-actions button { min-width: 110px; }
+  .drq-thumb {
+    width: 52px; height: 52px; object-fit: cover; border-radius: 10px;
+    background: var(--bg-warm); border: 1px solid var(--border);
+    cursor: pointer; display: block;
+  }
+  .drq-thumb-ph {
+    width: 52px; height: 52px; border-radius: 10px; border: 1px dashed var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: 11px; background: var(--bg-surface-subtle);
+  }
+  .drq-yt {
+    display: inline-flex; flex-direction: column; gap: 2px; max-width: 220px;
+    font-size: 12px; line-height: 1.35;
+  }
+  .drq-yt a { word-break: break-all; font-weight: 600; }
+
+  /* Notify compose modal */
+  .notify-modal-box {
+    max-width: min(520px, 94vw); text-align: left; padding: 22px 22px 18px;
+  }
+  .notify-modal-box h3 { text-align: left; margin-bottom: 4px; }
+  .notify-sub {
+    font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;
+  }
+  .lang-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .lang-chip {
+    border: 1px solid var(--border); background: var(--bg-surface-subtle);
+    color: var(--text-secondary); border-radius: 999px; padding: 6px 12px;
+    font-size: 12.5px; font-weight: 650; cursor: pointer; transition: .12s;
+  }
+  .lang-chip:hover { border-color: var(--border-accent); color: var(--text-primary); }
+  .lang-chip.active {
+    background: var(--saffron-light); border-color: var(--border-accent);
+    color: #92400E; box-shadow: inset 0 0 0 1px var(--border-accent);
+  }
+  .notify-form { display: grid; gap: 10px; }
+  .notify-form label {
+    display: grid; gap: 5px; font-size: 11.5px; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted);
+  }
+  .notify-form .inp { text-transform: none; letter-spacing: 0; font-weight: 500; }
+  .notify-form textarea.inp { min-height: 88px; resize: vertical; }
+  .notify-route-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .notify-route-row label {
+    display: inline-flex; align-items: center; gap: 6px; text-transform: none;
+    letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .notify-modal-box .modal-actions { justify-content: flex-end; margin-top: 16px; }
 
   .avatar-badge {
     width: 28px; height: 28px; border-radius: 8px; margin-right: 8px; vertical-align: middle;
@@ -641,6 +690,10 @@
       <button type="button" data-view="announcements">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.455a28.047 28.047 0 01-2.16-6.038m3.822 1.819c.477-.075.952-.162 1.425-.262M10.34 6.66c.253-.962.584-1.892.985-2.783.247-.55.06-1.21-.463-1.511l-.657-.38c-.551-.318-1.26-.117-1.527.455a28.047 28.047 0 00-2.16 6.038m3.822-1.819c.477.075.952.162 1.425.262m0 0a41.43 41.43 0 015.656-.401m-5.656.401c-.139 1.464-.139 2.946 0 4.41m5.656-.401a41.409 41.409 0 000-3.608m0 3.608l1.792 1.034a1.5 1.5 0 002.046-.548l1.328-2.3a1.5 1.5 0 00-.548-2.046L16 6.252"/></svg>
         Announcements <span class="kbd">6</span>
+      </button>
+      <button type="button" data-view="catalog">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+        Remote Catalog
       </button>
       <button type="button" data-view="greetings">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A1.5 1.5 0 0021.75 19.5V4.5A1.5 1.5 0 0020.25 3H3.75A1.5 1.5 0 002.25 4.5v15A1.5 1.5 0 003.75 21zm10.5-11.25h.008v.008h-.008V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
@@ -886,7 +939,9 @@
                 <th>Deity</th>
                 <th>Language</th>
                 <th>Device ID</th>
-                <th>Extras</th>
+                <th>Image</th>
+                <th>YouTube</th>
+                <th>Source</th>
                 <th>Notify status</th>
                 <th></th>
               </tr>
@@ -987,6 +1042,7 @@
               <select class="inp" name="route">
                 <option value="">Home</option>
                 <option value="aarti">Specific Aarti</option>
+                <option value="deity">Deity Aarti List</option>
                 <option value="panchang">Panchang</option>
                 <option value="jaap">Jaap Mala</option>
                 <option value="horoscope">Horoscope</option>
@@ -996,6 +1052,9 @@
             </label>
             <label class="f" data-show="route=aarti">Aarti ID
               <input class="inp" name="aartiId" placeholder="e.g. ganpati_sukhakarta">
+            </label>
+            <label class="f" data-show="route=deity">Deity key
+              <input class="inp" name="deityKey" placeholder="e.g. Lord Shiva">
             </label>
             <label class="f">Audience
               <select class="inp" name="audience">
@@ -1088,6 +1147,159 @@
             </thead>
             <tbody id="push-rows"></tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- REMOTE CATALOG -->
+    <section class="view" id="view-catalog">
+      <div class="topbar">
+        <div class="topbar-header">
+          <div class="eyebrow">Hot Publish</div>
+          <h2>Remote Catalog</h2>
+          <div class="sub">Add aartis &amp; deities without an app update. Use a <b>new id</b> (local ids are never overwritten). Lower <b>sort order</b> = higher in Sacred Collection / deity aarti lists. Pin any bundled aarti id or deity key below.</div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn ghost sm" data-refresh="catalog">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>Pin list order (Sacred + deity lists)</h3>
+        <div class="sub" style="margin-bottom:10px">Works for remote <b>and</b> bundled local ids. Example aarti id: <span class="mono">shiv_lavthavti</span> · deity: <span class="mono">Lord Shiva</span>. Lower number shows first.</div>
+        <form id="rc-sort-form" class="form-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end">
+          <label class="f">Type
+            <select class="inp" name="targetType">
+              <option value="aarti">Aarti id</option>
+              <option value="deity">Deity key</option>
+            </select>
+          </label>
+          <label class="f">Id / key
+            <input class="inp" name="targetId" required placeholder="shiv_sama_rahe_lkp65">
+          </label>
+          <label class="f">Sort order
+            <input class="inp" type="number" name="sortOrder" value="0">
+          </label>
+          <button class="btn" type="submit">📌 Save pin</button>
+        </form>
+        <div id="rc-sort-list" style="margin-top:12px"></div>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Publish Aarti</h3>
+          <form id="rc-aarti-form" class="form-grid">
+            <label class="f">Id (unique)
+              <input class="inp" name="id" required maxlength="128" placeholder="hanuman_aarti_new_xyz">
+            </label>
+            <label class="f">Sort order
+              <input class="inp" type="number" name="sortOrder" value="0">
+            </label>
+            <label class="f">Title (EN)
+              <input class="inp" name="title" required maxlength="200" placeholder="Shri Hanuman Aarti">
+            </label>
+            <label class="f">Title (HI)
+              <input class="inp" name="titleHi" maxlength="200" placeholder="श्री हनुमान आरती">
+            </label>
+            <label class="f">Title (MR)
+              <input class="inp" name="titleMr" maxlength="200" placeholder="श्री हनुमान आरती">
+            </label>
+            <label class="f">Deity key
+              <input class="inp" name="deity" required maxlength="128" placeholder="Lord Hanuman">
+            </label>
+            <label class="f">Deity HI
+              <input class="inp" name="deityHi" maxlength="128" placeholder="हनुमान जी">
+            </label>
+            <label class="f">Deity MR
+              <input class="inp" name="deityMr" maxlength="128" placeholder="हनुमान">
+            </label>
+            <label class="f">YouTube video id
+              <input class="inp" name="youtubeVideoId" required maxlength="64" placeholder="AETFvQonfV8">
+            </label>
+            <label class="f">Duration
+              <input class="inp" name="durationText" maxlength="32" placeholder="4:20">
+            </label>
+            <label class="f">Singer
+              <input class="inp" name="singer" maxlength="128" value="Traditional">
+            </label>
+            <label class="f">Tags (comma)
+              <input class="inp" name="tags" value="Aarti">
+            </label>
+            <label class="f">Accent hex
+              <input class="inp" name="accentColorHex" value="#E65100">
+            </label>
+            <label class="f">Emoji
+              <input class="inp" name="deityEmoji" value="🙏">
+            </label>
+            <label class="f full">Backup video ids (comma)
+              <input class="inp" name="backupVideoIds" placeholder="abc, def">
+            </label>
+            <label class="f full">About (EN)
+              <textarea class="inp" name="about" rows="2"></textarea>
+            </label>
+            <label class="f full">About (HI)
+              <textarea class="inp" name="aboutHi" rows="2"></textarea>
+            </label>
+            <label class="f full">About (MR)
+              <textarea class="inp" name="aboutMr" rows="2"></textarea>
+            </label>
+            <label class="f full">Lyrics (one stanza per block; use --- between stanzas; optional first line = startTimeMs)
+              <textarea class="inp" name="lyricsRaw" rows="10" required placeholder="0&#10;जय हनुमान…&#10;Jai Hanuman…&#10;---&#10;30000&#10;दूसरा कडवा…&#10;Doosra…"></textarea>
+            </label>
+            <label class="f" style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" name="enabled" checked> Enabled
+            </label>
+            <div class="full" style="margin-top:8px">
+              <button class="btn" type="submit">🙏 Save Aarti</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Published Aartis</h3>
+          <div id="rc-aarti-list"></div>
+        </div>
+        <div class="card">
+          <h3>Publish Deity</h3>
+          <form id="rc-deity-form" class="form-grid">
+            <label class="f">Key
+              <input class="inp" name="key" required maxlength="128" placeholder="Goddess Example">
+            </label>
+            <label class="f">Sort order
+              <input class="inp" type="number" name="sortOrder" value="0">
+            </label>
+            <label class="f">Name EN
+              <input class="inp" name="nameEn" required maxlength="128">
+            </label>
+            <label class="f">Name HI
+              <input class="inp" name="nameHi" maxlength="128">
+            </label>
+            <label class="f">Name MR
+              <input class="inp" name="nameMr" maxlength="128">
+            </label>
+            <label class="f full">Aliases (comma)
+              <input class="inp" name="aliases" placeholder="Example, माता">
+            </label>
+            <label class="f full">Image asset (bundled fallback)
+              <input class="inp" name="imageAsset" value="assets/bhakti/durga.webp">
+            </label>
+            <label class="f full">Upload deity image (PNG/JPG/WEBP, max 3 MB)
+              <input class="inp" type="file" name="imageFile" id="rc-deity-file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </label>
+            <div class="full" id="rc-deity-preview-wrap" style="display:none">
+              <img id="rc-deity-preview" alt="Preview" style="max-height:140px;border-radius:10px;background:#1a0f0a;padding:6px">
+            </div>
+            <label class="f full">Or paste image URL (optional if you upload)
+              <input class="inp" name="imageUrl" id="rc-deity-image-url" placeholder="https://… or leave blank after upload">
+            </label>
+            <label class="f" style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" name="enabled" checked> Enabled
+            </label>
+            <div class="full" style="margin-top:8px">
+              <button class="btn" type="submit">🛕 Save Deity</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Published Deities</h3>
+          <div id="rc-deity-list"></div>
         </div>
       </div>
     </section>
@@ -1289,6 +1501,7 @@
           <div class="sub">Hetzner server status, Gemini quotas, SQLite database, and nightly precache jobs</div>
         </div>
         <div class="row">
+          <button type="button" class="btn ghost sm" id="sys-db-download" title="Download a consistent SQLite snapshot of bhaktidhara.db">⬇ Download DB</button>
           <button type="button" class="btn ghost sm" id="sys-precache">⚡ Run Precache Now</button>
           <button type="button" class="btn ghost sm" id="sys-clear-old">🧹 Clean 7d+ Cache</button>
           <button type="button" class="btn danger sm" id="sys-clear-all">Clear All Cache</button>
@@ -1340,6 +1553,65 @@
       <button type="button" class="btn ghost sm" id="modal-btn-cancel">Cancel</button>
       <button type="button" class="btn sm" id="modal-btn-confirm">Confirm & Send</button>
     </div>
+  </div>
+</div>
+
+<!-- Deity-request image lightbox -->
+<div id="drq-lightbox" class="modal-backdrop" role="dialog" aria-label="Deity image">
+  <div class="modal-box" style="max-width:min(720px,94vw);padding:16px">
+    <div class="row sp" style="margin-bottom:10px">
+      <h3 style="margin:0;font-size:15px">Deity image from request</h3>
+      <button type="button" class="btn ghost sm" id="drq-lightbox-close">Close</button>
+    </div>
+    <img id="drq-lightbox-img" alt="Requested deity" style="display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:12px;background:#1a0f0a">
+  </div>
+</div>
+
+<!-- Single-user notify compose (deity request / feedback) -->
+<div id="notify-compose-modal" class="modal-backdrop" role="dialog" aria-label="Compose notification">
+  <div class="modal-box notify-modal-box">
+    <div class="row sp" style="align-items:flex-start;gap:12px;margin-bottom:2px">
+      <div>
+        <h3 id="notify-compose-title" style="margin:0">🔔 Notify devotee</h3>
+        <div class="notify-sub" id="notify-compose-sub">Push + in-app inbox for this device</div>
+      </div>
+      <button type="button" class="btn ghost sm" id="notify-compose-close">Close</button>
+    </div>
+    <div class="lang-chips" id="notify-lang-chips" aria-label="Language templates">
+      <button type="button" class="lang-chip" data-lang="hi">हिंदी</button>
+      <button type="button" class="lang-chip" data-lang="mr">मराठी</button>
+      <button type="button" class="lang-chip" data-lang="en">English</button>
+    </div>
+    <form id="notify-compose-form" class="notify-form" autocomplete="off">
+      <input type="hidden" name="mode" value="deity">
+      <input type="hidden" name="targetId" value="">
+      <label>Title
+        <input class="inp" name="title" required maxlength="200" placeholder="🙏 BhaktiDhara">
+      </label>
+      <label>Message body
+        <textarea class="inp" name="body" required maxlength="1000" placeholder="Namaskar! …"></textarea>
+      </label>
+      <div data-notify-deity-only>
+        <label style="margin-bottom:8px">Open on tap</label>
+        <div class="notify-route-row" style="margin-bottom:10px">
+          <label><input type="radio" name="routeMode" value="deity" checked> Deity list</label>
+          <label><input type="radio" name="routeMode" value="aarti"> Specific aarti</label>
+          <label><input type="radio" name="routeMode" value=""> Home only</label>
+        </div>
+        <div class="grid g2" style="gap:10px">
+          <label>Deity key
+            <input class="inp" name="deityKey" maxlength="128" placeholder="e.g. Lord Krishna">
+          </label>
+          <label>Aarti ID
+            <input class="inp" name="aartiId" maxlength="120" placeholder="optional — e.g. krishna_…">
+          </label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost sm" id="notify-compose-cancel">Cancel</button>
+        <button type="submit" class="btn sm" id="notify-compose-send">🔔 Send</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1902,6 +2174,202 @@
   $('#en-event').addEventListener('change', () => loaders.engagement());
 
   const langLabel = (l) => ({ en: 'English', hi: 'Hindi', mr: 'Marathi' }[l] || (l || '—'));
+
+  // ── Single-user notify compose modal (deity request / feedback) ─────
+  const notifyCompose = {
+    mode: 'deity',
+    targetId: '',
+    deityName: '',
+    lang: 'hi',
+  };
+
+  function deityNotifyCopy(lang, deity) {
+    const name = (deity || 'आरती').trim() || 'आरती';
+    if (lang === 'mr') {
+      return {
+        title: `${name} जोडली गेली आहे! 🙏`,
+        body: `तुमच्या विनंतीनुसार "${name}" अ‍ॅपमध्ये जोडली गेली आहे. टॅप करा आणि आत्ताच पाहा. धन्यवाद! 🪔`,
+      };
+    }
+    if (lang === 'en') {
+      return {
+        title: `${name} is now live! 🙏`,
+        body: `As you requested, "${name}" is now in BhaktiDhara. Tap to open. Thank you! 🪔`,
+      };
+    }
+    return {
+      title: `${name} जोड़ दी गई है! 🙏`,
+      body: `आपकी विनंती के अनुसार "${name}" ऐप में जोड़ दी गई है। टैप करें और अभी देखें। धन्यवाद! 🪔`,
+    };
+  }
+
+  function feedbackNotifyCopy(lang) {
+    if (lang === 'mr') {
+      return {
+        title: '🙏 BhaktiDhara',
+        body: 'नमस्कार! तुमच्या अभिप्रायाबद्दल धन्यवाद. आम्ही ते नोंदवले आहे आणि लवकरच पाहू. 🪔',
+      };
+    }
+    if (lang === 'en') {
+      return {
+        title: '🙏 BhaktiDhara',
+        body: 'Namaskar! Thank you for your feedback. We have noted it and will look into it soon. 🪔',
+      };
+    }
+    return {
+      title: '🙏 BhaktiDhara',
+      body: 'नमस्कार! आपके फीडबैक के लिए धन्यवाद। हमने इसे नोट कर लिया है और जल्द देखेंगे। 🪔',
+    };
+  }
+
+  function applyNotifyLangChip(lang) {
+    const normalized = ['hi', 'mr', 'en'].includes(lang) ? lang : 'hi';
+    notifyCompose.lang = normalized;
+    $('#notify-lang-chips')?.querySelectorAll('.lang-chip').forEach((chip) => {
+      chip.classList.toggle('active', chip.dataset.lang === normalized);
+    });
+    const form = $('#notify-compose-form');
+    if (!form) return;
+    const copy = notifyCompose.mode === 'feedback'
+      ? feedbackNotifyCopy(normalized)
+      : deityNotifyCopy(normalized, notifyCompose.deityName);
+    form.title.value = copy.title;
+    form.body.value = copy.body;
+  }
+
+  function syncNotifyRouteFields() {
+    const form = $('#notify-compose-form');
+    if (!form) return;
+    const mode = (form.routeMode?.value || 'deity');
+    const aartiField = form.aartiId;
+    const deityField = form.deityKey;
+    if (aartiField) aartiField.disabled = mode === '';
+    if (deityField) deityField.disabled = mode === '';
+    if (mode === 'aarti' && aartiField && !aartiField.value.trim()) aartiField.focus();
+  }
+
+  function openNotifyComposeModal({ mode, targetId, deityName = '', lang = 'hi' }) {
+    const modal = $('#notify-compose-modal');
+    const form = $('#notify-compose-form');
+    if (!modal || !form) return;
+    notifyCompose.mode = mode;
+    notifyCompose.targetId = String(targetId || '');
+    notifyCompose.deityName = deityName || '';
+    form.mode.value = mode;
+    form.targetId.value = notifyCompose.targetId;
+
+    const deityOnly = form.querySelector('[data-notify-deity-only]');
+    if (deityOnly) deityOnly.style.display = mode === 'deity' ? '' : 'none';
+
+    if (mode === 'deity') {
+      $('#notify-compose-title').textContent = '🔔 Notify devotee';
+      $('#notify-compose-sub').textContent =
+        `Deity request · ${deityName || '—'} · push + in-app inbox`;
+      form.deityKey.value = deityName || '';
+      form.aartiId.value = '';
+      const deityRadio = form.querySelector('input[name="routeMode"][value="deity"]');
+      if (deityRadio) deityRadio.checked = true;
+    } else {
+      $('#notify-compose-title').textContent = '🔔 Notify feedback user';
+      $('#notify-compose-sub').textContent = 'App feedback · push + in-app inbox';
+    }
+
+    applyNotifyLangChip(['hi', 'mr', 'en'].includes(lang) ? lang : 'hi');
+    syncNotifyRouteFields();
+    modal.classList.add('open');
+    setTimeout(() => form.body?.focus(), 30);
+  }
+
+  function closeNotifyComposeModal() {
+    $('#notify-compose-modal')?.classList.remove('open');
+  }
+
+  $('#notify-compose-close')?.addEventListener('click', closeNotifyComposeModal);
+  $('#notify-compose-cancel')?.addEventListener('click', closeNotifyComposeModal);
+  $('#notify-compose-modal')?.addEventListener('click', (e) => {
+    if (e.target === $('#notify-compose-modal')) closeNotifyComposeModal();
+  });
+  $('#notify-lang-chips')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.lang-chip');
+    if (!chip) return;
+    applyNotifyLangChip(chip.dataset.lang || 'hi');
+  });
+  $('#notify-compose-form')?.addEventListener('change', (e) => {
+    if (e.target?.name === 'routeMode') syncNotifyRouteFields();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('#notify-compose-modal')?.classList.contains('open')) {
+      closeNotifyComposeModal();
+    }
+  });
+
+  $('#notify-compose-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const targetId = (form.targetId.value || notifyCompose.targetId || '').trim();
+    const title = (form.title.value || '').trim() || '🙏 BhaktiDhara';
+    const body = (form.body.value || '').trim();
+    if (!targetId) { toast('⚠️ Missing request id'); return; }
+    if (!body) { toast('⚠️ Message body is required'); return; }
+
+    const sendBtn = $('#notify-compose-send');
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending…'; }
+
+    try {
+      if (notifyCompose.mode === 'feedback') {
+        const r = await api(`/api/v1/admin/feedback/${encodeURIComponent(targetId)}/notify`, {
+          method: 'POST',
+          body: JSON.stringify({ title, body }),
+        });
+        const pushOk = (r.pushSuccess || 0) > 0;
+        toast(pushOk
+          ? '🔔 Push + in-app notification sent'
+          : '📬 In-app notification saved (push unavailable — user may have denied permission)');
+        closeNotifyComposeModal();
+        loadAppFeedback();
+      } else {
+        const routeMode = form.routeMode?.value || '';
+        const aartiId = (form.aartiId?.value || '').trim();
+        const deityKey = (form.deityKey?.value || '').trim();
+        let route = routeMode;
+        if (route === 'aarti' && !aartiId) {
+          toast('⚠️ Aarti ID required for Specific aarti');
+          return;
+        }
+        if (route === 'deity' && !deityKey) {
+          toast('⚠️ Deity key required for Deity list');
+          return;
+        }
+        if (route === 'aarti' && aartiId) route = 'aarti';
+        else if (route === 'deity' && deityKey) route = 'deity';
+        else if (!route && aartiId) route = 'aarti';
+        else if (!route && deityKey) route = 'deity';
+        else if (route !== 'aarti' && route !== 'deity') route = '';
+
+        const r = await api(`/api/v1/admin/deity-requests/${encodeURIComponent(targetId)}/notify`, {
+          method: 'POST',
+          body: JSON.stringify({
+            title,
+            body,
+            route,
+            aartiId: route === 'aarti' ? aartiId : '',
+            // Keep deityKey for aarti taps too (fallback if aarti not cached yet).
+            deityKey: (route === 'aarti' || route === 'deity') ? deityKey : '',
+          }),
+        });
+        const pushOk = (r.pushSuccess || 0) > 0;
+        toast(pushOk
+          ? '🔔 Push + in-app notification sent'
+          : '📬 In-app notification saved (push unavailable — user may have denied permission)');
+        closeNotifyComposeModal();
+        loadDeityRequests();
+      }
+    } catch (err) {
+      toast(`⚠️ ${err.message || 'Failed to notify'}`);
+    } finally {
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '🔔 Send'; }
+    }
+  });
   const fmtWhen = (iso) => {
     if (!iso) return '—';
     try {
@@ -1909,6 +2377,36 @@
       return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     } catch (_) { return iso; }
   };
+
+  async function fetchAdminBlobUrl(path) {
+    const res = await fetch(path, { headers: { 'X-Admin-Secret': secret } });
+    if (!res.ok) throw new Error('load failed');
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  }
+
+  function youtubeHref(raw) {
+    const v = String(raw || '').trim();
+    if (!v) return '';
+    if (/^https?:\/\//i.test(v)) return v;
+    if (/^(youtube\.com|youtu\.be)\//i.test(v)) return `https://${v}`;
+    return `https://youtu.be/${v}`;
+  }
+
+  function openDrqLightbox(blobUrl) {
+    const box = $('#drq-lightbox');
+    const img = $('#drq-lightbox-img');
+    if (!box || !img) return;
+    img.src = blobUrl;
+    box.classList.add('open');
+  }
+
+  $('#drq-lightbox-close')?.addEventListener('click', () => {
+    $('#drq-lightbox')?.classList.remove('open');
+  });
+  $('#drq-lightbox')?.addEventListener('click', (e) => {
+    if (e.target === $('#drq-lightbox')) $('#drq-lightbox').classList.remove('open');
+  });
 
   async function loadDeityRequests() {
     const days = $('#drq-days')?.value || '30';
@@ -1925,64 +2423,66 @@
     };
 
     $('#drq-rows').innerHTML = (data.requests || []).map((r) => {
-      const extras = [];
-      if (r.youtubeUrl) extras.push(`<a href="${esc(r.youtubeUrl.startsWith('http') ? r.youtubeUrl : 'https://youtu.be/' + r.youtubeUrl)}" target="_blank" rel="noopener">YouTube</a>`);
-      if (r.imageUrl) extras.push(`<button type="button" class="btn sm ghost" data-drq-img="${esc(r.imageUrl)}">🖼 Image</button>`);
-      if (r.source) extras.push(`<span style="color:var(--text-muted)">${esc(r.source)}</span>`);
+      const yt = String(r.youtubeUrl || '').trim();
+      const ytLink = yt ? youtubeHref(yt) : '';
+      const imgPath = String(r.imageUrl || '').trim();
+      const imageCell = imgPath
+        ? `<button type="button" class="drq-thumb-ph" data-drq-img="${esc(imgPath)}" title="Open image" style="border-style:solid;cursor:pointer;padding:0;overflow:hidden">
+             <span style="font-size:18px">🖼</span>
+           </button>`
+        : `<span style="color:var(--text-dim);font-size:12px">—</span>`;
+      const ytCell = ytLink
+        ? `<div class="drq-yt">
+             <a href="${esc(ytLink)}" target="_blank" rel="noopener">${esc(yt.length > 48 ? yt.slice(0, 46) + '…' : yt)}</a>
+             <span style="color:var(--text-muted);font-size:11px">Open on YouTube ↗</span>
+           </div>`
+        : `<span style="color:var(--text-dim);font-size:12px">—</span>`;
       return `<tr>
         <td style="white-space:nowrap;font-size:12.5px">${esc(fmtWhen(r.at))}</td>
         <td style="font-weight:700">${esc(r.deityName || '—')}</td>
         <td>${esc(langLabel(r.lang))}</td>
         <td class="mono" style="font-size:11.5px;word-break:break-all" title="${esc(r.deviceId)}">${esc((r.deviceId || '').slice(0, 14))}…</td>
-        <td style="font-size:12px">${extras.join(' · ') || '—'}</td>
+        <td>${imageCell}</td>
+        <td>${ytCell}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${esc(r.source || '—')}</td>
         <td style="white-space:nowrap">${notifyStatus(r)}</td>
-        <td style="text-align:right"><button type="button" class="btn sm ghost" data-drq-id="${esc(String(r.id || ''))}" data-drq-notify="${esc(r.deviceId)}" data-drq-name="${esc(r.deityName || '')}">🔔 Notify</button></td>
+        <td style="text-align:right"><button type="button" class="btn sm ghost" data-drq-id="${esc(String(r.id || ''))}" data-drq-notify="${esc(r.deviceId)}" data-drq-name="${esc(r.deityName || '')}" data-drq-lang="${esc(r.lang || '')}">🔔 Notify</button></td>
       </tr>`;
-    }).join('') || '<tr><td colspan="7" class="empty">No deity requests in this period</td></tr>';
+    }).join('') || '<tr><td colspan="9" class="empty">No deity requests in this period</td></tr>';
 
     $('#drq-rows').querySelectorAll('[data-drq-notify]').forEach((btn) => {
-      btn.onclick = async () => {
+      btn.onclick = () => {
         const requestId = btn.getAttribute('data-drq-id');
-        const deity = btn.getAttribute('data-drq-name') || 'your deity';
         if (!requestId) { toast('⚠️ Missing request id'); return; }
-        const title = prompt('Notification title', '🙏 BhaktiDhara');
-        if (title == null) return;
-        const body = prompt(
-          'Notification message (push + in-app)',
-          `Namaskar! We received your request for "${deity}". We are adding it soon. 🪔`,
-        );
-        if (body == null) return;
-        try {
-          const r = await api(`/api/v1/admin/deity-requests/${encodeURIComponent(requestId)}/notify`, {
-            method: 'POST',
-            body: JSON.stringify({
-              title: title.trim() || '🙏 BhaktiDhara',
-              body: body.trim(),
-            }),
-          });
-          const pushOk = (r.pushSuccess || 0) > 0;
-          toast(pushOk
-            ? '🔔 Push + in-app notification sent'
-            : '📬 In-app notification saved (push unavailable — user may have denied permission)');
-        } catch (e) {
-          toast(`⚠️ ${e.message || 'Failed to notify'}`);
-        }
-        loadDeityRequests();
+        openNotifyComposeModal({
+          mode: 'deity',
+          targetId: requestId,
+          deityName: btn.getAttribute('data-drq-name') || '',
+          lang: (btn.getAttribute('data-drq-lang') || 'hi').toLowerCase(),
+        });
       };
     });
-    $('#drq-rows').querySelectorAll('[data-drq-img]').forEach((btn) => {
+
+    // Load authenticated thumbnails + open lightbox on click.
+    $('#drq-rows').querySelectorAll('[data-drq-img]').forEach(async (btn) => {
+      const path = btn.getAttribute('data-drq-img');
+      if (!path) return;
       btn.onclick = async () => {
-        const path = btn.getAttribute('data-drq-img');
         try {
-          const res = await fetch(path, { headers: { 'X-Admin-Secret': secret } });
-          if (!res.ok) throw new Error('load failed');
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank', 'noopener');
+          const url = btn.dataset.blobUrl || await fetchAdminBlobUrl(path);
+          btn.dataset.blobUrl = url;
+          openDrqLightbox(url);
         } catch (_) {
           toast('⚠️ Could not open image');
         }
       };
+      try {
+        const url = await fetchAdminBlobUrl(path);
+        btn.dataset.blobUrl = url;
+        btn.innerHTML = `<img class="drq-thumb" src="${url}" alt="Deity">`;
+      } catch (_) {
+        btn.innerHTML = `<span style="font-size:11px;color:var(--red)">Missing</span>`;
+      }
     });
   }
 
@@ -2009,36 +2509,18 @@
         <td style="white-space:nowrap;font-size:12.5px">${esc(u.appVersion || '—')}</td>
         <td class="mono" style="font-size:11.5px;word-break:break-all" title="${esc(u.deviceId || '')}">${esc((u.deviceId || '').slice(0, 14))}…</td>
         <td style="white-space:nowrap">${notifyStatus(u)}</td>
-        <td style="text-align:right"><button type="button" class="btn sm ghost" data-fb-id="${esc(String(u.id || ''))}" data-fb-device="${esc(u.deviceId || '')}">🔔 Notify</button></td>
+        <td style="text-align:right"><button type="button" class="btn sm ghost" data-fb-id="${esc(String(u.id || ''))}" data-fb-device="${esc(u.deviceId || '')}" data-fb-lang="${esc(u.lang || u.locale || '')}">🔔 Notify</button></td>
       </tr>`).join('') || '<tr><td colspan="7" class="empty">No feedback yet</td></tr>';
 
     $('#fb-rows').querySelectorAll('[data-fb-id]').forEach((btn) => {
-      btn.onclick = async () => {
+      btn.onclick = () => {
         const feedbackId = btn.getAttribute('data-fb-id');
         if (!feedbackId) { toast('⚠️ Missing feedback id'); return; }
-        const title = prompt('Notification title', '🙏 BhaktiDhara');
-        if (title == null) return;
-        const body = prompt(
-          'Notification message (push + in-app)',
-          'Namaskar! Thank you for your feedback. We have noted it and will look into it soon. 🪔',
-        );
-        if (body == null) return;
-        try {
-          const r = await api(`/api/v1/admin/feedback/${encodeURIComponent(feedbackId)}/notify`, {
-            method: 'POST',
-            body: JSON.stringify({
-              title: title.trim() || '🙏 BhaktiDhara',
-              body: body.trim(),
-            }),
-          });
-          const pushOk = (r.pushSuccess || 0) > 0;
-          toast(pushOk
-            ? '🔔 Push + in-app notification sent'
-            : '📬 In-app notification saved (push unavailable — user may have denied permission)');
-          loadAppFeedback();
-        } catch (e) {
-          toast(`⚠️ ${e.message || 'Failed to notify'}`);
-        }
+        openNotifyComposeModal({
+          mode: 'feedback',
+          targetId: feedbackId,
+          lang: (btn.getAttribute('data-fb-lang') || 'hi').toLowerCase(),
+        });
       };
     });
   }
@@ -2071,7 +2553,7 @@
 
   // ── push notifications ─────────────────────────────────────
   const AUDIENCE_LABELS = { all: 'Everyone', vip: 'VIP', free: 'Free users', dormant: 'Inactive', user: 'Single device' };
-  const ROUTE_LABELS = { '': 'Home', aarti: 'Aarti', panchang: 'Panchang', jaap: 'Jaap', horoscope: 'Horoscope', bhajan: 'Bhajans', mandir: 'Mandir' };
+  const ROUTE_LABELS = { '': 'Home', aarti: 'Aarti', deity: 'Deity list', panchang: 'Panchang', jaap: 'Jaap', horoscope: 'Horoscope', bhajan: 'Bhajans', mandir: 'Mandir' };
   const pf = $('#push-form');
   const pe = pf.elements;
 
@@ -2142,6 +2624,7 @@
     const payload = {
       ...pushTarget(), title: pe.title.value, body: pe.body.value, imageUrl: pe.imageUrl.value.trim(),
       route: pe.route.value, aartiId: pe.aartiId.value.trim(),
+      deityKey: (pe.deityKey && pe.deityKey.value || '').trim(),
       sendAt: later ? new Date(pe.sendAt.value).toISOString() : null,
       repeat: later && pe.repeatDaily.checked ? 'daily' : 'none',
     };
@@ -2290,6 +2773,282 @@
     const r = await api(`/api/v1/admin/push/campaigns/${id}${act === 'delete' ? '' : '/' + act}`, { method: act === 'delete' ? 'DELETE' : 'POST' });
     if (act === 'send') toast(r.success ? `🔔 Sent — ~${fmt(r.reach)} devices` : `⚠️ ${r.error || 'Failed'}`);
     loaders.push();
+  });
+
+  // ── remote catalog ─────────────────────────────────────────
+  function parseLyricsRaw(raw) {
+    return String(raw || '').split(/\n---\n/).map((block, i) => {
+      const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return null;
+      let startTimeMs = i * 30000;
+      let rest = lines;
+      if (/^\d+$/.test(lines[0])) {
+        startTimeMs = parseInt(lines[0], 10);
+        rest = lines.slice(1);
+      }
+      const mid = Math.ceil(rest.length / 2) || 1;
+      const devanagari = rest.slice(0, mid).join('\n');
+      const transliteration = rest.slice(mid).join('\n');
+      if (!devanagari) return null;
+      return { startTimeMs, devanagari, transliteration };
+    }).filter(Boolean);
+  }
+
+  function splitCsv(raw) {
+    return String(raw || '').split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  loaders.catalog = async () => {
+    const [{ aartis }, { deities }, { overrides }] = await Promise.all([
+      api('/api/v1/admin/catalog/aartis'),
+      api('/api/v1/admin/catalog/deities'),
+      api('/api/v1/admin/catalog/sort'),
+    ]);
+    $('#rc-aarti-list').innerHTML = (aartis || []).map(row => {
+      const a = row.aarti || {};
+      return `<div class="row sp" style="padding:10px 0;border-bottom:1px solid var(--line,#eee)">
+        <div>
+          <div><b>${esc(a.title || row.id)}</b> <span class="mono">${esc(row.id)}</span></div>
+          <div style="font-size:12px;color:var(--text-dim)">${esc(a.deity || '')} · yt=${esc(a.youtubeVideoId || '')} · ${(a.lyrics||[]).length} stanzas · order <b>${esc(String(row.sortOrder ?? 0))}</b></div>
+          <div style="margin-top:4px">${row.enabled ? '<span class="pill ok">enabled</span>' : '<span class="pill">disabled</span>'}</div>
+        </div>
+        <div class="row" style="gap:6px;align-items:center">
+          <input class="inp" type="number" style="width:72px" value="${esc(String(row.sortOrder ?? 0))}" data-rc-aarti-order="${esc(row.id)}" title="Sort order">
+          <button type="button" class="btn ghost sm" data-rc-aarti-toggle="${esc(row.id)}" data-active="${row.enabled ? 'true' : 'false'}">${row.enabled ? 'Disable' : 'Enable'}</button>
+          <button type="button" class="btn ghost sm" data-rc-aarti-del="${esc(row.id)}">Delete</button>
+        </div>
+      </div>`;
+    }).join('') || '<div class="empty">No remote aartis yet</div>';
+
+    $('#rc-deity-list').innerHTML = (deities || []).map(row => {
+      const d = row.deity || {};
+      const img = d.imageUrl
+        ? `<img src="${esc(absolutizeMediaUrl(d.imageUrl))}" alt="" style="width:44px;height:44px;object-fit:contain;border-radius:8px;background:#1a0f0a">`
+        : '';
+      return `<div class="row sp" style="padding:10px 0;border-bottom:1px solid var(--line,#eee)">
+        <div class="row" style="gap:10px;align-items:center">
+          ${img}
+          <div>
+            <div><b>${esc(d.nameEn || row.key)}</b> <span class="mono">${esc(row.key)}</span></div>
+            <div style="font-size:12px;color:var(--text-dim)">${esc((d.aliases || []).join(', '))} · order <b>${esc(String(row.sortOrder ?? 0))}</b></div>
+            <div style="margin-top:4px">${row.enabled ? '<span class="pill ok">enabled</span>' : '<span class="pill">disabled</span>'}</div>
+          </div>
+        </div>
+        <div class="row" style="gap:6px;align-items:center">
+          <input class="inp" type="number" style="width:72px" value="${esc(String(row.sortOrder ?? 0))}" data-rc-deity-order="${esc(row.key)}" title="Sort order">
+          <button type="button" class="btn ghost sm" data-rc-deity-toggle="${esc(row.key)}" data-active="${row.enabled ? 'true' : 'false'}">${row.enabled ? 'Disable' : 'Enable'}</button>
+          <button type="button" class="btn ghost sm" data-rc-deity-del="${esc(row.key)}">Delete</button>
+        </div>
+      </div>`;
+    }).join('') || '<div class="empty">No remote deities yet</div>';
+
+    $('#rc-sort-list').innerHTML = (overrides || []).map(o => `
+      <div class="row sp" style="padding:8px 0;border-bottom:1px solid var(--line,#eee)">
+        <div><span class="pill">${esc(o.targetType)}</span> <span class="mono">${esc(o.targetId)}</span> → <b>${esc(String(o.sortOrder))}</b></div>
+        <button type="button" class="btn ghost sm" data-rc-sort-del="${esc(o.targetType)}" data-id="${esc(o.targetId)}">Remove</button>
+      </div>
+    `).join('') || '<div class="empty">No order pins yet</div>';
+  };
+
+  function absolutizeMediaUrl(url) {
+    const u = String(url || '').trim();
+    if (!u) return '';
+    if (/^https?:\/\//i.test(u)) return u;
+    return window.location.origin + (u.startsWith('/') ? u : '/' + u);
+  }
+
+  $('#rc-deity-file')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    const wrap = $('#rc-deity-preview-wrap');
+    const img = $('#rc-deity-preview');
+    if (!file || !wrap || !img) return;
+    if (file.size > 3 * 1024 * 1024) {
+      toast('⚠️ Image must be under 3 MB');
+      e.target.value = '';
+      wrap.style.display = 'none';
+      return;
+    }
+    img.src = URL.createObjectURL(file);
+    wrap.style.display = 'block';
+  });
+
+  $('#rc-aarti-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const id = String(fd.get('id') || '').trim();
+    const lyrics = parseLyricsRaw(fd.get('lyricsRaw'));
+    if (!lyrics.length) { toast('Add at least one lyric stanza'); return; }
+    await api('/api/v1/admin/catalog/aartis/' + encodeURIComponent(id), {
+      method: 'PUT',
+      body: JSON.stringify({
+        enabled: fd.get('enabled') === 'on',
+        sortOrder: parseInt(fd.get('sortOrder') || '0', 10) || 0,
+        aarti: {
+          id,
+          title: fd.get('title'),
+          titleHi: fd.get('titleHi') || '',
+          titleMr: fd.get('titleMr') || '',
+          deity: fd.get('deity'),
+          deityHi: fd.get('deityHi') || '',
+          deityMr: fd.get('deityMr') || '',
+          singer: fd.get('singer') || 'Traditional',
+          youtubeVideoId: fd.get('youtubeVideoId'),
+          backupVideoIds: splitCsv(fd.get('backupVideoIds')),
+          durationText: fd.get('durationText') || '',
+          accentColorHex: fd.get('accentColorHex') || '#8B1D18',
+          deityEmoji: fd.get('deityEmoji') || '🙏',
+          tags: splitCsv(fd.get('tags')).length ? splitCsv(fd.get('tags')) : ['Aarti'],
+          about: fd.get('about') || '',
+          aboutHi: fd.get('aboutHi') || '',
+          aboutMr: fd.get('aboutMr') || '',
+          lyrics,
+        },
+      }),
+    });
+    toast('Aarti saved');
+    e.target.reset();
+    e.target.querySelector('[name=enabled]').checked = true;
+    loaders.catalog();
+  });
+
+  $('#rc-deity-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const key = String(fd.get('key') || '').trim();
+    let imageUrl = String(fd.get('imageUrl') || '').trim();
+    const file = fd.get('imageFile');
+
+    if (file && file instanceof File && file.size > 0) {
+      if (file.size > 3 * 1024 * 1024) {
+        toast('⚠️ Image must be under 3 MB');
+        return;
+      }
+      const upload = new FormData();
+      upload.append('file', file);
+      const res = await fetch('/api/v1/admin/catalog/deity-images', {
+        method: 'POST',
+        headers: { 'X-Admin-Secret': secret },
+        body: upload,
+      });
+      if (res.status === 401) { logout('Session expired or invalid secret'); return; }
+      if (!res.ok) {
+        let detail = res.statusText;
+        try { detail = (await res.json()).detail || detail; } catch (_) {}
+        toast('⚠️ ' + detail);
+        return;
+      }
+      const uploaded = await res.json();
+      imageUrl = absolutizeMediaUrl(uploaded.imageUrl || uploaded.path || '');
+    } else if (imageUrl && imageUrl.startsWith('/')) {
+      imageUrl = absolutizeMediaUrl(imageUrl);
+    }
+
+    await api('/api/v1/admin/catalog/deities/' + encodeURIComponent(key), {
+      method: 'PUT',
+      body: JSON.stringify({
+        enabled: fd.get('enabled') === 'on',
+        sortOrder: parseInt(fd.get('sortOrder') || '0', 10) || 0,
+        deity: {
+          key,
+          nameEn: fd.get('nameEn'),
+          nameHi: fd.get('nameHi') || fd.get('nameEn'),
+          nameMr: fd.get('nameMr') || fd.get('nameEn'),
+          aliases: splitCsv(fd.get('aliases')),
+          imageAsset: fd.get('imageAsset') || 'assets/bhakti/durga.webp',
+          imageUrl,
+        },
+      }),
+    });
+    toast('Deity saved');
+    e.target.reset();
+    e.target.querySelector('[name=enabled]').checked = true;
+    e.target.querySelector('[name=imageAsset]').value = 'assets/bhakti/durga.webp';
+    const wrap = $('#rc-deity-preview-wrap');
+    if (wrap) wrap.style.display = 'none';
+    loaders.catalog();
+  });
+
+  $('#rc-sort-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    await api('/api/v1/admin/catalog/sort', {
+      method: 'PUT',
+      body: JSON.stringify({
+        targetType: fd.get('targetType'),
+        targetId: String(fd.get('targetId') || '').trim(),
+        sortOrder: parseInt(fd.get('sortOrder') || '0', 10) || 0,
+      }),
+    });
+    toast('Order pin saved — apps pick it up on next catalog refresh');
+    e.target.querySelector('[name=targetId]').value = '';
+    loaders.catalog();
+  });
+
+  document.addEventListener('change', async (ev) => {
+    const ao = ev.target.closest('[data-rc-aarti-order]');
+    if (ao) {
+      const id = ao.dataset.rcAartiOrder;
+      const sortOrder = parseInt(ao.value || '0', 10) || 0;
+      await api('/api/v1/admin/catalog/sort', {
+        method: 'PUT',
+        body: JSON.stringify({ targetType: 'aarti', targetId: id, sortOrder }),
+      });
+      toast('Aarti order updated');
+      loaders.catalog();
+      return;
+    }
+    const do_ = ev.target.closest('[data-rc-deity-order]');
+    if (do_) {
+      const key = do_.dataset.rcDeityOrder;
+      const sortOrder = parseInt(do_.value || '0', 10) || 0;
+      await api('/api/v1/admin/catalog/sort', {
+        method: 'PUT',
+        body: JSON.stringify({ targetType: 'deity', targetId: key, sortOrder }),
+      });
+      toast('Deity order updated');
+      loaders.catalog();
+    }
+  });
+
+  document.addEventListener('click', async (ev) => {
+    const t = ev.target.closest('[data-rc-aarti-toggle]');
+    if (t) {
+      await api('/api/v1/admin/catalog/aartis/' + encodeURIComponent(t.dataset.rcAartiToggle), {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled: t.dataset.active !== 'true' }),
+      });
+      loaders.catalog();
+      return;
+    }
+    const d = ev.target.closest('[data-rc-aarti-del]');
+    if (d && confirm('Delete remote aarti ' + d.dataset.rcAartiDel + '?')) {
+      await api('/api/v1/admin/catalog/aartis/' + encodeURIComponent(d.dataset.rcAartiDel), { method: 'DELETE' });
+      loaders.catalog();
+      return;
+    }
+    const dt = ev.target.closest('[data-rc-deity-toggle]');
+    if (dt) {
+      await api('/api/v1/admin/catalog/deities/' + encodeURIComponent(dt.dataset.rcDeityToggle), {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled: dt.dataset.active !== 'true' }),
+      });
+      loaders.catalog();
+      return;
+    }
+    const dd = ev.target.closest('[data-rc-deity-del]');
+    if (dd && confirm('Delete remote deity ' + dd.dataset.rcDeityDel + '?')) {
+      await api('/api/v1/admin/catalog/deities/' + encodeURIComponent(dd.dataset.rcDeityDel), { method: 'DELETE' });
+      loaders.catalog();
+      return;
+    }
+    const sd = ev.target.closest('[data-rc-sort-del]');
+    if (sd && confirm('Remove order pin?')) {
+      await api(
+        '/api/v1/admin/catalog/sort/' + encodeURIComponent(sd.dataset.rcSortDel) + '/' + encodeURIComponent(sd.dataset.id),
+        { method: 'DELETE' },
+      );
+      loaders.catalog();
+    }
   });
 
   // ── announcements ──────────────────────────────────────────
@@ -2679,6 +3438,31 @@
     $('#sys-audit').innerHTML = s.audit.map(a => `<div><span><b>${esc(a.action.replace(/_/g, ' '))}</b> ${esc(a.detail)}</span><span class="when">${timeAgo(a.at)}</span></div>`).join('') || '<div class="empty">No admin actions recorded yet</div>';
     stamp();
   };
+  $('#sys-db-download').addEventListener('click', async () => {
+    const btn = $('#sys-db-download');
+    const prev = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⬇ Preparing…';
+    try {
+      const res = await api('/api/v1/admin/database/download');
+      const blob = await res.blob();
+      const cd = res.headers.get('Content-Disposition') || '';
+      const match = /filename="?([^"]+)"?/i.exec(cd);
+      const name = match?.[1]
+        || `bhaktidhara_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.db`;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast('⬇ Database download started');
+    } catch (_) {
+      // api() already toasts the error detail
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
+  });
   $('#sys-precache').addEventListener('click', async () => {
     const { items, rpm } = precacheInfo;
     const ok = await showConfirm({
@@ -2825,6 +3609,10 @@
     { label: 'Compose push notification', hint: 'Action', run: () => { nav.querySelector('[data-view="push"]').click(); setTimeout(() => document.querySelector('#push-form [name="title"]').focus(), 400); } },
     { label: 'Search devotees', hint: 'Action', run: () => { nav.querySelector('[data-view="users"]').click(); setTimeout(() => $('#u-search').focus(), 400); } },
     { label: 'Export users CSV', hint: 'Action', run: () => $('#u-export').click() },
+    { label: 'Download SQLite database', hint: 'Action', run: () => {
+      nav.querySelector('[data-view="system"]')?.click();
+      setTimeout(() => $('#sys-db-download')?.click(), 200);
+    } },
     { label: 'Open remote config & feature flags', hint: 'Action', run: () => nav.querySelector('[data-view="config"]').click() },
     { label: 'Log out', hint: 'Session', run: () => $('#logout').click() },
   ];

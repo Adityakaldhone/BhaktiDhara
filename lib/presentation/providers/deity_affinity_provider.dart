@@ -3,13 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/bhakti_deity_catalog.dart';
 import '../../data/repositories/deity_affinity_repository.dart';
 import '../../domain/entities/bhakti_deity.dart';
+import '../../domain/entities/remote_devotional_catalog.dart';
 import '../../domain/logic/deity_affinity_ranker.dart';
+import '../../domain/logic/festival_featured_deities.dart';
+import '../../services/backend_service.dart';
 import 'aarti_favorites_provider.dart';
 
 /// Resolves catalog deity names and aliases to one key, so "Gayatri" and
 /// "Goddess Gayatri" share the same history.
 String canonicalDeityKey(String rawDeity) {
-  final match = kBhaktiDeities.cast<BhaktiDeity?>().firstWhere(
+  final deities = mergeDeityCatalogs(
+    kBhaktiDeities,
+    BackendService.remoteCatalog.deities,
+  );
+  final match = deities.cast<BhaktiDeity?>().firstWhere(
         (d) => d!.matches(rawDeity),
         orElse: () => null,
       );
@@ -132,12 +139,25 @@ final deityAffinityProvider =
 
 /// Deities promoted to the top of the Sacred Collection, skipping any already
 /// pinned in My Daily Aartis so the same deity isn't shown twice up top.
+///
+/// Festival featured deities (e.g. Tulsi Mata on Tulsi Vivah) are prepended
+/// ahead of affinity-ranked tops.
 final sacredTopDeitiesProvider = Provider<List<String>>((ref) {
-  final top = ref.watch(deityAffinityProvider.select((s) => s.top));
-  if (top.isEmpty) return const [];
+  final affinityTop = ref.watch(deityAffinityProvider.select((s) => s.top));
+  final featured =
+      festivalFeaturedDeityKeys(ref.watch(deityAffinityClockProvider)());
+  if (affinityTop.isEmpty && featured.isEmpty) return const [];
+
   final dailyDeities = ref
       .watch(nityaAartisListProvider)
       .map((item) => canonicalDeityKey(item.deity))
       .toSet();
-  return top.where((key) => !dailyDeities.contains(key)).toList();
+
+  final ordered = <String>[];
+  final seen = <String>{};
+  for (final key in [...featured, ...affinityTop]) {
+    if (dailyDeities.contains(key)) continue;
+    if (seen.add(key)) ordered.add(key);
+  }
+  return ordered;
 });
