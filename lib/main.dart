@@ -1,4 +1,5 @@
 import 'core/analytics/analytics_service.dart';
+import 'features/voice_agent/domain/home_voice_commands.dart';
 import 'features/voice_agent/presentation/widgets/bhakti_wake_host.dart';
 import 'core/analytics/clarity_service.dart';
 import 'package:flutter/foundation.dart';
@@ -158,9 +159,14 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp>
         Locale('hi'), // Hindi
         Locale('mr'), // Marathi
       ],
-      builder: (context, child) => ForceUpdateGate(child: BhaktiWakeHost(
-        navigator: PushNotificationService.navigatorKey, child: child!,
-      )),
+      builder: (context, child) => ForceUpdateGate(
+        child: kEnableBhaktiAi
+            ? BhaktiWakeHost(
+                navigator: PushNotificationService.navigatorKey,
+                child: child!,
+              )
+            : child!,
+      ),
       home: const _StartupGate(),
     );
   }

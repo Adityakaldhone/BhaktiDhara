@@ -1,5 +1,6 @@
 import '../../features/voice_agent/data/bhakti_wake_controller.dart';
 import '../../features/voice_agent/data/wake_audio.dart';
+import '../../features/voice_agent/domain/home_voice_commands.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -137,7 +138,7 @@ class MoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
 
-            if (WakeAudio.supported)
+            if (kEnableBhaktiAi && WakeAudio.supported)
               Consumer(builder: (context, ref, _) {
                 final wake = ref.watch(bhaktiWakeProvider);
                 return SwitchListTile(

@@ -83,6 +83,9 @@ void main() {
     expect(find.byKey(const Key('more-grahan')), findsOneWidget);
     expect(find.text('Grahan (Eclipses)'), findsOneWidget);
     expect(find.text('Solar & lunar eclipses, sutak & reminders'), findsOneWidget);
+
+    // Bhakti AI wake-word toggle is hidden for this release
+    expect(find.byKey(const Key('bhakti-wake-switch')), findsNothing);
   });
 
   testWidgets('MoreScreen renders localized text in Marathi and Hindi', (tester) async {

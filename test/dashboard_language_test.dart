@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nitya_aarti/features/voice_agent/presentation/widgets/floating_bhakti_orb.dart';
 import 'package:nitya_aarti/l10n/app_localizations.dart';
 import 'package:nitya_aarti/presentation/providers/locale_provider.dart';
 import 'package:nitya_aarti/presentation/screens/dashboard_screen.dart';
@@ -71,6 +72,9 @@ void main() {
       // Verify Language dropdown is present with down arrow
       expect(find.text('भाषा: मराठी'), findsOneWidget);
       expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsWidgets);
+
+      // Bhakti AI orb is hidden for this release
+      expect(find.byType(FloatingBhaktiOrb), findsNothing);
     });
 
     testWidgets('Tapping language dropdown displays radio button options and switches locale',
@@ -213,7 +217,7 @@ void main() {
 
       // Tap FAB
       await tester.tap(find.byType(FloatingActionButton));
-      await pumpDashboard(tester);
+      await tester.pumpAndSettle();
 
       // Scrolled back to top: FAB hides
       expect(find.byType(FloatingActionButton), findsNothing);

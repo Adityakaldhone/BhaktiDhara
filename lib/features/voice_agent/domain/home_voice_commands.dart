@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../presentation/providers/aarti_providers.dart';
 
+/// Master release toggle for Bhakti AI voice assistant UI & wake-word listener.
+/// Flip to `true` when ready to ship Bhakti AI.
+const bool kEnableBhaktiAi = false;
+
 /// Only the screen that was visible when listening began can handle a command.
 typedef HomeVoiceReply = ({String text, VoidCallback? apply});
 typedef HomeVoiceHandler =

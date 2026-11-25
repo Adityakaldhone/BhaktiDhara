@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -72,6 +73,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   // Search and voice recognition controllers
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _homeScrollController = ScrollController();
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
+  bool _speechEnabled = false;
+  bool _isListening = false;
   bool _showScrollToTop = false;
   DateTime? _lastBackPressTime;
 
@@ -209,6 +213,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     _homeScrollController.removeListener(_onHomeScroll);
     _searchController.dispose();
     _homeScrollController.dispose();
+    _speechToText.stop();
     _bannerAd?.dispose();
     super.dispose();
   }
@@ -559,30 +564,33 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             : tabBody,
 
         // ── Floating Bhakti AI Orb & Scroll-to-Top ───────────────────────────
-        floatingActionButton: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (currentTab == _DashTab.home && _showScrollToTop) ...[
-              FloatingActionButton(
-                onPressed: _scrollToTop,
-                mini: true,
-                backgroundColor: MandirTheme.primarySaffron,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                shape: const CircleBorder(),
-                tooltip: localeCode == 'mr'
-                    ? 'वर जा'
-                    : (localeCode == 'hi' ? 'ऊपर जाएं' : 'Scroll to top'),
-                child: const Icon(Icons.arrow_upward_rounded, size: 22),
-              ),
-              const SizedBox(height: 12),
-            ],
-            FloatingBhaktiOrb(
-              onTap: () => BhaktiVoiceModal.show(context, ref),
-            ),
-          ],
-        ),
+        floatingActionButton: (kEnableBhaktiAi || (currentTab == _DashTab.home && _showScrollToTop))
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (currentTab == _DashTab.home && _showScrollToTop) ...[
+                    FloatingActionButton(
+                      onPressed: _scrollToTop,
+                      mini: true,
+                      backgroundColor: MandirTheme.primarySaffron,
+                      foregroundColor: Colors.white,
+                      elevation: 4,
+                      shape: const CircleBorder(),
+                      tooltip: localeCode == 'mr'
+                          ? 'वर जा'
+                          : (localeCode == 'hi' ? 'ऊपर जाएं' : 'Scroll to top'),
+                      child: const Icon(Icons.arrow_upward_rounded, size: 22),
+                    ),
+                    if (kEnableBhaktiAi) const SizedBox(height: 12),
+                  ],
+                  if (kEnableBhaktiAi)
+                    FloatingBhaktiOrb(
+                      onTap: () => BhaktiVoiceModal.show(context, ref),
+                    ),
+                ],
+              )
+            : null,
 
         // ── Bottom Navigation ──────────────────────────────────────────────
         // BottomNavigationBar needs at least two items.
@@ -2262,13 +2270,19 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                   ),
                 IconButton(
                   icon: Icon(
-                    Icons.mic_none,
-                    color: MandirTheme.textMuted,
+                    (!kEnableBhaktiAi && _isListening)
+                        ? Icons.mic
+                        : Icons.mic_none,
+                    color: (!kEnableBhaktiAi && _isListening)
+                        ? MandirTheme.primarySaffron
+                        : MandirTheme.textMuted,
                     size: 21,
                   ),
                   tooltip: l10n.voiceSearch,
                   splashRadius: 18,
-                  onPressed: () => BhaktiVoiceModal.show(context, ref),
+                  onPressed: () => kEnableBhaktiAi
+                      ? BhaktiVoiceModal.show(context, ref)
+                      : _handleVoiceSearch(l10n, localeCode),
                 ),
                 const SizedBox(width: 4),
               ],
@@ -2283,6 +2297,321 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleVoiceSearch(
+    AppLocalizations l10n,
+    String localeCode,
+  ) async {
+    if (!_speechEnabled) {
+      final available = await _speechToText.initialize(
+        onError: (_) {
+          if (mounted) setState(() => _isListening = false);
+        },
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            if (mounted) setState(() => _isListening = false);
+          }
+        },
+      );
+      _speechEnabled = available;
+      if (!available) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.speechNotAvailable),
+              backgroundColor: MandirTheme.secondaryMaroon,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    String targetLocaleId = 'en_IN';
+    try {
+      final locales = await _speechToText.locales();
+      if (localeCode == 'hi') {
+        final match = locales
+            .where((l) => l.localeId.toLowerCase().startsWith('hi'))
+            .toList();
+        if (match.isNotEmpty) {
+          targetLocaleId = match.first.localeId;
+        }
+      } else if (localeCode == 'mr') {
+        final match = locales
+            .where((l) => l.localeId.toLowerCase().startsWith('mr'))
+            .toList();
+        if (match.isNotEmpty) {
+          targetLocaleId = match.first.localeId;
+        } else {
+          final hiMatch = locales
+              .where((l) => l.localeId.toLowerCase().startsWith('hi'))
+              .toList();
+          if (hiMatch.isNotEmpty) {
+            targetLocaleId = hiMatch.first.localeId;
+          }
+        }
+      } else {
+        final match = locales
+            .where((l) => l.localeId.toLowerCase().startsWith('en'))
+            .toList();
+        if (match.isNotEmpty) {
+          targetLocaleId = match.first.localeId;
+        }
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+    _openVoiceSearchModal(l10n, targetLocaleId);
+  }
+
+  void _openVoiceSearchModal(AppLocalizations l10n, String targetLocaleId) {
+    String recognizedQuery = '';
+    bool isListeningNow = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: MandirTheme.backgroundCream,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final cancelLabel = MaterialLocalizations.of(
+              context,
+            ).cancelButtonLabel;
+            final searchLabel = MaterialLocalizations.of(
+              context,
+            ).searchFieldLabel;
+
+            void startListening() async {
+              try {
+                if (mounted) setState(() => _isListening = true);
+                await _speechToText.listen(
+                  onResult: (result) {
+                    setModalState(() {
+                      recognizedQuery = result.recognizedWords;
+                    });
+                    if (result.finalResult &&
+                        recognizedQuery.trim().isNotEmpty) {
+                      _applyVoiceQuery(recognizedQuery);
+                      if (modalContext.mounted &&
+                          Navigator.of(modalContext).canPop()) {
+                        Navigator.of(modalContext).pop();
+                      }
+                    }
+                  },
+                  listenOptions: stt.SpeechListenOptions(
+                    localeId: targetLocaleId,
+                    listenMode: stt.ListenMode.search,
+                    cancelOnError: false,
+                    partialResults: true,
+                  ),
+                );
+              } catch (_) {}
+            }
+
+            if (!_speechToText.isListening && isListeningNow) {
+              startListening();
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.brown.shade200,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      l10n.voiceSearch,
+                      style: GoogleFonts.mukta(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: MandirTheme.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isListeningNow ? l10n.listening : l10n.speakNow,
+                      style: GoogleFonts.mukta(
+                        fontSize: 16,
+                        color: MandirTheme.primarySaffron,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: () async {
+                        if (_speechToText.isListening) {
+                          await _speechToText.stop();
+                          setModalState(() => isListeningNow = false);
+                          if (recognizedQuery.trim().isNotEmpty) {
+                            _applyVoiceQuery(recognizedQuery);
+                            if (modalContext.mounted &&
+                                Navigator.of(modalContext).canPop()) {
+                              Navigator.of(modalContext).pop();
+                            }
+                          }
+                        } else {
+                          setModalState(() => isListeningNow = true);
+                          startListening();
+                        }
+                      },
+                      child: Container(
+                        width: 86,
+                        height: 86,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: MandirTheme.primarySaffron,
+                          boxShadow: [
+                            BoxShadow(
+                              color: MandirTheme.primarySaffron.withValues(
+                                alpha: 0.35,
+                              ),
+                              blurRadius: 20,
+                              spreadRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          isListeningNow ? Icons.mic : Icons.mic_none,
+                          color: Colors.white,
+                          size: 42,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(minHeight: 56),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: MandirTheme.surfaceWhite,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFEBE3D5)),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        recognizedQuery.isNotEmpty
+                            ? recognizedQuery
+                            : l10n.speakNow,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.mukta(
+                          fontSize: 19,
+                          fontWeight: recognizedQuery.isNotEmpty
+                              ? FontWeight.bold
+                              : FontWeight.w400,
+                          color: recognizedQuery.isNotEmpty
+                              ? MandirTheme.textDark
+                              : MandirTheme.textMuted,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              await _speechToText.stop();
+                              if (modalContext.mounted &&
+                                  Navigator.of(modalContext).canPop()) {
+                                Navigator.of(modalContext).pop();
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: MandirTheme.textMuted,
+                              side: const BorderSide(color: Color(0xFFEBE3D5)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(
+                              cancelLabel,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (recognizedQuery.trim().isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                await _speechToText.stop();
+                                _applyVoiceQuery(recognizedQuery);
+                                if (modalContext.mounted &&
+                                    Navigator.of(modalContext).canPop()) {
+                                  Navigator.of(modalContext).pop();
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: MandirTheme.primarySaffron,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.search, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    searchLabel,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() async {
+      if (_speechToText.isListening) {
+        await _speechToText.stop();
+      }
+      if (mounted) setState(() => _isListening = false);
+    });
+  }
+
+  void _applyVoiceQuery(String query) {
+    final clean = query.trim();
+    if (clean.isNotEmpty) {
+      _searchController.text = clean;
+      ref.read(searchQueryProvider.notifier).state = clean;
+      setState(() {});
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
