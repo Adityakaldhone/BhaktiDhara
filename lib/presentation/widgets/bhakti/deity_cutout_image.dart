@@ -67,13 +67,15 @@ class DeityPortraitImage extends StatelessWidget {
   });
 
   Widget _assetImage() {
+    final effectiveHeight =
+        (cacheHeight == null && cacheWidth == null) ? 720 : cacheHeight;
     return Image.asset(
       imageAsset,
       fit: fit,
       alignment: alignment,
       height: height,
       width: width,
-      cacheHeight: cacheHeight,
+      cacheHeight: effectiveHeight,
       cacheWidth: cacheWidth,
       gaplessPlayback: true,
       errorBuilder: errorBuilder,
@@ -84,6 +86,8 @@ class DeityPortraitImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = imageUrl.trim();
     if (url.isEmpty) return _assetImage();
+    final effectiveHeight =
+        (cacheHeight == null && cacheWidth == null) ? 720 : cacheHeight;
 
     return CachedNetworkImage(
       imageUrl: url,
@@ -91,7 +95,7 @@ class DeityPortraitImage extends StatelessWidget {
       alignment: alignment,
       height: height,
       width: width,
-      memCacheHeight: cacheHeight,
+      memCacheHeight: effectiveHeight,
       memCacheWidth: cacheWidth,
       placeholder: (context, _) => _assetImage(),
       errorWidget: (context, _, _) => _assetImage(),

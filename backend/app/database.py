@@ -836,13 +836,30 @@ async def get_overview(days: int = 30) -> Dict[str, Any]:
             db, "SELECT COUNT(*) FROM devices WHERE datetime(last_seen) >= datetime('now', '-30 day')"
         )
         dormant = await _fetch_scalar(
-            db, "SELECT COUNT(*) FROM devices WHERE datetime(last_seen) < datetime('now', '-30 day')"
+            db,
+            "SELECT COUNT(*) FROM devices WHERE datetime(last_seen) < datetime('now', '-30 day') "
+            "AND COALESCE(uninstalled_at, '') = ''",
         )
         uninstalled = await _fetch_scalar(db, "SELECT COUNT(*) FROM devices WHERE COALESCE(uninstalled_at, '') != ''")
         uninstalled_7d = await _fetch_scalar(
             db,
             "SELECT COUNT(*) FROM devices WHERE COALESCE(uninstalled_at, '') != '' "
             "AND datetime(uninstalled_at) >= datetime('now', '-7 day')",
+        )
+        returning_active = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM devices WHERE datetime(last_seen) >= datetime('now', '-7 day') "
+            "AND datetime(first_seen) < datetime('now', '-7 day') AND COALESCE(uninstalled_at, '') = ''",
+        )
+        at_risk = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM devices WHERE datetime(last_seen) < datetime('now', '-7 day') "
+            "AND datetime(last_seen) >= datetime('now', '-30 day') AND COALESCE(uninstalled_at, '') = ''",
+        )
+        new_active_7d = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM devices WHERE datetime(first_seen) >= datetime('now', '-7 day') "
+            "AND COALESCE(uninstalled_at, '') = ''",
         )
         async with db.execute(
             "SELECT AVG(julianday(last_seen) - julianday(first_seen)) FROM devices "
@@ -855,6 +872,27 @@ async def get_overview(days: int = 30) -> Dict[str, Any]:
         blocked = await _fetch_scalar(db, "SELECT COUNT(*) FROM devices WHERE blocked = 1")
         sessions_today = await _fetch_scalar(
             db, "SELECT COALESCE(SUM(sessions), 0) FROM daily_active WHERE date_str = ?", (today,)
+        )
+
+        # Active subscription & MRR snapshot for executive overview
+        active_sub_by_plan = await _fetch_map(
+            db,
+            "SELECT product_id, COUNT(*) FROM subscriptions "
+            "WHERE status = 'active' AND is_trial = 0 AND datetime(expires_at) > datetime('now') GROUP BY 1",
+        )
+        active_paid_subs = sum(active_sub_by_plan.values())
+        active_trial_subs = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM subscriptions "
+            "WHERE status = 'active' AND is_trial = 1 AND datetime(expires_at) > datetime('now')",
+        )
+        active_revenue_inr = sum(PLAN_PRICES_INR.get(pid, 0) * cnt for pid, cnt in active_sub_by_plan.items())
+        mrr_inr = round(
+            sum(
+                (PLAN_PRICES_INR.get(pid, 0) * 30.0 / max(1, PLAN_DURATION_DAYS.get(pid, 30))) * cnt
+                for pid, cnt in active_sub_by_plan.items()
+            ),
+            1,
         )
 
         series_days = _day_series(days)
@@ -871,6 +909,12 @@ async def get_overview(days: int = 30) -> Dict[str, Any]:
         sessions_by_day = await _fetch_map(
             db, "SELECT date_str, SUM(sessions) FROM daily_active WHERE date_str >= ? GROUP BY date_str", (start,)
         )
+        uninstalls_by_day = await _fetch_map(
+            db,
+            f"SELECT date(uninstalled_at, '{IST_SQL_MODIFIER}') AS d, COUNT(*) FROM devices "
+            f"WHERE COALESCE(uninstalled_at, '') != '' AND date(uninstalled_at, '{IST_SQL_MODIFIER}') >= ? GROUP BY d",
+            (start,),
+        )
         installs_before = await _fetch_scalar(
             db, f"SELECT COUNT(*) FROM devices WHERE date(first_seen, '{IST_SQL_MODIFIER}') < ?", (start,)
         )
@@ -885,6 +929,20 @@ async def get_overview(days: int = 30) -> Dict[str, Any]:
             "WHERE name = 'app_open' AND datetime(created_at) >= datetime('now', '-14 day') GROUP BY h",
         )
 
+        # Weekday (0=Mon .. 6=Sun) x Hour (0..23) IST heatmap over last 30 days
+        weekday_hourly = [[0] * 24 for _ in range(7)]
+        async with db.execute(
+            f"SELECT CAST(strftime('%w', created_at, '{IST_SQL_MODIFIER}') AS INTEGER) AS wd, "
+            f"CAST(strftime('%H', created_at, '{IST_SQL_MODIFIER}') AS INTEGER) AS hr, COUNT(*) "
+            "FROM events WHERE name = 'app_open' AND datetime(created_at) >= datetime('now', '-30 day') "
+            "GROUP BY wd, hr",
+        ) as cur:
+            for wd_sun0, hr, cnt in await cur.fetchall():
+                if wd_sun0 is not None and hr is not None and 0 <= hr < 24:
+                    # SQLite %w: 0=Sunday..6=Saturday -> convert to 0=Mon..6=Sun
+                    wd_mon0 = (wd_sun0 - 1) % 7
+                    weekday_hourly[wd_mon0][hr] = cnt
+
         platforms = await _fetch_map(db, "SELECT platform, COUNT(*) FROM devices GROUP BY platform")
         locales = await _fetch_map(db, "SELECT locale, COUNT(*) FROM devices GROUP BY locale")
         versions = await _fetch_map(
@@ -896,30 +954,95 @@ async def get_overview(days: int = 30) -> Dict[str, Any]:
         states = await _fetch_map(
             db, "SELECT state, COUNT(*) AS c FROM devices WHERE state != '' GROUP BY state ORDER BY c DESC LIMIT 10"
         )
+        device_models = await _fetch_map(
+            db, "SELECT device_model, COUNT(*) AS c FROM devices WHERE COALESCE(device_model, '') != '' GROUP BY device_model ORDER BY c DESC LIMIT 10"
+        )
+        os_versions = await _fetch_map(
+            db, "SELECT os_version, COUNT(*) AS c FROM devices WHERE COALESCE(os_version, '') != '' GROUP BY os_version ORDER BY c DESC LIMIT 10"
+        )
 
     def pct(a, b):
         return round(a * 100.0 / b, 1) if b else 0.0
+
+    hourly_list = [hourly.get(h, 0) for h in range(24)]
+    peak_hour = max(range(24), key=lambda h: hourly_list[h]) if any(hourly_list) else None
+    top_city = next(iter(cities.items()), (None, 0))
+    top_locale = next(iter(locales.items()), (None, 0))
+    growth_pct = pct(new_7d - new_prev_7d, new_prev_7d) if new_prev_7d else None
+    stickiness_pct = pct(dau, mau)
+
+    insights = []
+    if peak_hour is not None:
+        ampm = "AM" if peak_hour < 12 else "PM"
+        hr12 = peak_hour % 12 or 12
+        insights.append({
+            "type": "rhythm",
+            "title": "Peak Devotional Hour",
+            "metric": f"{hr12}:00 {ampm} IST",
+            "detail": f"{fmt_num(hourly_list[peak_hour])} app opens in the last 14d during this hour",
+        })
+    if top_locale[0]:
+        insights.append({
+            "type": "audience",
+            "title": "Top Language",
+            "metric": {"mr": "Marathi", "hi": "Hindi", "en": "English"}.get(top_locale[0], top_locale[0]),
+            "detail": f"{pct(top_locale[1], total)}% of total userbase ({top_locale[1]} devices)",
+        })
+    if top_city[0]:
+        insights.append({
+            "type": "geo",
+            "title": "Leading City",
+            "metric": top_city[0],
+            "detail": f"{top_city[1]} devotees registered from {top_city[0]}",
+        })
+    if growth_pct is not None:
+        insights.append({
+            "type": "growth" if growth_pct >= 0 else "warn",
+            "title": "Weekly Install Velocity",
+            "metric": f"{'+' if growth_pct >= 0 else ''}{growth_pct}%",
+            "detail": f"{new_7d} new installs in last 7d vs {new_prev_7d} prior week",
+        })
+    insights.append({
+        "type": "revenue",
+        "title": "Active MRR Run-Rate",
+        "metric": f"₹{round(mrr_inr):,}",
+        "detail": f"{active_paid_subs} paid · {active_trial_subs} trials · {stickiness_pct}% DAU/MAU",
+    })
 
     return {
         "kpis": {
             "total_installs": total,
             "new_today": new_today,
             "new_7d": new_7d,
-            "new_7d_growth_pct": pct(new_7d - new_prev_7d, new_prev_7d) if new_prev_7d else None,
+            "new_7d_growth_pct": growth_pct,
             "dau": dau,
             "wau": wau,
             "mau": mau,
-            "stickiness_pct": pct(dau, mau),
+            "stickiness_pct": stickiness_pct,
+            "stickiness_7d_pct": pct(dau, wau),
             "dormant_30d": dormant,
+            "at_risk_8_30d": at_risk,
             "uninstalled": uninstalled,
             "uninstalled_7d": uninstalled_7d,
+            "uninstall_rate_pct": pct(uninstalled, total),
             "avg_days_before_uninstall": avg_days_before_uninstall,
             "vip_paid": vip_paid,
             "vip_granted": vip_granted,
             "vip_conversion_pct": pct(vip_paid, total),
+            "active_paid_subs": active_paid_subs,
+            "active_trial_subs": active_trial_subs,
+            "active_revenue_inr": active_revenue_inr,
+            "mrr_inr": mrr_inr,
             "blocked": blocked,
             "sessions_today": sessions_today,
             "avg_sessions_per_dau": round(sessions_today / dau, 2) if dau else 0,
+        },
+        "lifecycle": {
+            "new_7d": new_active_7d,
+            "returning_active": returning_active,
+            "at_risk": at_risk,
+            "dormant_30d": dormant,
+            "uninstalled": uninstalled,
         },
         "series": {
             "days": series_days,
@@ -927,22 +1050,31 @@ async def get_overview(days: int = 30) -> Dict[str, Any]:
             "cumulative_installs": cumulative,
             "active": [active_by_day.get(d, 0) for d in series_days],
             "sessions": [sessions_by_day.get(d, 0) for d in series_days],
+            "uninstalls": [uninstalls_by_day.get(d, 0) for d in series_days],
         },
-        "hourly_activity": [hourly.get(h, 0) for h in range(24)],
+        "hourly_activity": hourly_list,
+        "weekday_hourly": weekday_hourly,
+        "insights": insights,
         "breakdowns": {
             "platforms": platforms,
             "locales": locales,
             "versions": versions,
             "cities": cities,
             "states": states,
+            "device_models": device_models,
+            "os_versions": os_versions,
         },
     }
+
+
+def fmt_num(n: int) -> str:
+    return f"{int(n):,}"
 
 
 # ── Admin: retention ─────────────────────────────────────────────────────────
 
 async def get_retention(weeks: int = 8) -> Dict[str, Any]:
-    """Classic D1/D7/D30 retention plus weekly install cohorts."""
+    """Classic D1/D7/D30 retention, full decay curve, active-days distribution, and weekly install cohorts."""
     weeks = max(2, min(weeks, 26))
     lookback_days = weeks * 7 + 35
     async with aiosqlite.connect(DB_PATH) as db:
@@ -960,6 +1092,13 @@ async def get_retention(weeks: int = 8) -> Dict[str, Any]:
             for dev, d in await cur.fetchall():
                 active.setdefault(dev, set()).add(d)
 
+        cutoff_30 = (datetime.now(timezone.utc) + IST_OFFSET - timedelta(days=30)).strftime("%Y-%m-%d")
+        async with db.execute(
+            "SELECT device_id, COUNT(*) AS active_days FROM daily_active WHERE date_str >= ? GROUP BY device_id",
+            (cutoff_30,),
+        ) as cur:
+            active_30_counts = [r[1] for r in await cur.fetchall()]
+
     today = datetime.strptime(ist_today_str(), "%Y-%m-%d").date()
 
     def offset(day_str: str, n: int) -> str:
@@ -968,12 +1107,14 @@ async def get_retention(weeks: int = 8) -> Dict[str, Any]:
     def day_n_retention(n: int) -> Dict[str, Any]:
         eligible = retained = 0
         for dev, first in installs.items():
+            if not first:
+                continue
             if datetime.strptime(first, "%Y-%m-%d").date() + timedelta(days=n) > today:
                 continue
             eligible += 1
             days_active = active.get(dev, set())
             # Treat "retained on day N" as active on any day in [N, N+window) for sparse ping data.
-            window = 1 if n == 1 else (2 if n == 7 else 5)
+            window = 1 if n <= 1 else (2 if n <= 7 else 5)
             if any(offset(first, n + k) in days_active for k in range(window)):
                 retained += 1
         return {"eligible": eligible, "retained": retained, "pct": round(retained * 100.0 / eligible, 1) if eligible else 0.0}
@@ -986,7 +1127,7 @@ async def get_retention(weeks: int = 8) -> Dict[str, Any]:
         wk_end = wk_start + timedelta(days=7)
         members = [
             dev for dev, first in installs.items()
-            if wk_start <= datetime.strptime(first, "%Y-%m-%d").date() < wk_end
+            if first and wk_start <= datetime.strptime(first, "%Y-%m-%d").date() < wk_end
         ]
         row = {"week": wk_start.isoformat(), "size": len(members), "weeks": []}
         for k in range(1, 5):
@@ -999,10 +1140,27 @@ async def get_retention(weeks: int = 8) -> Dict[str, Any]:
             row["weeks"].append(round(kept * 100.0 / len(members), 1) if members else None)
         cohorts.append(row)
 
+    buckets = {"1 day": 0, "2-4 days": 0, "5-10 days": 0, "11-20 days": 0, "21-30 days": 0}
+    for cnt in active_30_counts:
+        if cnt <= 1:
+            buckets["1 day"] += 1
+        elif cnt <= 4:
+            buckets["2-4 days"] += 1
+        elif cnt <= 10:
+            buckets["5-10 days"] += 1
+        elif cnt <= 20:
+            buckets["11-20 days"] += 1
+        else:
+            buckets["21-30 days"] += 1
+
+    curve = [{"day": n, **day_n_retention(n)} for n in (1, 3, 7, 14, 30)]
+
     return {
-        "d1": day_n_retention(1),
-        "d7": day_n_retention(7),
-        "d30": day_n_retention(30),
+        "d1": curve[0],
+        "d7": curve[2],
+        "d30": curve[4],
+        "curve": curve,
+        "active_days_buckets": buckets,
         "cohorts": cohorts,
     }
 
@@ -1174,11 +1332,32 @@ async def get_user_detail(device_id: str) -> Optional[Dict[str, Any]]:
             "GROUP BY name ORDER BY c DESC LIMIT 8",
             (device_id,),
         )
+        async with db.execute(
+            "SELECT id, product_id, order_id, platform, status, is_trial, auto_renewing, started_at, expires_at "
+            "FROM subscriptions WHERE device_id = ? ORDER BY started_at DESC LIMIT 20",
+            (device_id,),
+        ) as cur:
+            subscriptions = [
+                {
+                    "id": r["id"],
+                    "productId": r["product_id"],
+                    "orderId": r["order_id"] or "",
+                    "platform": r["platform"],
+                    "status": r["status"],
+                    "isTrial": bool(r["is_trial"]),
+                    "autoRenewing": bool(r["auto_renewing"]),
+                    "startedAt": r["started_at"],
+                    "expiresAt": r["expires_at"],
+                    "priceInr": PLAN_PRICES_INR.get(r["product_id"], 0),
+                }
+                for r in await cur.fetchall()
+            ]
     return {
         "user": _device_row_to_dict(row),
         "events": events,
         "activeDays": active_days,
         "topFeatures": top_features,
+        "subscriptions": subscriptions,
     }
 
 
@@ -1395,6 +1574,8 @@ async def mark_event_notified(
     route: str = "",
     aarti_id: str = "",
     deity_key: str = "",
+    stage: str = "live",
+    eta: str = "",
 ) -> bool:
     """Stamps an event with the notify campaign and creates an in-app inbox item."""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -1412,8 +1593,15 @@ async def mark_event_notified(
             props = {}
         if not isinstance(props, dict):
             props = {}
-        props["notify_campaign_id"] = int(campaign_id)
-        props["notified_at"] = utc_now_iso()
+        now_iso = utc_now_iso()
+        if stage == "ack":
+            props["ack_campaign_id"] = int(campaign_id)
+            props["acked_at"] = now_iso
+            if eta.strip():
+                props["ack_eta"] = eta.strip()[:120]
+        else:
+            props["notify_campaign_id"] = int(campaign_id)
+            props["notified_at"] = now_iso
         if route:
             props["notify_route"] = route[:32]
         if aarti_id:
@@ -1451,6 +1639,8 @@ async def mark_deity_request_notified(
     route: str = "",
     aarti_id: str = "",
     deity_key: str = "",
+    stage: str = "live",
+    eta: str = "",
 ) -> bool:
     """Stamps a deity_requested event with the notify campaign and creates an in-app inbox item."""
     return await mark_event_notified(
@@ -1463,6 +1653,8 @@ async def mark_deity_request_notified(
         route=route,
         aarti_id=aarti_id,
         deity_key=deity_key,
+        stage=stage,
+        eta=eta,
     )
 
 
@@ -1693,12 +1885,21 @@ async def list_deity_requests(days: int = 30, limit: int = 100) -> Dict[str, Any
             except (TypeError, ValueError):
                 campaign_id = None
 
+        ack_campaign_id = props.get("ack_campaign_id")
+        acked_at = str(props.get("acked_at") or "")
+        ack_eta = str(props.get("ack_eta") or "")
+        if ack_campaign_id is not None:
+            try:
+                ack_campaign_id = int(ack_campaign_id)
+            except (TypeError, ValueError):
+                ack_campaign_id = None
+
         inbox = inbox_by_request.get(r["id"])
-        if campaign_id is None and inbox and inbox.get("campaign_id") is not None:
+        if campaign_id is None and ack_campaign_id is None and inbox and inbox.get("campaign_id") is not None:
             campaign_id = inbox["campaign_id"]
             notified_at = notified_at or (inbox.get("created_at") or "")
 
-        if campaign_id is None:
+        if campaign_id is None and ack_campaign_id is None:
             req_at = r["created_at"] or ""
             for c in campaigns_by_device.get(r["device_id"], []):
                 sent_at = c.get("last_sent_at") or c.get("created_at") or ""
@@ -1707,14 +1908,23 @@ async def list_deity_requests(days: int = 30, limit: int = 100) -> Dict[str, Any
                     notified_at = notified_at or sent_at
                     break
 
-        if not notified_at and inbox:
+        if not notified_at and not acked_at and inbox:
             notified_at = inbox.get("created_at") or ""
 
-        opened_at = open_by_request.get(r["id"], "") or ""
-        if not opened_at and campaign_id is not None:
+        opened_at = ""
+        if campaign_id is not None:
             opened_at = open_by_campaign.get(f"{r['device_id']}:{campaign_id}", "") or ""
+        if not opened_at and campaign_id is not None:
+            opened_at = open_by_request.get(r["id"], "") or ""
 
-        notified = campaign_id is not None or inbox is not None
+        ack_opened_at = ""
+        if ack_campaign_id is not None:
+            ack_opened_at = open_by_campaign.get(f"{r['device_id']}:{ack_campaign_id}", "") or ""
+        if not ack_opened_at and acked_at:
+            ack_opened_at = open_by_request.get(r["id"], "") or ""
+
+        notified = campaign_id is not None or (inbox is not None and not acked_at)
+        acked = ack_campaign_id is not None or bool(acked_at)
         requests.append({
             "id": r["id"],
             "deviceId": r["device_id"],
@@ -1729,6 +1939,12 @@ async def list_deity_requests(days: int = 30, limit: int = 100) -> Dict[str, Any
             "notifiedAt": notified_at,
             "notificationOpened": bool(opened_at),
             "openedAt": opened_at,
+            "acked": acked,
+            "ackCampaignId": ack_campaign_id,
+            "ackedAt": acked_at,
+            "ackEta": ack_eta,
+            "ackOpened": bool(ack_opened_at),
+            "ackOpenedAt": ack_opened_at,
             "props": props,
         })
     return {"days": days, "total": total, "requests": requests}
@@ -2371,3 +2587,446 @@ async def get_subscription_stats() -> Dict[str, Any]:
             "by_plan": by_plan,
             "estimated_revenue_inr": total_revenue_inr,
         }
+
+
+PLAN_LABELS: Dict[str, str] = {
+    "bhaktidhara_annual_399": "Annual (₹399/yr)",
+    "bhaktidhara_halfyearly_229": "Half-Yearly (₹229/6m)",
+    "bhaktidhara_quarterly_129": "Quarterly (₹129/3m)",
+    "bhaktidhara_monthly_51": "Monthly (₹51/mo)",
+}
+
+
+async def get_revenue_analytics(
+    days: int = 30,
+    status_filter: str = "",
+    search: str = "",
+    limit: int = 100,
+) -> Dict[str, Any]:
+    """Comprehensive subscription, MRR/ARR, paywall funnel, and revenue breakdown."""
+    days = max(7, min(days, 180))
+    limit = max(1, min(limit, 300))
+    series_days = _day_series(days)
+    start = series_days[0]
+    span = (f"-{days} day",)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        total_devices = await _fetch_scalar(db, "SELECT COUNT(*) FROM devices")
+        vip_granted = await _fetch_scalar(
+            db, "SELECT COUNT(*) FROM devices WHERE vip_granted = 1 AND is_vip = 0"
+        )
+        active_subs = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND datetime(expires_at) > datetime('now')",
+        )
+        trial_subs = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND is_trial = 1 AND datetime(expires_at) > datetime('now')",
+        )
+        paid_subs = max(0, active_subs - trial_subs)
+        cancelled_subs = await _fetch_scalar(
+            db, "SELECT COUNT(*) FROM subscriptions WHERE status = 'cancelled'"
+        )
+        expired_subs = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND datetime(expires_at) <= datetime('now')",
+        )
+
+        # Plan breakdown (active paid vs trial vs cancelled)
+        async with db.execute(
+            """
+            SELECT product_id,
+                   SUM(CASE WHEN status = 'active' AND is_trial = 0 AND datetime(expires_at) > datetime('now') THEN 1 ELSE 0 END) AS paid_cnt,
+                   SUM(CASE WHEN status = 'active' AND is_trial = 1 AND datetime(expires_at) > datetime('now') THEN 1 ELSE 0 END) AS trial_cnt,
+                   SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_cnt,
+                   COUNT(*) AS total_cnt
+            FROM subscriptions
+            GROUP BY product_id
+            """
+        ) as cur:
+            plan_rows = await cur.fetchall()
+
+        by_plan: List[Dict[str, Any]] = []
+        seen_plans = set()
+        active_revenue_inr = 0
+        mrr_inr = 0.0
+        for r in plan_rows:
+            pid = r["product_id"]
+            seen_plans.add(pid)
+            price = PLAN_PRICES_INR.get(pid, 0)
+            dur = max(1, PLAN_DURATION_DAYS.get(pid, 30))
+            p_cnt = r["paid_cnt"] or 0
+            t_cnt = r["trial_cnt"] or 0
+            c_cnt = r["cancelled_cnt"] or 0
+            rev = price * p_cnt
+            plan_mrr = (price * 30.0 / dur) * p_cnt
+            active_revenue_inr += rev
+            mrr_inr += plan_mrr
+            by_plan.append({
+                "productId": pid,
+                "label": PLAN_LABELS.get(pid, pid),
+                "priceInr": price,
+                "paidCount": p_cnt,
+                "trialCount": t_cnt,
+                "cancelledCount": c_cnt,
+                "totalCount": r["total_cnt"] or 0,
+                "activeRevenueInr": rev,
+                "mrrInr": round(plan_mrr, 1),
+            })
+        for pid, price in PLAN_PRICES_INR.items():
+            if pid not in seen_plans:
+                by_plan.append({
+                    "productId": pid,
+                    "label": PLAN_LABELS.get(pid, pid),
+                    "priceInr": price,
+                    "paidCount": 0,
+                    "trialCount": 0,
+                    "cancelledCount": 0,
+                    "totalCount": 0,
+                    "activeRevenueInr": 0,
+                    "mrrInr": 0.0,
+                })
+        by_plan.sort(key=lambda x: (-x["activeRevenueInr"], -x["priceInr"]))
+
+        # Daily subscription activations & revenue series
+        paid_by_day: Dict[str, int] = {}
+        trials_by_day: Dict[str, int] = {}
+        rev_by_day: Dict[str, int] = {}
+        async with db.execute(
+            f"SELECT date(started_at, '{IST_SQL_MODIFIER}') AS d, product_id, is_trial, COUNT(*) AS cnt "
+            f"FROM subscriptions WHERE date(started_at, '{IST_SQL_MODIFIER}') >= ? "
+            "GROUP BY d, product_id, is_trial",
+            (start,),
+        ) as cur:
+            for r in await cur.fetchall():
+                d = r["d"]
+                if not d:
+                    continue
+                cnt = r["cnt"] or 0
+                if r["is_trial"]:
+                    trials_by_day[d] = trials_by_day.get(d, 0) + cnt
+                else:
+                    paid_by_day[d] = paid_by_day.get(d, 0) + cnt
+                    rev_by_day[d] = rev_by_day.get(d, 0) + PLAN_PRICES_INR.get(r["product_id"], 0) * cnt
+
+        cancels_by_day = await _fetch_map(
+            db,
+            f"SELECT date(updated_at, '{IST_SQL_MODIFIER}') AS d, COUNT(*) FROM subscriptions "
+            f"WHERE status = 'cancelled' AND date(updated_at, '{IST_SQL_MODIFIER}') >= ? GROUP BY d",
+            (start,),
+        )
+
+        # Monetization & paywall funnel events in period
+        async def _ev_users(name: str) -> int:
+            return await _fetch_scalar(
+                db,
+                "SELECT COUNT(DISTINCT device_id) FROM events WHERE name = ? AND datetime(created_at) >= datetime('now', ?)",
+                (name, *span),
+            )
+
+        async def _ev_count(name: str) -> int:
+            return await _fetch_scalar(
+                db,
+                "SELECT COUNT(*) FROM events WHERE name = ? AND datetime(created_at) >= datetime('now', ?)",
+                (name, *span),
+            )
+
+        funnel = {
+            "paywall_views": await _ev_users("paywall_view"),
+            "plan_selects": await _ev_users("plan_select"),
+            "subscribe_taps": await _ev_users("subscribe_tap"),
+            "purchase_starts": await _ev_users("subscription_purchase_start"),
+            "activations": await _ev_users("subscription_activated"),
+            "vip_unlocks": await _ev_users("vip_unlock"),
+            "purchase_pending": await _ev_count("subscription_purchase_pending"),
+            "purchase_errors": await _ev_count("subscription_purchase_error"),
+            "purchase_cancels": await _ev_count("subscription_purchase_cancel"),
+            "rewarded_ads": await _ev_count("rewarded_ad_earned"),
+            "festive_popup_views": await _ev_count("festive_popup_view"),
+            "festive_popup_clicks": await _ev_count("festive_popup_click"),
+        }
+
+        # Active paying audience breakdowns
+        by_platform = await _fetch_map(
+            db,
+            "SELECT COALESCE(NULLIF(s.platform, ''), 'android'), COUNT(*) FROM subscriptions s "
+            "WHERE s.status = 'active' AND datetime(s.expires_at) > datetime('now') GROUP BY 1",
+        )
+        by_locale = await _fetch_map(
+            db,
+            "SELECT COALESCE(NULLIF(d.locale, ''), 'unknown'), COUNT(*) FROM subscriptions s "
+            "LEFT JOIN devices d ON d.device_id = s.device_id "
+            "WHERE s.status = 'active' AND datetime(s.expires_at) > datetime('now') GROUP BY 1",
+        )
+        by_city = await _fetch_map(
+            db,
+            "SELECT d.city, COUNT(*) AS c FROM subscriptions s "
+            "JOIN devices d ON d.device_id = s.device_id "
+            "WHERE s.status = 'active' AND datetime(s.expires_at) > datetime('now') AND COALESCE(d.city, '') != '' "
+            "GROUP BY d.city ORDER BY c DESC LIMIT 10",
+        )
+
+        # Ledger rows
+        where, params = [], []
+        if status_filter == "paid":
+            where.append("s.status = 'active' AND s.is_trial = 0 AND datetime(s.expires_at) > datetime('now')")
+        elif status_filter == "trial":
+            where.append("s.status = 'active' AND s.is_trial = 1 AND datetime(s.expires_at) > datetime('now')")
+        elif status_filter == "active":
+            where.append("s.status = 'active' AND datetime(s.expires_at) > datetime('now')")
+        elif status_filter == "cancelled":
+            where.append("s.status = 'cancelled'")
+        elif status_filter == "expired":
+            where.append("s.status = 'active' AND datetime(s.expires_at) <= datetime('now')")
+        if search:
+            where.append("(s.device_id LIKE ? OR s.order_id LIKE ? OR s.product_id LIKE ? OR d.user_name LIKE ? OR d.city LIKE ?)")
+            like = f"%{search}%"
+            params += [like] * 5
+        clause = ("WHERE " + " AND ".join(where)) if where else ""
+        async with db.execute(
+            f"""
+            SELECT s.id, s.device_id, s.product_id, s.order_id, s.platform, s.status,
+                   s.is_trial, s.auto_renewing, s.started_at, s.expires_at,
+                   COALESCE(d.user_name, '') AS user_name, COALESCE(d.city, '') AS city,
+                   COALESCE(d.state, '') AS state, COALESCE(d.locale, '') AS locale
+            FROM subscriptions s
+            LEFT JOIN devices d ON d.device_id = s.device_id
+            {clause}
+            ORDER BY s.started_at DESC LIMIT ?
+            """,
+            (*params, limit),
+        ) as cur:
+            ledger = []
+            now_utc = datetime.now(timezone.utc)
+            for r in await cur.fetchall():
+                st = r["status"]
+                exp = r["expires_at"]
+                is_expired = False
+                if st == "active" and exp:
+                    try:
+                        exp_dt = datetime.fromisoformat(str(exp).replace("Z", "+00:00"))
+                        if exp_dt.tzinfo is None:
+                            exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                        is_expired = exp_dt <= now_utc
+                    except Exception:
+                        pass
+                eff_status = "expired" if is_expired else ("trial" if (st == "active" and r["is_trial"]) else st)
+                ledger.append({
+                    "id": r["id"],
+                    "deviceId": r["device_id"],
+                    "userName": r["user_name"],
+                    "city": r["city"],
+                    "state": r["state"],
+                    "locale": r["locale"],
+                    "productId": r["product_id"],
+                    "planLabel": PLAN_LABELS.get(r["product_id"], r["product_id"]),
+                    "priceInr": 0 if r["is_trial"] else PLAN_PRICES_INR.get(r["product_id"], 0),
+                    "orderId": r["order_id"] or "",
+                    "platform": r["platform"],
+                    "status": eff_status,
+                    "isTrial": bool(r["is_trial"]),
+                    "autoRenewing": bool(r["auto_renewing"]),
+                    "startedAt": r["started_at"],
+                    "expiresAt": r["expires_at"],
+                })
+
+    revenue_in_period = sum(rev_by_day.values())
+    new_paid_in_period = sum(paid_by_day.values())
+    new_trials_in_period = sum(trials_by_day.values())
+    mrr_rounded = round(mrr_inr, 1)
+
+    return {
+        "days": days,
+        "kpis": {
+            "mrr_inr": mrr_rounded,
+            "arr_inr": round(mrr_inr * 12),
+            "active_revenue_inr": active_revenue_inr,
+            "revenue_in_period_inr": revenue_in_period,
+            "active_subscriptions": active_subs,
+            "paid_subscriptions": paid_subs,
+            "trial_subscriptions": trial_subs,
+            "cancelled_subscriptions": cancelled_subs,
+            "expired_subscriptions": expired_subs,
+            "vip_granted": vip_granted,
+            "new_paid_in_period": new_paid_in_period,
+            "new_trials_in_period": new_trials_in_period,
+            "arpu_inr": round(active_revenue_inr / total_devices, 2) if total_devices else 0.0,
+            "arppu_inr": round(active_revenue_inr / paid_subs, 1) if paid_subs else 0.0,
+            "paid_conversion_pct": round(paid_subs * 100.0 / total_devices, 2) if total_devices else 0.0,
+        },
+        "by_plan": by_plan,
+        "series": {
+            "days": series_days,
+            "new_paid": [paid_by_day.get(d, 0) for d in series_days],
+            "new_trials": [trials_by_day.get(d, 0) for d in series_days],
+            "cancellations": [cancels_by_day.get(d, 0) for d in series_days],
+            "revenue_inr": [rev_by_day.get(d, 0) for d in series_days],
+        },
+        "funnel": funnel,
+        "breakdowns": {
+            "platforms": by_platform,
+            "locales": by_locale,
+            "cities": by_city,
+        },
+        "subscriptions": ledger,
+    }
+
+
+async def get_trends_analytics(days: int = 30) -> Dict[str, Any]:
+    """Growth velocity, stickiness trajectory, feature momentum (period-over-period), and content trends."""
+    days = max(7, min(days, 90))
+    series_days = _day_series(days)
+    start = series_days[0]
+    curr_span = f"-{days} day"
+    prev_start = f"-{days * 2} day"
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        # Daily active, sessions, installs, and language breakdown of active devices per day
+        active_by_day = await _fetch_map(
+            db, "SELECT date_str, COUNT(*) FROM daily_active WHERE date_str >= ? GROUP BY date_str", (start,)
+        )
+        sessions_by_day = await _fetch_map(
+            db, "SELECT date_str, SUM(sessions) FROM daily_active WHERE date_str >= ? GROUP BY date_str", (start,)
+        )
+        installs_by_day = await _fetch_map(
+            db,
+            f"SELECT date(first_seen, '{IST_SQL_MODIFIER}') AS d, COUNT(*) FROM devices "
+            f"WHERE date(first_seen, '{IST_SQL_MODIFIER}') >= ? GROUP BY d",
+            (start,),
+        )
+
+        # Daily active by language
+        lang_by_day: Dict[str, Dict[str, int]] = {"mr": {}, "hi": {}, "en": {}}
+        async with db.execute(
+            "SELECT da.date_str, COALESCE(d.locale, 'mr') AS loc, COUNT(*) AS cnt "
+            "FROM daily_active da LEFT JOIN devices d ON d.device_id = da.device_id "
+            "WHERE da.date_str >= ? GROUP BY da.date_str, loc",
+            (start,),
+        ) as cur:
+            for r in await cur.fetchall():
+                loc = r["loc"] if r["loc"] in lang_by_day else "mr"
+                lang_by_day[loc][r["date_str"]] = lang_by_day[loc].get(r["date_str"], 0) + (r["cnt"] or 0)
+
+        # Feature momentum: current period vs previous equal period
+        curr_feats: Dict[str, Dict[str, int]] = {}
+        async with db.execute(
+            "SELECT name, COUNT(*) AS cnt, COUNT(DISTINCT device_id) AS users "
+            "FROM events WHERE name != 'app_open' AND datetime(created_at) >= datetime('now', ?) "
+            "GROUP BY name ORDER BY cnt DESC LIMIT 30",
+            (curr_span,),
+        ) as cur:
+            for r in await cur.fetchall():
+                curr_feats[r["name"]] = {"count": r["cnt"], "users": r["users"]}
+
+        prev_feats = await _fetch_map(
+            db,
+            "SELECT name, COUNT(*) AS cnt FROM events "
+            "WHERE name != 'app_open' AND datetime(created_at) >= datetime('now', ?) "
+            "AND datetime(created_at) < datetime('now', ?) GROUP BY name",
+            (prev_start, curr_span),
+        )
+
+        # Content momentum by event category
+        async def _top_items(event_names: tuple, limit: int = 8) -> List[Dict[str, Any]]:
+            ph = ",".join("?" for _ in event_names)
+            async with db.execute(
+                f"SELECT item, COUNT(*) AS cnt, COUNT(DISTINCT device_id) AS users "
+                f"FROM events WHERE name IN ({ph}) AND item != '' "
+                f"AND datetime(created_at) >= datetime('now', ?) "
+                "GROUP BY item ORDER BY cnt DESC LIMIT ?",
+                (*event_names, curr_span, limit),
+            ) as c2:
+                return [{"item": r["item"], "count": r["cnt"], "users": r["users"]} for r in await c2.fetchall()]
+
+        top_aartis = await _top_items(("aarti_open", "aarti_play", "nitya_pinned"))
+        top_deities = await _top_items(("mandir_open", "mandir_tap", "mandir_ritual", "deity_open"))
+        top_jaap = await _top_items(("jaap_mala_complete", "jaap_goal_complete"))
+        top_greetings = await _top_items(("greeting_category", "greeting_share", "greeting_save"))
+
+        # Summary stats for current vs previous period
+        events_curr = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM events WHERE name != 'app_open' AND datetime(created_at) >= datetime('now', ?)",
+            (curr_span,),
+        )
+        events_prev = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM events WHERE name != 'app_open' AND datetime(created_at) >= datetime('now', ?) "
+            "AND datetime(created_at) < datetime('now', ?)",
+            (prev_start, curr_span),
+        )
+        installs_curr = await _fetch_scalar(
+            db, "SELECT COUNT(*) FROM devices WHERE datetime(first_seen) >= datetime('now', ?)", (curr_span,)
+        )
+        installs_prev = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM devices WHERE datetime(first_seen) >= datetime('now', ?) "
+            "AND datetime(first_seen) < datetime('now', ?)",
+            (prev_start, curr_span),
+        )
+        shares_curr = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM events WHERE name IN ('share', 'greeting_share') AND datetime(created_at) >= datetime('now', ?)",
+            (curr_span,),
+        )
+        malas_curr = await _fetch_scalar(
+            db,
+            "SELECT COUNT(*) FROM events WHERE name = 'jaap_mala_complete' AND datetime(created_at) >= datetime('now', ?)",
+            (curr_span,),
+        )
+
+    def pct_delta(c: int, p: int) -> Optional[float]:
+        if p <= 0:
+            return None
+        return round((c - p) * 100.0 / p, 1)
+
+    momentum = []
+    for name, info in curr_feats.items():
+        prev = prev_feats.get(name, 0)
+        momentum.append({
+            "name": name,
+            "count": info["count"],
+            "users": info["users"],
+            "prevCount": prev,
+            "deltaPct": pct_delta(info["count"], prev),
+        })
+
+    # Compute avg sessions per active user per day
+    avg_sessions_series = []
+    for d in series_days:
+        a = active_by_day.get(d, 0)
+        s = sessions_by_day.get(d, 0)
+        avg_sessions_series.append(round(s / a, 2) if a else 0.0)
+
+    return {
+        "days": days,
+        "summary": {
+            "events_curr": events_curr,
+            "events_delta_pct": pct_delta(events_curr, events_prev),
+            "installs_curr": installs_curr,
+            "installs_delta_pct": pct_delta(installs_curr, installs_prev),
+            "shares_curr": shares_curr,
+            "malas_curr": malas_curr,
+        },
+        "series": {
+            "days": series_days,
+            "active": [active_by_day.get(d, 0) for d in series_days],
+            "sessions": [sessions_by_day.get(d, 0) for d in series_days],
+            "installs": [installs_by_day.get(d, 0) for d in series_days],
+            "avg_sessions_per_dau": avg_sessions_series,
+            "languages": {
+                loc: [lang_by_day[loc].get(d, 0) for d in series_days]
+                for loc in ("mr", "hi", "en")
+            },
+        },
+        "feature_momentum": momentum,
+        "content": {
+            "aartis": top_aartis,
+            "deities": top_deities,
+            "jaap": top_jaap,
+            "greetings": top_greetings,
+        },
+    }

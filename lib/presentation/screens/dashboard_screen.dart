@@ -20,8 +20,10 @@ import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/granth.dart';
 import '../../features/voice_agent/domain/home_voice_commands.dart';
 import '../providers/aarti_providers.dart';
+import '../providers/ads_provider.dart';
 import '../providers/bhakti_darshan_providers.dart';
 import '../providers/deity_affinity_provider.dart';
+import '../providers/greeting_providers.dart';
 import '../providers/locale_provider.dart';
 import '../providers/premium_provider.dart';
 import '../providers/remote_config_provider.dart';
@@ -35,6 +37,7 @@ import '../widgets/greeting/greeting_dashboard_card.dart';
 import '../widgets/jaap/jaap_dashboard_card.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/remote_notices.dart';
+import '../widgets/remove_ads_card.dart';
 import '../widgets/request_deity_sheet.dart';
 import 'deity_aarti_list_screen.dart';
 import 'horoscope_screen.dart';
@@ -42,6 +45,7 @@ import 'more_screen.dart';
 import 'panchang_screen.dart';
 import '../../services/ad_units.dart';
 import '../../services/app_permission_service.dart';
+import '../../services/rewarded_interstitial_ad_service.dart';
 import '../providers/granth_providers.dart';
 import 'granth_chapter_list_screen.dart';
 import '../../features/voice_agent/presentation/widgets/floating_bhakti_orb.dart';
@@ -61,6 +65,34 @@ class MandirDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
+  static final _cardTitleStyle = GoogleFonts.notoSansDevanagari(
+    fontSize: 15.5,
+    fontWeight: FontWeight.w700,
+    color: MandirTheme.cardTitle,
+    height: 1.15,
+  );
+  static final _cardSubtitleStyle = GoogleFonts.notoSans(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: MandirTheme.cardSubtitle,
+    height: 1.15,
+  );
+  static final _cardButtonStyle = GoogleFonts.notoSans(
+    color: MandirTheme.cardButtonText,
+    fontSize: 11.5,
+    fontWeight: FontWeight.w600,
+  );
+  static final _chipSelectedStyle = GoogleFonts.mukta(
+    fontSize: 14.5,
+    fontWeight: FontWeight.w600,
+    color: Colors.white,
+  );
+  static final _chipUnselectedStyle = GoogleFonts.mukta(
+    fontSize: 14.5,
+    fontWeight: FontWeight.w600,
+    color: MandirTheme.textDark,
+  );
+
   late final HomeVoiceBinding _voiceBinding;
   late final _voiceEntry = _activeVoiceHandler;
   MaterialPageRoute<void>? _voiceResultRoute;
@@ -100,9 +132,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Speech is initialized on the first mic tap: initializing here shows the
       // microphone prompt at launch, and Android then drops the notification prompt.
-      // Delay banner initialization slightly to let frame 0 render and prevent WebView startup ANR
+      // Delay banner initialization until after MobileAds.initialize() (2s) so
+      // Chromium WebView creation never collides with frame 0 or permission prompts.
       if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-        _bannerAdTimer = Timer(const Duration(milliseconds: 2000), () {
+        _bannerAdTimer = Timer(const Duration(milliseconds: 3000), () {
           if (mounted) _loadBannerAd();
         });
       }
@@ -133,31 +166,43 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   }
 
 
-  /// Decodes the card thumbnails at their display size ahead of time so the
-  /// first scroll through the Sacred Collection doesn't stall on decoding.
+  /// Pre-warms only the first few visible portraits at thumbnail size so
+  /// initial scroll is smooth without flooding low-RAM devices with ~80 bitmaps.
   void _scheduleDeityImageWarmup(List<AartiItem> catalog) {
     if (_deityImagesWarmed || catalog.isEmpty) return;
     _deityImagesWarmed = true;
     final deities = ref.read(allBhaktiDeitiesProvider);
-    final portraits = {
-      for (final item in catalog) resolveDeityPortrait(item.deity, deities: deities),
-    };
-    _deityWarmupTimer = Timer(const Duration(seconds: 2), () async {
+    final portraits = <({String asset, String url})>[];
+    final seen = <({String asset, String url})>{};
+    for (final item in catalog) {
+      final portrait = resolveDeityPortrait(item.deity, deities: deities);
+      if (seen.add(portrait)) {
+        portraits.add(portrait);
+        if (portraits.length >= 6) break;
+      }
+    }
+    _deityWarmupTimer = Timer(const Duration(milliseconds: 2800), () async {
       for (final portrait in portraits) {
         if (!mounted) return;
         if (portrait.url.isNotEmpty) {
           await precacheImage(
-            CachedNetworkImageProvider(portrait.url),
+            ResizeImage.resizeIfNeeded(
+              null,
+              240,
+              CachedNetworkImageProvider(portrait.url),
+            ),
             context,
             onError: (_, _) {},
           );
-          continue;
+        } else {
+          await precacheImage(
+            ResizeImage.resizeIfNeeded(null, 240, AssetImage(portrait.asset)),
+            context,
+            onError: (_, _) {},
+          );
         }
-        await precacheImage(
-          ResizeImage.resizeIfNeeded(null, 240, AssetImage(portrait.asset)),
-          context,
-          onError: (_, _) {},
-        );
+        // Yield briefly between decodes so UI frames stay responsive on older devices.
+        await Future<void>.delayed(const Duration(milliseconds: 32));
       }
     });
   }
@@ -632,6 +677,11 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 }
               });
               if (tapped == _DashTab.home) _maybeShowFestivePopup();
+              if (tapped == _DashTab.horoscope || tapped == _DashTab.panchang) {
+                RewardedInterstitialAdService.instance.showIfEligible(
+                  adsEnabled: ref.read(showAdsProvider),
+                );
+              }
             },
             type: BottomNavigationBarType.fixed,
             backgroundColor: MandirTheme.surfaceWhite,
@@ -703,10 +753,50 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 // ── Decorative Header (collapses to a compact bar) ───────
                 _buildSliverHeader(l10n),
 
-                // ── Naam Jaap entry ──────────────────────────────────────
-                if (ref.watch(featureEnabledProvider(AppRemoteConfig.jaap)))
-                  const SliverToBoxAdapter(child: JaapDashboardCard()),
-                const SliverToBoxAdapter(child: GreetingDashboardCard()),
+                // ── Remove Ads compact banner ────────────────────────────
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(16, 4, 16, 2),
+                    child: RemoveAdsCard(
+                      key: Key('home-remove-ads'),
+                      compact: true,
+                    ),
+                  ),
+                ),
+
+                // ── Naam Jaap & Greetings compact row ────────────────────
+                SliverToBoxAdapter(
+                  child: Builder(
+                    builder: (context) {
+                      final showJaap =
+                          ref.watch(featureEnabledProvider(AppRemoteConfig.jaap));
+                      final showGreetings = ref.watch(greetingsEnabledProvider);
+                      if (!showJaap && !showGreetings) {
+                        return const SizedBox.shrink();
+                      }
+                      if (showJaap && showGreetings) {
+                        return const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 4, 16, 2),
+                          child: IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: JaapDashboardCard(compact: true)),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: GreetingDashboardCard(compact: true),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return showJaap
+                          ? const JaapDashboardCard()
+                          : const GreetingDashboardCard();
+                    },
+                  ),
+                ),
 
                 // ── Section Title Row ────────────────────────────────────
                 SliverToBoxAdapter(
@@ -740,6 +830,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _PinnedSearchBarDelegate(
+                    hasQuery: _searchController.text.isNotEmpty,
+                    isListening: _isListening,
+                    localeCode: localeCode,
                     child: _buildSearchBar(l10n, localeCode),
                   ),
                 ),
@@ -786,22 +879,39 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         hasScrollBody: false,
                         child: _buildEmptyCatalog(l10n, localeCode),
                       )
-                    else
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                        sliver: SliverList.separated(
-                          itemCount: catalog.length,
-                          separatorBuilder: (context, i) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            return _buildAartiCard(
-                              catalog[index],
-                              l10n,
-                              localeCode,
-                            );
-                          },
-                        ),
+                    else ...[
+                      Builder(
+                        builder: (context) {
+                          final deities = ref.watch(allBhaktiDeitiesProvider);
+                          final portraitCache =
+                              <String, ({String asset, String url})>{};
+                          return SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                            sliver: SliverList.separated(
+                              itemCount: catalog.length,
+                              separatorBuilder: (context, i) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final item = catalog[index];
+                                final portrait = portraitCache.putIfAbsent(
+                                  item.deity,
+                                  () => resolveDeityPortrait(
+                                    item.deity,
+                                    deities: deities,
+                                  ),
+                                );
+                                return _buildAartiCard(
+                                  item,
+                                  l10n,
+                                  localeCode,
+                                  portrait: portrait,
+                                );
+                              },
+                            ),
+                          );
+                        },
                       ),
+                    ],
                   ],
                 ),
               ],
@@ -874,11 +984,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               ),
               child: Text(
                 label,
-                style: GoogleFonts.mukta(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : MandirTheme.textDark,
-                ),
+                style: isSelected ? _chipSelectedStyle : _chipUnselectedStyle,
               ),
             ),
           );
@@ -1293,7 +1399,12 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Image.asset('assets/decorations/om.webp', height: 28, width: 28),
+          Image.asset(
+            'assets/decorations/om.webp',
+            height: 28,
+            width: 28,
+            cacheWidth: 96,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -1325,6 +1436,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             child: Image.asset(
               'assets/decorations/corner_mandala.webp',
               fit: BoxFit.cover,
+              cacheWidth: 512,
               opacity: const AlwaysStoppedAnimation(0.15),
             ),
           ),
@@ -1349,6 +1461,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                           'assets/decorations/bell.webp',
                           width: 48,
                           height: 96,
+                          cacheWidth: 144,
+                          cacheHeight: 288,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -1361,6 +1475,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                           'assets/decorations/bell.webp',
                           width: 48,
                           height: 96,
+                          cacheWidth: 144,
+                          cacheHeight: 288,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -1376,6 +1492,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                               'assets/decorations/om.webp',
                               height: 42,
                               width: 42,
+                              cacheWidth: 128,
                             ),
                             const SizedBox(height: 4),
                             // App title
@@ -1809,6 +1926,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     'assets/decorations/om.webp',
                     height: 26,
                     width: 26,
+                    cacheWidth: 96,
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -2620,8 +2738,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
   Widget _buildAartiCard(
     AartiItem item,
     AppLocalizations l10n,
-    String localeCode,
-  ) {
+    String localeCode, {
+    ({String asset, String url})? portrait,
+  }) {
     final query = ref.read(searchQueryProvider).trim();
     final bool isSearch = query.isNotEmpty;
 
@@ -2646,7 +2765,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       }
     }
 
-    final portrait = _resolveDeityPortrait(item.deity);
+    final resolvedPortrait = portrait ?? _resolveDeityPortrait(item.deity);
 
     return Container(
       decoration: BoxDecoration(
@@ -2678,7 +2797,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                     'assets/decorations/card_right_design.webp',
                     width: 100,
                     height: 100,
-                    cacheWidth: 300,
+                    cacheWidth: 200,
                     fit: BoxFit.contain,
                     opacity: const AlwaysStoppedAnimation(0.22),
                   ),
@@ -2701,14 +2820,15 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(4.0),
                           child: DeityPortraitImage(
-                            imageAsset: portrait.asset,
-                            imageUrl: portrait.url,
+                            imageAsset: resolvedPortrait.asset,
+                            imageUrl: resolvedPortrait.url,
                             fit: BoxFit.contain,
                             cacheHeight: 240,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(
                                 'assets/decorations/om.webp',
                                 fit: BoxFit.contain,
+                                cacheWidth: 160,
                                 errorBuilder: (_, _, _) => Center(
                                   child: Text(
                                     item.deityEmoji,
@@ -2733,12 +2853,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                               // Primary Title (Deity Aarti Title)
                               Text(
                                 primaryTitle,
-                                style: GoogleFonts.notoSansDevanagari(
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: MandirTheme.cardTitle,
-                                  height: 1.15,
-                                ),
+                                style: _cardTitleStyle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -2747,12 +2862,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                               // Subtitle (English or Marathi counterpart)
                               Text(
                                 subtitle,
-                                style: GoogleFonts.notoSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: MandirTheme.cardSubtitle,
-                                  height: 1.15,
-                                ),
+                                style: _cardSubtitleStyle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -2782,11 +2892,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                                         const SizedBox(width: 4),
                                         Text(
                                           l10n.readAndPlay,
-                                          style: GoogleFonts.notoSans(
-                                            color: MandirTheme.cardButtonText,
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: _cardButtonStyle,
                                         ),
                                       ],
                                     ),
@@ -2945,8 +3051,16 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 /// Keeps the dashboard search bar pinned below the collapsed header.
 class _PinnedSearchBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
+  final bool hasQuery;
+  final bool isListening;
+  final String localeCode;
 
-  const _PinnedSearchBarDelegate({required this.child});
+  const _PinnedSearchBarDelegate({
+    required this.child,
+    required this.hasQuery,
+    required this.isListening,
+    required this.localeCode,
+  });
 
   // 48px field + 4px vertical padding on each side.
   static const double _height = 56;
@@ -2970,7 +3084,9 @@ class _PinnedSearchBarDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  // Always rebuild so the clear/mic icons track search and listening state.
   @override
-  bool shouldRebuild(covariant _PinnedSearchBarDelegate oldDelegate) => true;
+  bool shouldRebuild(covariant _PinnedSearchBarDelegate oldDelegate) =>
+      hasQuery != oldDelegate.hasQuery ||
+      isListening != oldDelegate.isListening ||
+      localeCode != oldDelegate.localeCode;
 }

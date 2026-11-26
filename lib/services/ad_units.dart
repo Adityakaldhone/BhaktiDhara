@@ -31,4 +31,11 @@ class AdUnits {
 
   /// After a greeting image is shared or saved (interstial 1).
   static const greetingInterstitial = 'ca-app-pub-2701330811649318/7886749286';
+
+  /// App Open ad shown after Ishta Devta selection (new users) and once per 24h (existing users).
+  static const appOpen = 'ca-app-pub-2701330811649318/4167438033';
+
+  /// Rewarded interstitial shown on Horoscope and Panchang screens (once per 24h).
+  static const horoscopePanchangRewardedInterstitial =
+      'ca-app-pub-2701330811649318/6406588567';
 }

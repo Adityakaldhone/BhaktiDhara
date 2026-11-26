@@ -9,18 +9,30 @@ import '../../domain/logic/festival_featured_deities.dart';
 import '../../services/backend_service.dart';
 import 'aarti_favorites_provider.dart';
 
+List<BhaktiDeity>? _cachedRemoteDeitiesRef;
+Map<String, String> _canonicalDeityMap = const {};
+
+Map<String, String> _buildCanonicalDeityMap(List<BhaktiDeity> remoteDeities) {
+  final merged = mergeDeityCatalogs(kBhaktiDeities, remoteDeities);
+  final map = <String, String>{};
+  for (final d in merged) {
+    map.putIfAbsent(d.key, () => d.key);
+    for (final alias in d.aliases) {
+      map.putIfAbsent(alias, () => d.key);
+    }
+  }
+  return map;
+}
+
 /// Resolves catalog deity names and aliases to one key, so "Gayatri" and
 /// "Goddess Gayatri" share the same history.
 String canonicalDeityKey(String rawDeity) {
-  final deities = mergeDeityCatalogs(
-    kBhaktiDeities,
-    BackendService.remoteCatalog.deities,
-  );
-  final match = deities.cast<BhaktiDeity?>().firstWhere(
-        (d) => d!.matches(rawDeity),
-        orElse: () => null,
-      );
-  return match?.key ?? rawDeity;
+  final remoteDeities = BackendService.remoteCatalog.deities;
+  if (!identical(_cachedRemoteDeitiesRef, remoteDeities)) {
+    _cachedRemoteDeitiesRef = remoteDeities;
+    _canonicalDeityMap = _buildCanonicalDeityMap(remoteDeities);
+  }
+  return _canonicalDeityMap[rawDeity] ?? rawDeity;
 }
 
 class DeityAffinityState {

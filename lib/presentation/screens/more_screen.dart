@@ -15,6 +15,7 @@ import '../providers/aarti_providers.dart';
 import '../providers/nitya_onboarding_providers.dart';
 import '../providers/remote_config_provider.dart';
 import '../widgets/nitya_pin_sheet.dart';
+import '../widgets/remove_ads_card.dart';
 import 'calendar/calendar_screen.dart';
 import 'deity_aarti_list_screen.dart';
 import 'grahan_screen.dart';
@@ -119,6 +120,9 @@ class MoreScreen extends ConsumerWidget {
               onCardTap: () => _openIshtaPicker(context),
               onViewTap: () => _openDeityView(context, ref, deity),
             ),
+
+            const SizedBox(height: 16),
+            const RemoveAdsCard(key: Key('more-remove-ads')),
 
             const SizedBox(height: 24),
 

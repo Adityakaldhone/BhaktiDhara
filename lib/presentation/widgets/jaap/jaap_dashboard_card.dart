@@ -14,7 +14,9 @@ import 'jaap_sheets.dart';
 /// Home-screen entry point: shows the streak and today's progress and opens
 /// the deity sheet, then the counter once a mantra is chosen.
 class JaapDashboardCard extends ConsumerWidget {
-  const JaapDashboardCard({super.key});
+  const JaapDashboardCard({super.key, this.compact = false});
+
+  final bool compact;
 
   /// Shows the deity list sheet first. Selecting a deity (or Continue / Begin)
   /// opens the counter with that mantra.
@@ -61,6 +63,82 @@ class JaapDashboardCard extends ConsumerWidget {
       subtitle = s.goalDoneToday;
     } else {
       subtitle = s.todayProgress(jaap.malasToday, jaap.progress.dailyGoalMalas);
+    }
+
+    if (compact) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => open(context, ref),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFF8E8), JaapColors.sandalStart, Color(0xFFFBE3B8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: MandirTheme.goldenAccent.withValues(alpha: 0.55),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8A5A2B).withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                DiyaLamp(size: 28, lit: onboarded && streak > 0),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        s.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.mukta(
+                          fontSize: 17.5,
+                          height: 1.15,
+                          fontWeight: FontWeight.w800,
+                          color: MandirTheme.secondaryMaroon,
+                        ),
+                      ),
+                      Text(
+                        onboarded && streak > 0
+                            ? '${s.streakDays(streak)} · $subtitle'
+                            : subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.mukta(
+                          fontSize: 13.5,
+                          height: 1.15,
+                          fontWeight: FontWeight.w600,
+                          color: JaapColors.inkSoft,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: MandirTheme.secondaryMaroon,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return Padding(

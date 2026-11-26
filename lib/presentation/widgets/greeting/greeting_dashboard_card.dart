@@ -13,7 +13,9 @@ import 'greeting_tile.dart';
 /// Home-screen entry: the Good Morning cover image; tapping anywhere opens
 /// the greetings library.
 class GreetingDashboardCard extends ConsumerWidget {
-  const GreetingDashboardCard({super.key});
+  const GreetingDashboardCard({super.key, this.compact = false});
+
+  final bool compact;
 
   static void _open(BuildContext context) => Navigator.push(
         context,
@@ -26,6 +28,96 @@ class GreetingDashboardCard extends ConsumerWidget {
     final s = GreetingStrings(ref.watch(localeProvider).languageCode);
     final categories = ref.watch(greetingCategoriesProvider).valueOrNull ?? const [];
     final cover = categories.map((c) => c.coverUrl).nonNulls.firstOrNull;
+
+    if (compact) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const Key('greeting-dashboard-card'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _open(context),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFF3D6), Color(0xFFFBE3B8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE8C98A), width: 1.1),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8A5A2B).withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 32,
+                    height: 40,
+                    child: cover == null
+                        ? const ColoredBox(
+                            color: kGreetingPlaceholder,
+                            child: Center(child: Text('🌅', style: TextStyle(fontSize: 16))),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: cover,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 100,
+                            placeholder: (_, _) => const ColoredBox(color: kGreetingPlaceholder),
+                            errorWidget: (_, _, _) => const ColoredBox(color: kGreetingPlaceholder),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        s.dashboardTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.mukta(
+                          fontSize: 17.5,
+                          height: 1.15,
+                          fontWeight: FontWeight.w800,
+                          color: MandirTheme.secondaryMaroon,
+                        ),
+                      ),
+                      Text(
+                        s.dashboardHint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.mukta(
+                          fontSize: 13.5,
+                          height: 1.15,
+                          fontWeight: FontWeight.w600,
+                          color: MandirTheme.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: MandirTheme.secondaryMaroon,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),

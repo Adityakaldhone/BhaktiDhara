@@ -9,9 +9,11 @@ import '../../domain/entities/aarti_item.dart';
 import '../../domain/entities/bhakti_deity.dart';
 import '../../domain/logic/ishta_devta.dart';
 import '../../services/ad_units.dart';
+import '../../services/app_open_ad_service.dart';
 import '../../services/backend_service.dart';
 import '../providers/aarti_favorites_provider.dart';
 import '../providers/aarti_providers.dart';
+import '../providers/ads_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/nitya_onboarding_providers.dart';
 import '../widgets/app_banner_ad.dart';
@@ -60,6 +62,21 @@ class _IshtaDevtaScreenState extends ConsumerState<IshtaDevtaScreen> {
   }
 
   void _openDashboard(NavigatorState nav) {
+    if (!widget.changing) {
+      final adsEnabled = ref.read(showAdsProvider);
+      if (AppOpenAdService.instance.canShowNow(adsEnabled: adsEnabled)) {
+        AppOpenAdService.instance.showForNewUser(adsEnabled: adsEnabled).then((_) {
+          if (mounted) {
+            nav.pushReplacement(
+              MaterialPageRoute(builder: (_) => const MandirDashboardScreen()),
+            );
+          }
+        });
+        return;
+      }
+      AppOpenAdService.instance.setOnboardingPending(false);
+      AppOpenAdService.instance.preload(adsEnabled: adsEnabled);
+    }
     nav.pushReplacement(
       MaterialPageRoute(builder: (_) => const MandirDashboardScreen()),
     );

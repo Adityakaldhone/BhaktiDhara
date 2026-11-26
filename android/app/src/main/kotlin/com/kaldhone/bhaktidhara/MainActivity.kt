@@ -1,17 +1,26 @@
 package com.kaldhone.bhaktidhara
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.os.Build
 import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 9109
+    }
+
+    private var pendingLocationPermissionResult: MethodChannel.Result? = null
     private val vibrator: Vibrator? by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
@@ -84,5 +93,74 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "bhaktidhara/location_permission")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "requestLocationPermission") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val fineGranted = ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                ) == PackageManager.PERMISSION_GRANTED
+                val coarseGranted = ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ) == PackageManager.PERMISSION_GRANTED
+                if (fineGranted || coarseGranted || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                    result.success("whileInUse")
+                    return@setMethodCallHandler
+                }
+                // Clear any stale callback before issuing a new request so a
+                // MethodChannel.Result can never receive two replies.
+                pendingLocationPermissionResult?.success("denied")
+                pendingLocationPermissionResult = result
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                    ),
+                    LOCATION_PERMISSION_REQUEST_CODE,
+                )
+            }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            val pending = pendingLocationPermissionResult
+            pendingLocationPermissionResult = null
+            if (pending == null) return
+
+            if (grantResults.isEmpty()) {
+                pending.success("denied")
+                return
+            }
+            val granted = grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+            if (granted) {
+                pending.success("whileInUse")
+                return
+            }
+            val canShowRationale =
+                ActivityCompat.shouldShowRequestPermissionRationale(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                ) || ActivityCompat.shouldShowRequestPermissionRationale(
+                    this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                )
+            pending.success(if (canShowRationale) "denied" else "deniedForever")
+            return
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    override fun onDestroy() {
+        pendingLocationPermissionResult = null
+        super.onDestroy()
     }
 }

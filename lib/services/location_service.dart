@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
 import '../domain/entities/panchang_city.dart';
+import 'app_permission_service.dart';
 
 /// Service for detecting user's current city via Device GPS or IP fallback.
 class LocationService {
@@ -63,7 +64,7 @@ class LocationService {
         // Do NOT pop up a dialog during background auto-detection!
         return null;
       }
-      permission = await Geolocator.requestPermission();
+      permission = await AppPermissionService.requestLocationPermissionSafely();
       if (permission == LocationPermission.denied) {
         return null;
       }

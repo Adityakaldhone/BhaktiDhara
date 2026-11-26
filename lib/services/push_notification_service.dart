@@ -229,14 +229,16 @@ class PushNotificationService {
       final prefs = await SharedPreferences.getInstance();
       final current = (prefs.getStringList(_topicsKey) ?? const []).toSet();
       final messaging = FirebaseMessaging.instance;
-      for (final topic in current.difference(wanted)) {
-        await messaging.unsubscribeFromTopic(topic);
-      }
-      // Always re-subscribe: the saved list can outlive the FCM registration
-      // (Auto Backup restore after reinstall, token reset), silently dropping topic pushes.
-      for (final topic in wanted) {
-        await messaging.subscribeToTopic(topic);
-      }
+      final stale = current.difference(wanted);
+      // Run topic updates concurrently so Play Services IPC doesn't block startup.
+      await Future.wait([
+        for (final topic in stale)
+          messaging.unsubscribeFromTopic(topic).catchError((_) {}),
+        // Always re-subscribe: the saved list can outlive the FCM registration
+        // (Auto Backup restore after reinstall, token reset), silently dropping topic pushes.
+        for (final topic in wanted)
+          messaging.subscribeToTopic(topic).catchError((_) {}),
+      ]);
       await prefs.setStringList(_topicsKey, wanted.toList());
     } catch (e) {
       debugPrint('Topic sync failed: $e');

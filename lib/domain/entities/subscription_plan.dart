@@ -105,23 +105,14 @@ class SubscriptionPlan {
   }
 }
 
-/// All available BhaktiDhara Premium plans, ordered for display.
-/// Annual plan is listed first (recommended) for maximum conversions.
+/// All available BhaktiDhara Premium plans, ordered from lowest to highest price.
 const kSubscriptionPlans = [
   SubscriptionPlan(
-    tier: SubscriptionTier.annual,
-    productId: 'bhaktidhara_annual_399',
-    priceInr: 399,
-    mrpInr: 1188, // 99 × 12
-    durationMonths: 12,
-    isRecommended: true,
-  ),
-  SubscriptionPlan(
-    tier: SubscriptionTier.halfYearly,
-    productId: 'bhaktidhara_halfyearly_229',
-    priceInr: 229,
-    mrpInr: 594, // 99 × 6
-    durationMonths: 6,
+    tier: SubscriptionTier.monthly,
+    productId: 'bhaktidhara_monthly_51',
+    priceInr: 51,
+    mrpInr: 99,
+    durationMonths: 1,
   ),
   SubscriptionPlan(
     tier: SubscriptionTier.quarterly,
@@ -131,11 +122,19 @@ const kSubscriptionPlans = [
     durationMonths: 3,
   ),
   SubscriptionPlan(
-    tier: SubscriptionTier.monthly,
-    productId: 'bhaktidhara_monthly_51',
-    priceInr: 51,
-    mrpInr: 99,
-    durationMonths: 1,
+    tier: SubscriptionTier.halfYearly,
+    productId: 'bhaktidhara_halfyearly_229',
+    priceInr: 229,
+    mrpInr: 594, // 99 × 6
+    durationMonths: 6,
+  ),
+  SubscriptionPlan(
+    tier: SubscriptionTier.annual,
+    productId: 'bhaktidhara_annual_399',
+    priceInr: 399,
+    mrpInr: 1188, // 99 × 12
+    durationMonths: 12,
+    isRecommended: true,
   ),
 ];
 

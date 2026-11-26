@@ -430,7 +430,11 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
         children: [
           // ── 1. Sacred Temple Background ────────────────────────────────
           Positioned.fill(
-            child: Image.asset('assets/aarti_screen/bg.webp', fit: BoxFit.cover),
+            child: Image.asset(
+              'assets/aarti_screen/bg.webp',
+              fit: BoxFit.cover,
+              cacheWidth: 720,
+            ),
           ),
 
           // ── 2. Scrollable Body Content ─────────────────────────────────
@@ -525,6 +529,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                       child: Image.asset(
                         'assets/decorations/horizontal_bar_trimmed.webp',
                         height: 14,
+                        cacheWidth: 512,
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -536,6 +541,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                       child: Image.asset(
                         'assets/aarti_list/left_lotus.webp',
                         height: 82,
+                        cacheHeight: 240,
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -547,6 +553,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                       child: Image.asset(
                         'assets/aarti_list/right_lotus.webp',
                         height: 82,
+                        cacheHeight: 240,
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -577,6 +584,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
               'assets/aarti_screen/om.webp',
               width: 150,
               height: 60,
+              cacheWidth: 360,
               fit: BoxFit.contain,
             ),
 
@@ -589,6 +597,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                   'assets/aarti_screen/back_button.webp',
                   width: 75,
                   height: 75,
+                  cacheWidth: 200,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -616,10 +625,12 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                 imageAsset: info.imagePath,
                 imageUrl: info.imageUrl,
                 height: 155,
+                cacheHeight: 420,
                 fit: BoxFit.contain,
                 errorBuilder: (_, _, _) => Image.asset(
                   'assets/aarti_screen/om.webp',
                   height: 155,
+                  cacheHeight: 320,
                   fit: BoxFit.contain,
                 ),
               ),

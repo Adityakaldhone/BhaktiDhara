@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/app_remote_config.dart';
 import '../../services/backend_service.dart';
 import 'locale_provider.dart';
-import 'premium_provider.dart';
 
 /// Admin "App Remote Control" settings. Starts from the cached config loaded
 /// in `main()` and refreshes from the server on launch and on app resume.
@@ -27,12 +26,9 @@ final featureEnabledProvider = Provider.family<bool, String>(
   (ref, flag) => ref.watch(remoteConfigProvider).isEnabled(flag),
 );
 
-/// Whether premium content is unlocked: the user is VIP, or the admin has
-/// switched the paywall off so everything is free.
-final premiumAccessProvider = Provider<bool>((ref) {
-  return ref.watch(isPremiumProvider) ||
-      !ref.watch(featureEnabledProvider(AppRemoteConfig.premiumPaywall));
-});
+/// All content features are unlocked without a paywall; the subscription
+/// paywall is surfaced only via "Remove all ads" in the More tab.
+final premiumAccessProvider = Provider<bool>((ref) => true);
 
 final appVersionProvider = FutureProvider<String>((ref) => BackendService.getAppVersion());
 

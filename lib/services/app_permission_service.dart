@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,6 +22,49 @@ class AppPermissionService {
 
   /// Guard to ensure we only run the startup sequence once per app lifecycle session.
   static bool _hasRunThisSession = false;
+
+  static const _locationPermissionChannel =
+      MethodChannel('bhaktidhara/location_permission');
+  static Future<LocationPermission>? _inFlightLocationPermission;
+
+  /// Requests location permission safely, serializing concurrent callers and
+  /// bypassing `geolocator_android`'s `PermissionManager` (which leaves its
+  /// `resultCallback` non-null and crashes with `Reply already submitted`).
+  static Future<LocationPermission> requestLocationPermissionSafely() {
+    final existing = _inFlightLocationPermission;
+    if (existing != null) return existing;
+
+    final future = _requestLocationPermissionInternal();
+    _inFlightLocationPermission = future;
+    future.whenComplete(() {
+      if (identical(_inFlightLocationPermission, future)) {
+        _inFlightLocationPermission = null;
+      }
+    });
+    return future;
+  }
+
+  static Future<LocationPermission> _requestLocationPermissionInternal() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        final raw = await _locationPermissionChannel
+            .invokeMethod<String>('requestLocationPermission');
+        switch (raw) {
+          case 'whileInUse':
+            return LocationPermission.whileInUse;
+          case 'always':
+            return LocationPermission.always;
+          case 'deniedForever':
+            return LocationPermission.deniedForever;
+          default:
+            return LocationPermission.denied;
+        }
+      } on MissingPluginException {
+        // Widget/unit tests without the Android host channel fall through.
+      }
+    }
+    return Geolocator.requestPermission();
+  }
 
   /// Runs the sequential, collision-free startup permission flow.
   ///
@@ -71,7 +115,7 @@ class AppPermissionService {
             '(Attempt ${locPromptCount + 1}/$maxPromptAttempts)...',
           );
           await prefs.setInt(_keyLocationPromptCount, locPromptCount + 1);
-          locPermission = await Geolocator.requestPermission();
+          locPermission = await requestLocationPermissionSafely();
 
           if (locPermission == LocationPermission.whileInUse ||
               locPermission == LocationPermission.always) {

@@ -9,6 +9,8 @@ import '../../services/horoscope_detail_content.dart';
 import '../../services/personal_numerology_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/rewarded_ad_service.dart';
+import '../../services/rewarded_interstitial_ad_service.dart';
+import '../providers/ads_provider.dart';
 import '../providers/horoscope_provider.dart';
 import '../providers/locale_provider.dart';
 import '../widgets/app_banner_ad.dart';
@@ -58,6 +60,11 @@ class _HoroscopeScreenState extends ConsumerState<HoroscopeScreen> {
     RewardedAdService.instance.preload();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        RewardedInterstitialAdService.instance.showIfEligible(
+          adsEnabled: ref.read(showAdsProvider),
+        );
+      }
       if (widget.initialRashiId != null && widget.initialRashiId!.isNotEmpty) {
         final match = kAllRashis.firstWhere(
           (r) => r.id.toLowerCase() == widget.initialRashiId!.toLowerCase(),

@@ -78,6 +78,8 @@ from app.database import (
     get_device_subscription_status,
     cancel_subscription_by_token,
     get_subscription_stats,
+    get_revenue_analytics,
+    get_trends_analytics,
 )
 from app.cron import (
     run_daily_precache_job,
@@ -781,6 +783,23 @@ async def admin_subscriptions_endpoint():
     return await get_subscription_stats()
 
 
+@app.get("/api/v1/admin/revenue", dependencies=admin)
+async def admin_revenue_endpoint(
+    days: int = Query(30, ge=7, le=180),
+    status_filter: str = Query("", alias="status"),
+    search: str = "",
+    limit: int = Query(100, ge=1, le=300),
+):
+    """Comprehensive revenue, MRR/ARR, paywall funnel, and subscription ledger."""
+    return await get_revenue_analytics(days=days, status_filter=status_filter, search=search.strip(), limit=limit)
+
+
+@app.get("/api/v1/admin/trends", dependencies=admin)
+async def admin_trends_endpoint(days: int = Query(30, ge=7, le=90)):
+    """Growth velocity, stickiness trajectory, feature momentum, and content trends."""
+    return await get_trends_analytics(days=days)
+
+
 @app.get("/api/v1/admin/stats", dependencies=admin)
 async def admin_stats_endpoint():
     """Legacy summary: total downloads, DAU, MAU, VIP subscribers."""
@@ -903,6 +922,8 @@ class DeityRequestNotify(BaseModel):
     route: str = Field("", description="'aarti' or 'deity' to deep-link on tap")
     aartiId: str = ""
     deityKey: str = ""
+    stage: str = Field("live", description="'ack' (request received + ETA) or 'live' (now live)")
+    eta: str = Field("", max_length=120)
 
 
 @app.post("/api/v1/admin/deity-requests/{event_id}/link-notify", dependencies=admin)
@@ -930,10 +951,20 @@ async def admin_deity_request_notify(event_id: int, payload: DeityRequestNotify)
     if not body:
         raise HTTPException(status_code=400, detail="Message body is required")
 
+    stage = (payload.stage or "live").strip().lower()
+    if stage not in ("ack", "live"):
+        raise HTTPException(status_code=400, detail="stage must be ack or live")
+    eta = (payload.eta or "").strip()[:120]
+
     aarti_id = payload.aartiId.strip()[:120]
     deity_key = payload.deityKey.strip()[:128]
     route = payload.route.strip().lower()
-    if not route:
+    if stage == "ack":
+        # Request isn't live yet; keep tap target on Home unless explicitly overridden.
+        if not route:
+            aarti_id = ""
+            deity_key = ""
+    elif not route:
         if aarti_id:
             route = "aarti"
         elif deity_key:
@@ -990,10 +1021,14 @@ async def admin_deity_request_notify(event_id: int, payload: DeityRequestNotify)
         route=route,
         aarti_id=aarti_id,
         deity_key=deity_key,
+        stage=stage,
+        eta=eta,
     )
-    await log_admin_action("deity_request_notify", f"event#{event_id} device={device_id[:12]}…")
+    await log_admin_action("deity_request_notify", f"event#{event_id} stage={stage} device={device_id[:12]}…")
     return {
         "status": "ok",
+        "stage": stage,
+        "eta": eta,
         "campaignId": campaign_id or None,
         "pushSuccess": int(push_result.get("success") or 0),
         "pushFailure": int(push_result.get("failure") or 0),

@@ -12,10 +12,12 @@ import '../../domain/entities/panchang.dart';
 import '../../domain/entities/panchang_city.dart';
 import '../../domain/logic/panchang_timing.dart';
 import '../../services/backend_service.dart';
+import '../../services/rewarded_interstitial_ad_service.dart';
 import '../../services/tithi_engine_names.dart';
 import '../../services/tithi_engine_service.dart';
 import '../panchang/panchang_strings.dart';
 import '../panchang/tithi_engine_widgets.dart';
+import '../providers/ads_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/panchang_provider.dart';
 import '../widgets/language_dropdown.dart';
@@ -45,6 +47,11 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
     BackendService.trackEvent('panchang_open');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(autoDetectLocationProvider);
+      if (mounted) {
+        RewardedInterstitialAdService.instance.showIfEligible(
+          adsEnabled: ref.read(showAdsProvider),
+        );
+      }
     });
     _minuteTicker = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});

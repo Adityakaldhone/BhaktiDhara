@@ -11,6 +11,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 
 import 'core/theme/theme.dart';
+import 'presentation/providers/ads_provider.dart';
 import 'presentation/providers/locale_provider.dart';
 import 'presentation/providers/premium_provider.dart';
 import 'presentation/providers/remote_catalog_provider.dart';
@@ -22,12 +23,18 @@ import 'presentation/screens/language_selection_screen.dart';
 import 'presentation/widgets/remote_notices.dart';
 import 'services/aarti_reminder_service.dart';
 import 'services/akhand_diya_service.dart';
+import 'services/app_open_ad_service.dart';
 import 'services/app_update_service.dart';
 import 'services/backend_service.dart';
 import 'services/push_notification_service.dart';
+import 'services/rewarded_interstitial_ad_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Keep decoded image memory bounded on Android 11 and lower-RAM devices.
+  PaintingBinding.instance.imageCache
+    ..maximumSize = 120
+    ..maximumSizeBytes = 40 << 20;
   AnalyticsService.init();
 
   // Instant launch: Render widget tree immediately on frame 0 without blocking on disk/network I/O
@@ -52,12 +59,17 @@ class NityaAartiApp extends ConsumerStatefulWidget {
 
 class _NityaAartiAppState extends ConsumerState<NityaAartiApp>
     with WidgetsBindingObserver {
+  static const _resumeRefreshCooldown = Duration(seconds: 60);
+  DateTime? _lastResumeRefreshAt;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // 1. Asynchronously restore user-selected language if previously saved
+      final isNewUser = await shouldShowLanguageSelection();
+      AppOpenAdService.instance.setOnboardingPending(isNewUser);
       final savedLang = await loadUserLanguageCode();
       if (savedLang != null && mounted) {
         ref.read(localeProvider.notifier).state = Locale(savedLang);
@@ -68,12 +80,22 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp>
       BackendService.loadCachedRemoteCatalog();
       ref.read(remoteCatalogProvider); // starts network refresh
 
-      // 3. Initialize AdMob with a short delay so cold startup and frame 0 remain 100% responsive.
-      // This completely prevents Dynamite classloading (m2.au.loadClass) & Chromium WebView (J.N.IZ)
-      // from colliding with initial UI touch handling.
+      // 3. Initialize AdMob after startup UI & permission prompts settle so
+      // Dynamite classloading & Chromium WebView don't stall Android <= 11 startup.
       if (!kIsWeb) {
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          MobileAds.instance.initialize();
+        Future.delayed(const Duration(milliseconds: 2000), () async {
+          await MobileAds.instance.initialize();
+          if (!mounted) return;
+          final adsEnabled = ref.read(showAdsProvider);
+          RewardedInterstitialAdService.instance.preload(adsEnabled: adsEnabled);
+          if (isNewUser) {
+            AppOpenAdService.instance.preload(adsEnabled: adsEnabled);
+          } else {
+            AppOpenAdService.instance.showForExistingUserIfEligible(
+              adsEnabled: adsEnabled,
+              waitForLoad: true,
+            );
+          }
         });
       }
 
@@ -113,6 +135,17 @@ class _NityaAartiAppState extends ConsumerState<NityaAartiApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        AppOpenAdService.instance.showForExistingUserIfEligible(
+          adsEnabled: ref.read(showAdsProvider),
+        );
+      }
+      final now = DateTime.now();
+      if (_lastResumeRefreshAt != null &&
+          now.difference(_lastResumeRefreshAt!) < _resumeRefreshCooldown) {
+        return;
+      }
+      _lastResumeRefreshAt = now;
       ref.read(remoteConfigProvider.notifier).refresh();
       ref.read(remoteCatalogProvider.notifier).refresh();
       ref.invalidate(appVersionProvider);
