@@ -1,5 +1,5 @@
 {
-  "prompt": "Route a BhaktiDhara Mandir utterance in English, Hindi, Marathi or mixed speech. Return JSON {\"action\":{\"type\":\"LABEL\"}}. Distinguish requests to perform a ritual from instructions and questions about current state. Never invent device state. If the requested offering is missing ask which one. Cancel negated requests. Use other for requests outside the shrine. Labels: offer_ghee, read_ghee, read_time, read_streak, explain_ghee, ring_bell, explain_bell, blow_conch, explain_conch, offer_flowers, explain_flowers, offer_food, read_food, explain_food, start_aarti, stop_aarti, read_aarti, explain_aarti, explain_player, change_deity, read_deity, explain_deity, overview, clarify_offering, clarify, cancel, unavailable, other.",
+  "prompt": "Route a BhaktiDhara Mandir utterance in English, Hindi, Marathi or mixed speech. Return JSON {\"action\":{\"type\":\"LABEL\"}}. Distinguish perform vs status vs how-to. Never invent device state. Rule: if the user only names a multi-action feature without a clear verb/status cue, use the matching clarify_* label and ask what they want. Examples: bare jyot/diya/ghee → clarify_jyot; bare aarti/thali/taat → clarify_aarti; bare naivedya/bhog → clarify_food; bare deity/devta/murti → clarify_deity; bare offering/अर्पण → clarify_offering. Specific cues map to the exact action (e.g. ज्योत शिल्लक → read_ghee, थाली बंद → stop_aarti, भोग रखा है → read_food). Bell/conch/flowers bare words may perform (ring/blow/offer) unless the user asks how. Cancel negated requests. Use other outside the shrine. Labels: offer_ghee, read_ghee, read_time, read_streak, explain_ghee, ring_bell, explain_bell, blow_conch, explain_conch, offer_flowers, explain_flowers, offer_food, read_food, explain_food, start_aarti, stop_aarti, read_aarti, explain_aarti, explain_player, change_deity, read_deity, explain_deity, overview, clarify_jyot, clarify_aarti, clarify_food, clarify_deity, clarify_offering, clarify, cancel, unavailable, other.",
   "topics": {
     "offer_ghee": {
       "reply": {
@@ -344,6 +344,68 @@
         "mandir me kya kya kar sakte hain",
         "mandirat kontya seva aahet",
         "यहाँ rituals कौन से हैं"
+      ]
+    },
+    "clarify_jyot": {
+      "reply": {
+        "en": "For the lamp, do you want to refill ghee, check how much is left, remaining time, or your streak?",
+        "hi": "ज्योत के लिए आप क्या चाहेंगे: घी भरें, कितना बचा है देखें, कितनी देर चलेगी, या streak?",
+        "mr": "ज्योतीसाठी काय करू: तूप भरायचे, शिल्लक पहायची, किती वेळ पुरेल, की streak?"
+      },
+      "examples": [
+        "jyot",
+        "diya",
+        "ज्योत",
+        "दिवा",
+        "ghee",
+        "kalash",
+        "अखंड ज्योत",
+        "lamp"
+      ]
+    },
+    "clarify_aarti": {
+      "reply": {
+        "en": "For aarti, do you want to open the thali, close it, check if it is open, or hear how it works?",
+        "hi": "आरती के लिए आप क्या चाहेंगे: थाली खोलें, बंद करें, स्थिति देखें, या कैसे करें समझें?",
+        "mr": "आरतीसाठी काय करू: ताट उघडायचे, बंद करायचे, स्थिती पहायची, की कसे करायचे सांगू?"
+      },
+      "examples": [
+        "aarti",
+        "thali",
+        "taat",
+        "आरती",
+        "थाली",
+        "ताट",
+        "arti"
+      ]
+    },
+    "clarify_food": {
+      "reply": {
+        "en": "For naivedya, do you want to place food, check if it is already placed, or hear how?",
+        "hi": "नैवेद्य के लिए आप क्या चाहेंगे: भोग रखें, पहले से है या नहीं देखें, या कैसे करें?",
+        "mr": "नैवेद्यासाठी काय करू: भोग ठेवायचा, आधीच आहे का ते पहायचे, की कसे करायचे?"
+      },
+      "examples": [
+        "naivedya",
+        "bhog",
+        "नैवेद्य",
+        "भोग",
+        "food"
+      ]
+    },
+    "clarify_deity": {
+      "reply": {
+        "en": "For the deity, do you want to change who is seated, hear the current name, or learn how to switch?",
+        "hi": "देवता के लिए आप क्या चाहेंगे: बदलें, अभी कौन हैं बताएँ, या कैसे बदलें?",
+        "mr": "दैवतासाठी काय करू: बदलायचे, सध्या कोण आहे सांगायचे, की कसे बदलायचे?"
+      },
+      "examples": [
+        "deity",
+        "devta",
+        "murti",
+        "देवता",
+        "दैवत",
+        "मूर्ति"
       ]
     },
     "clarify_offering": {

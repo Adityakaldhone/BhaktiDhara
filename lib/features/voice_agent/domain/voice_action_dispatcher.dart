@@ -14,20 +14,27 @@ import '../../../presentation/screens/bhajan_screen.dart';
 import '../../../presentation/screens/calendar/calendar_screen.dart';
 import '../../../presentation/screens/grahan_screen.dart';
 import '../../../presentation/screens/greetings_screen.dart';
+import '../../../data/datasources/bhakti_deity_catalog.dart';
+import '../../../presentation/providers/granth_providers.dart';
+import '../../../presentation/screens/deity_aarti_list_screen.dart';
 import '../../../presentation/screens/granth_catalog_screen.dart';
+import '../../../presentation/screens/granth_chapter_list_screen.dart';
 import '../../../presentation/screens/horoscope_screen.dart';
 import '../../../presentation/screens/ishta_devta_screen.dart';
 import '../../../presentation/screens/jaap_counter_screen.dart';
 import '../../../presentation/screens/jaap_stats_screen.dart';
-import '../../../presentation/screens/kundali_form_screen.dart';
+import '../../../presentation/screens/kundali_screen.dart';
 import '../../../presentation/screens/milan_screen.dart';
 import '../../../presentation/screens/more_screen.dart';
 import '../../../presentation/screens/panchang_screen.dart';
+import '../../../presentation/screens/request_deity_aarti_screen.dart';
 import '../../../presentation/widgets/language_dropdown.dart';
 import '../../../presentation/widgets/premium_blurred_gate.dart';
 import '../../../presentation/widgets/remote_notices.dart';
 import '../../../presentation/widgets/nitya_pin_sheet.dart';
+import '../../../presentation/widgets/request_deity_section.dart';
 import '../../mandir/screens/real_garbhagriha_screen.dart';
+import '../data/bhakti_wake_controller.dart';
 import '../data/voice_agent_service.dart';
 import 'local_voice_intent_parser.dart';
 
@@ -111,7 +118,9 @@ class VoiceActionDispatcher {
       case 'open_panchang':
         await Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const PanchangScreen()),
+          MaterialPageRoute(
+            builder: (_) => PanchangScreen(focusField: action.field),
+          ),
         );
         return true;
 
@@ -156,14 +165,83 @@ class VoiceActionDispatcher {
       case 'open_granth':
         await Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const GranthCatalogScreen()),
+          MaterialPageRoute(
+            builder: (_) => GranthCatalogScreen(hintChapter: action.chapter),
+          ),
         );
+        return true;
+
+      case 'open_granth_book':
+        final slug = action.bookSlug?.trim();
+        if (slug == null || slug.isEmpty) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GranthCatalogScreen(hintChapter: action.chapter),
+            ),
+          );
+          return true;
+        }
+        final books = await ref.read(granthBooksProvider.future);
+        final matched = books.where((b) => b.slug == slug);
+        final book = matched.isEmpty ? null : matched.first;
+        if (book == null) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GranthCatalogScreen(hintChapter: action.chapter),
+            ),
+          );
+          return true;
+        }
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => GranthChapterListScreen(book: book)),
+        );
+        return true;
+
+      case 'open_request_deity':
+        final spoken = '${action.query ?? ''} $transcript'.toLowerCase();
+        final kind = spoken.contains('aarti') || spoken.contains('आरती')
+            ? DeityRequestKind.aarti
+            : DeityRequestKind.deity;
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RequestDeityAartiScreen(
+              initialText: action.query ?? '',
+              initialKind: kind,
+              source: 'voice',
+            ),
+          ),
+        );
+        return true;
+
+      case 'open_deity_aarti_list':
+        final key = action.deityKey?.trim();
+        if (key == null || key.isEmpty) return false;
+        final matchedDeities = kBhaktiDeities.where(
+          (d) => d.key == key || d.matches(key),
+        );
+        final deity = matchedDeities.isEmpty ? null : matchedDeities.first;
+        if (deity == null) return false;
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DeityAartiListScreen(deity: deity.key),
+          ),
+        );
+        return true;
+
+      case 'set_wake_word':
+        final enabled = action.enabled ?? true;
+        await ref.read(bhaktiWakeProvider).setEnabled(enabled);
         return true;
 
       case 'open_kundali':
         await Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const KundaliFormScreen()),
+          MaterialPageRoute(builder: (_) => const KundaliScreen()),
         );
         return true;
 

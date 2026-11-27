@@ -1091,7 +1091,7 @@
       "cues": "more menu|more tab|more section|अधिक मेनू"
     },
     "open_feedback": {
-      "pattern": "(?:raise|file|log|report|record) (?:a |an )?(?:bug|complaint|issue|problem)|(?:suggest|request) (?:a |an )?(?:new|missing) (?:song|deity|feature)|(?:tell|let) .*(?:developers|people who make (?:this|the) app|app team).*(?:know|problem|mistake)|(?:बग|समस्या) की शिकायत|शिकायत (?:करनी|दर्ज)|त्रुटी (?:कळव|नोंदव)",
+      "pattern": "(?:raise|file|log|report|record) (?:a |an )?(?:bug|complaint|issue|problem)|(?:suggest|request) (?:a |an )?(?:new|missing) (?:song|feature)|(?:tell|let) .*(?:developers|people who make (?:this|the) app|app team).*(?:know|problem|mistake)|(?:बग|समस्या) की शिकायत|शिकायत (?:करनी|दर्ज)|त्रुटी (?:कळव|नोंदव)",
       "reply": {
         "en": "Opening the feedback form.",
         "hi": "सुझाव फ़ॉर्म खोल रहे हैं।",
@@ -1100,7 +1100,6 @@
       "examples": [
         "file a complaint",
         "report an issue",
-        "request a missing deity",
         "I would like to log a problem in the app"
       ],
       "cues": "complain|complaint|developers|app team|तक्रार|शिकायत|shikayat|bug report"
@@ -1172,6 +1171,38 @@
         "horoscope tab ughda",
         "राशिफल पेज खोलो"
       ]
+    },
+    "open_premium": {
+      "pattern": "(?:show|open|see|browse) (?:the )?(?:premium|vip|subscription)(?: (?:plans?|options?|pricing|prices?))?|(?:remove|without) ads|प्रीमियम(?: (?:प्लान|योजना|खोलो|उघडा|दाखवा))?|विज्ञापन हटाओ|जाहिराती काढा|premium (?:plans?|kholo|dakhva)",
+      "reply": {
+        "en": "Opening Premium plans.",
+        "hi": "प्रीमियम प्लान खोल रहे हैं।",
+        "mr": "प्रीमियम योजना उघडत आहे."
+      },
+      "examples": [
+        "Show premium plans",
+        "Remove ads",
+        "प्रीमियम प्लान दिखाओ",
+        "प्रीमियम योजना दाखवा",
+        "premium ke plans dikhao"
+      ],
+      "cues": "premium|subscription|vip plan|remove ads|प्रीमियम|सदस्यता"
+    },
+    "open_request_deity": {
+      "pattern": "(?:request|add|suggest) (?:a |an |the )?(?:missing |new )?(?:deity|aarti|god|goddess)|(?:open|show) (?:the )?(?:request|add deity)(?: form| screen)?|नया देवता|नवीन देव|आरती जोड़|देवता जोड़|विनंती फॉर्म|अनुरोध फॉर्म|missing (?:deity|aarti)",
+      "reply": {
+        "en": "Opening the request form to add a deity or aarti.",
+        "hi": "देवता या आरती जोड़ने का अनुरोध फ़ॉर्म खोल रहे हैं।",
+        "mr": "देव किंवा आरती जोडण्याचा विनंती फॉर्म उघडत आहे."
+      },
+      "examples": [
+        "Request a missing deity",
+        "Open the request form",
+        "Add a new aarti",
+        "नया देवता जोड़ो",
+        "नवीन आरतीची विनंती करा"
+      ],
+      "cues": "request (?:a |an |the )?(?:deity|aarti)|add (?:a |an )?(?:deity|aarti)|विनंती|अनुरोध"
     }
   },
   "catalog_clues": {

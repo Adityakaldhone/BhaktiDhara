@@ -273,8 +273,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
           caseSensitive: false,
         ).hasMatch(text.trim()))
           return null;
-        return (
-          text: lang == 'en'
+        return voiceReply(
+          lang == 'en'
               ? 'Going back.'
               : lang == 'hi'
               ? 'वापस जा रही हूँ।'
@@ -298,8 +298,8 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
         : lang == 'hi'
         ? hi
         : mr;
-    HomeVoiceReply reply(String message, VoidCallback apply) => (
-      text: message,
+    HomeVoiceReply reply(String message, VoidCallback apply) => voiceReply(
+      message,
       apply: () {
         if (mounted &&
             _tab == _DashTab.home &&
@@ -311,9 +311,9 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
       case null:
         return null;
       case CancelHomeCommand():
-        return (text: say('Okay.', 'ठीक है।', 'ठीक आहे.'), apply: null);
+        return voiceReply(say('Okay.', 'ठीक है।', 'ठीक आहे.'));
       case HomeExplanation(:final text):
-        return (text: text, apply: null);
+        return voiceReply(text);
       case ReadHomeRegion():
         final name =
             ref.read(selectedRegionProvider)?.label(lang) ??
@@ -325,6 +325,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             'निवडलेला प्रदेश: $name.',
           ),
           apply: null,
+          pendingAction: null,
         );
       case ReadHomeSearch():
         final text = _searchController.text.trim();
@@ -337,6 +338,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 )
               : text,
           apply: null,
+          pendingAction: null,
         );
       case SearchHome(:final query):
         return reply(
@@ -388,6 +390,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 'संग्रह लोड होत आहे.',
               ),
               apply: null,
+              pendingAction: null,
             );
           }
           if (section != 'books' && catalog.hasError) {
@@ -398,6 +401,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 'संग्रह लोड झाला नाही.',
               ),
               apply: null,
+              pendingAction: null,
             );
           }
           if (section != 'aartis' &&
@@ -410,6 +414,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                 'ग्रंथ लोड होत आहेत.',
               ),
               apply: null,
+              pendingAction: null,
             );
           }
           return (
@@ -419,6 +424,7 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
               'त्या यादीत $count निकाल आहेत.',
             ),
             apply: null,
+            pendingAction: null,
           );
         }
         // Capture the item before speaking so a catalog refresh cannot change the selection.

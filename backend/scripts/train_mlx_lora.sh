@@ -77,7 +77,7 @@ python -m mlx_lm lora \
   --batch-size "$BATCH" \
   --iters "$ITERS" \
   --learning-rate "$LEARNING_RATE" \
-  --max-seq-length "${BHAKTI_MLX_MAX_SEQ_LENGTH:-512}" \
+  --max-seq-length "${BHAKTI_MLX_MAX_SEQ_LENGTH:-1024}" \
   --grad-checkpoint \
   --steps-per-report 10 \
   --steps-per-eval 50 \

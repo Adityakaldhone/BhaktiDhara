@@ -27,7 +27,12 @@ fi
 
 python "$ROOT/backend/scripts/extract_voice_knowledge.py" || true
 
+lan_ip="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
 echo "Starting uvicorn on http://0.0.0.0:$port"
-echo "Flutter will try $base_url then http://10.0.2.2:$port"
+echo "Flutter simulator/emulator: $base_url  (and http://10.0.2.2:$port)"
+if [[ -n "${lan_ip:-}" ]]; then
+  echo "Physical phone on same Wi‑Fi:"
+  echo "  flutter run --dart-define=BHAKTI_VOICE_HOST=$lan_ip --dart-define=BHAKTI_VOICE_PORT=$port"
+fi
 echo "Try: curl -X POST $base_url/api/v1/voice-agent/text -H 'Content-Type: application/json' -d '{\"text\":\"rashi sanga\"}'"
 exec uvicorn app.main:app --host 0.0.0.0 --port "$port" --reload

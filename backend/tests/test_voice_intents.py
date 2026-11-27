@@ -117,6 +117,54 @@ class VoiceIntentTest(unittest.IsolatedAsyncioTestCase):
                 result = await resolve_voice_turn(query, "en-IN")
                 self.assertEqual(result["action"]["type"], "none")
 
+    async def test_unrelated_requests_get_guided_capabilities_tip(self):
+        result = await resolve_voice_turn("What is the capital of Japan?", "en-IN")
+        self.assertEqual(result["action"]["type"], "none")
+        self.assertEqual(result["status"], "not_found")
+        self.assertIn("match", result["response_text"].lower())
+        self.assertTrue(
+            any(word in result["response_text"].lower() for word in ("aarti", "jaap", "horoscope", "pasayadan")),
+        )
+
+    async def test_panchang_field_and_granth_chapter_are_passed_through(self):
+        rahu = await resolve_voice_turn("When is Rahu Kaal?", "en-IN")
+        self.assertEqual(rahu["action"]["type"], "open_panchang")
+        self.assertEqual(rahu["action"]["field"], "rahu_kaal")
+        self.assertIn("Rahu", rahu["response_text"])
+        granth = await resolve_voice_turn("गुरुचरित्र अध्याय ३", "mr-IN")
+        self.assertEqual(granth["action"]["type"], "open_granth")
+        self.assertEqual(granth["action"]["chapter"], 3)
+        self.assertIn("3", granth["response_text"])
+
+    async def test_in_app_fulfillment_for_premium_request_book_and_deity_list(self):
+        premium = await resolve_voice_turn("Show premium plans", "en-IN")
+        self.assertEqual(premium["action"]["type"], "open_premium")
+        request = await resolve_voice_turn("Request a missing deity", "en-IN")
+        self.assertEqual(request["action"]["type"], "open_request_deity")
+        gita = await resolve_voice_turn("Open the Bhagavad Gita", "en-IN")
+        self.assertEqual(gita["action"]["type"], "open_granth_book")
+        self.assertEqual(gita["action"]["book_slug"], "bhagavad-gita")
+        durga = await resolve_voice_turn("Show all Durga aartis", "en-IN")
+        self.assertEqual(durga["action"]["type"], "open_deity_aarti_list")
+        self.assertEqual(durga["action"]["deity_key"], "Goddess Durga")
+        wake = await resolve_voice_turn("Turn on Hey Bhakti", "en-IN")
+        self.assertEqual(wake["action"]["type"], "set_wake_word")
+        self.assertTrue(wake["action"]["enabled"])
+
+    async def test_generic_shiv_aarti_opens_deity_list(self):
+        for query in (
+            "open shiv aarti",
+            "shiv aarti kholo",
+            "शिव आरती खोलो",
+            "ओपन शिव आरती",  # Hindi STT of “open shiv aarti”
+            "open shivarti",  # glued STT
+            "शिव आरती ओपन करो",
+        ):
+            with self.subTest(query=query):
+                result = await resolve_voice_turn(query, "hi-IN")
+                self.assertEqual(result["action"]["type"], "open_deity_aarti_list")
+                self.assertEqual(result["action"]["deity_key"], "Lord Shiva")
+
     async def test_media_title_wins_over_the_deity(self):
         for query, expected_action, title in (
             ("Play Hanuman Chalisa", "play_aarti", "chalisa"),
@@ -266,3 +314,69 @@ class VoiceIntentTest(unittest.IsolatedAsyncioTestCase):
                     with self.subTest(query=query):
                         result = await resolve_voice_turn(query, locale)
                         self.assertEqual(result["action"]["type"], expected)
+
+    async def test_mandir_api_validates_proposals_and_falls_back_deterministically(self):
+        from app.voice_agent.router import TextCommandRequest, mandir_control
+
+        for query, proposal, expected in (
+            ("माझा दिवा तुपाने भरा", {"type": "offer_ghee"}, "offer_ghee"),
+            ("नैवेद्य ठेवू नका", {"type": "explain_food"}, "cancel"),
+            ("Leave the conch quiet", {"type": "blow_conch"}, "cancel"),
+            ("Book a real temple visit for tomorrow", {"type": "other"}, "unavailable"),
+            ("Switch the app to English", {"type": "other"}, "other"),
+        ):
+            with self.subTest(query=query, proposal=proposal), patch(
+                "app.voice_agent.router.resolve_with_local_llm", new=AsyncMock(return_value={"action": proposal})
+            ) as model:
+                result = await mandir_control(TextCommandRequest(text=query, locale_hint="mr-IN"))
+                self.assertEqual(result["action"]["type"], expected)
+                model.assert_awaited_once_with(query, "mr-IN", mandir_screen=True)
+
+        # Fallback when no local LLM is available
+        for query, expected in (
+            ("Ring the temple bells", "ring_bell"),
+            ("How much ghee is left?", "read_ghee"),
+            ("ज्योत शिल्लक", "read_ghee"),
+            ("ज्योत", "clarify_jyot"),
+            ("diya", "clarify_jyot"),
+            ("आरती", "clarify_aarti"),
+            ("थाली बंद", "stop_aarti"),
+            ("भोग", "clarify_food"),
+            ("नैवेद्य ठेवा", "offer_food"),
+            ("देवता", "clarify_deity"),
+            ("which deity", "read_deity"),
+            ("When will the current ghee run out?", "read_time"),
+            ("What is my lamp streak?", "read_streak"),
+            ("Sound the conch", "blow_conch"),
+            ("Offer flowers", "offer_flowers"),
+            ("Place naivedya", "offer_food"),
+            ("Start the aarti thali", "start_aarti"),
+            ("Close the aarti thali", "stop_aarti"),
+            ("Which deity is seated here?", "read_deity"),
+            ("Open my horoscope", "other"),
+        ):
+            with self.subTest(fallback_query=query), patch(
+                "app.voice_agent.router.resolve_with_local_llm", new=AsyncMock(return_value=None)
+            ):
+                result = await mandir_control(TextCommandRequest(text=query, locale_hint="en-IN"))
+                self.assertEqual(result["action"]["type"], expected)
+
+        # Multi-turn: bare ज्योत → clarify, then short follow-up resolves without LLM.
+        for follow_up, expected in (
+            ("शिल्लक", "read_ghee"),
+            ("भरो", "offer_ghee"),
+            ("streak", "read_streak"),
+            ("किती वेळ", "read_time"),
+        ):
+            with self.subTest(follow_up=follow_up), patch(
+                "app.voice_agent.router.resolve_with_local_llm", new=AsyncMock(return_value=None)
+            ) as model:
+                result = await mandir_control(
+                    TextCommandRequest(
+                        text=follow_up,
+                        locale_hint="mr-IN",
+                        pending_action="clarify_jyot",
+                    )
+                )
+                self.assertEqual(result["action"]["type"], expected)
+                model.assert_not_awaited()

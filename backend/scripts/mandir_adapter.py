@@ -21,10 +21,16 @@ def prepare(directory):
     rng = random.Random(42)
     groups = defaultdict(list)
     seen = {" ".join(unpack(r)[0].casefold().split()) for r in records("held_out")}
-    for row in records("plain") + records("mixed"):
+    # Prefer exhaustive coverage when present; fall back to plain+mixed.
+    source = "exhaustive" if (DATA / "exhaustive.jsonl").exists() else None
+    rows = records(source) if source else records("plain") + records("mixed")
+    for row in rows:
         text, intent = unpack(row)
         key = " ".join(text.casefold().split())
         if key in seen:
+            # Exhaustive generator already excludes held_out; skip quietly if overlapped.
+            if source:
+                continue
             raise ValueError(f"Duplicate or reserved Mandir prompt: {text!r}")
         seen.add(key)
         groups[intent].append(row)

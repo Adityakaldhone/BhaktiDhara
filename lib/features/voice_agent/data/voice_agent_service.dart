@@ -7,6 +7,7 @@ import '../../../domain/logic/jaap_streak.dart';
 import '../../../services/backend_service.dart';
 import '../domain/voice_catalog.dart';
 import '../domain/home_voice_commands.dart';
+import '../domain/mandir_voice_commands.dart';
 import '../domain/birth_rashi_dialog.dart';
 import '../domain/voice_app_guide.dart';
 import '../domain/local_voice_intent_parser.dart';
@@ -27,6 +28,9 @@ class VoiceAction {
   final String? query;
   final String? mantraId;
   final String? languageCode;
+  final String? deityKey;
+  final String? bookSlug;
+  final bool? enabled;
 
   const VoiceAction({
     required this.type,
@@ -43,6 +47,9 @@ class VoiceAction {
     this.query,
     this.mantraId,
     this.languageCode,
+    this.deityKey,
+    this.bookSlug,
+    this.enabled,
   });
 
   factory VoiceAction.fromJson(Map<String, dynamic> json) {
@@ -61,6 +68,9 @@ class VoiceAction {
       query: json['query'] as String?,
       mantraId: json['mantra_id'] as String?,
       languageCode: json['language_code'] as String?,
+      deityKey: json['deity_key'] as String?,
+      bookSlug: json['book_slug'] as String?,
+      enabled: json['enabled'] as bool?,
     );
   }
 }
@@ -106,16 +116,49 @@ class VoiceAgentResult {
 
 class VoiceAgentService {
   /// Base URL candidates:
-  /// 1. adb reverse tcp:8000 on Android device -> http://127.0.0.1:8000
-  /// 2. Android emulator -> http://10.0.2.2:8000
-  /// 3. Production backend -> BackendService.backendUrl
+  /// 1. Optional LAN/host override: `--dart-define=BHAKTI_VOICE_HOST=172.16.x.x`
+  /// 2. adb reverse / iOS Simulator -> http://127.0.0.1:PORT
+  /// 3. Android emulator -> http://10.0.2.2:PORT
+  /// 4. Production backend (release only — debug must not use the outdated prod voice API)
   static List<String> get candidateUrls {
     const port = int.fromEnvironment('BHAKTI_VOICE_PORT', defaultValue: 8000);
-    return [
+    const hostDefine = String.fromEnvironment(
+      'BHAKTI_VOICE_HOST',
+      defaultValue: '',
+    );
+    const useProd = bool.fromEnvironment(
+      'BHAKTI_VOICE_USE_PROD',
+      defaultValue: false,
+    );
+    final host = hostDefine
+        .trim()
+        .replaceFirst(RegExp(r'^https?://'), '')
+        .replaceFirst(RegExp(r'/$'), '');
+    final urls = <String>[
+      if (host.isNotEmpty)
+        host.contains(':') ? 'http://$host' : 'http://$host:$port',
       'http://127.0.0.1:$port',
       'http://10.0.2.2:$port',
-      if (BackendService.backendUrl.isNotEmpty) BackendService.backendUrl,
+      // Debug builds hit local voice. Prod voice is only used in release, or when
+      // explicitly forced — otherwise outdated prod returns not_found for new intents.
+      if ((useProd || !kDebugMode) && BackendService.backendUrl.isNotEmpty)
+        BackendService.backendUrl,
     ];
+    return [...{...urls}];
+  }
+
+  /// Resolve “open shiv aarti” style asks on-device when the server misses.
+  static VoiceAgentResult? recoverMedia(
+    String text,
+    String locale,
+    List<AartiItem>? catalog,
+  ) {
+    if (catalog == null || catalog.isEmpty) return null;
+    return VoiceCatalog.deityAartiList(text, catalog, locale) ??
+        () {
+          final item = VoiceCatalog.find(text, catalog, locale: locale);
+          return item == null ? null : VoiceCatalog.result(item, text, locale);
+        }();
   }
 
   static Future<HomeCommand?> predictHomeCommand(
@@ -156,6 +199,39 @@ class VoiceAgentService {
         }
       } catch (_) {
         // Another configured server or the regular voice resolver may be available.
+      }
+    }
+    return null;
+  }
+
+  static Future<MandirCommand?> predictMandirCommand(
+    String text,
+    String locale, {
+    String? pendingTopic,
+    http.Client? client,
+  }) async {
+    for (final base in candidateUrls) {
+      try {
+        final uri = Uri.parse('$base/api/v1/voice-agent/mandir-control');
+        final health = await (client?.get ?? http.get)(
+          uri.resolve('health'),
+        ).timeout(const Duration(seconds: 2));
+        if (health.statusCode != 200) continue;
+        final response = await (client?.post ?? http.post)(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'text': text,
+            'locale_hint': locale,
+            if (pendingTopic != null) 'pending_action': pendingTopic,
+          }),
+        ).timeout(const Duration(seconds: 25));
+        if (response.statusCode == 200) {
+          final action = jsonDecode(utf8.decode(response.bodyBytes))['action'];
+          return MandirCommand.fromPrediction(action);
+        }
+      } catch (_) {
+        // Fall back to the next server or global voice resolver.
       }
     }
     return null;
@@ -241,6 +317,10 @@ class VoiceAgentService {
     if (loadCatalog != null) {
       try {
         catalog = await loadCatalog();
+        final listResult = VoiceCatalog.deityAartiList(clean, catalog, hint);
+        if (!askModel && !indirectCatalog && question == null && listResult != null) {
+          return listResult;
+        }
         final item = VoiceCatalog.find(
           question?.$2 ?? clean,
           catalog,
@@ -287,7 +367,12 @@ class VoiceAgentService {
           local.action.rashiId == null) {
         return guide.routeResult('ask_rashi', clean, hint);
       }
-      if (!featureQuestion && local.action.type != 'search_aarti') return local;
+      // Never return an empty local hit — that looks like a failed answer in the UI.
+      if (!featureQuestion &&
+          local.action.type != 'search_aarti' &&
+          local.responseText.trim().isNotEmpty) {
+        return local;
+      }
     }
     if (question?.$1 == 'duration' && local.action.type == 'open_jaap_stats') {
       return local;
@@ -344,13 +429,21 @@ class VoiceAgentService {
                   return result;
                 }
               }
-              if (key != null && topics.contains(key)) {
+              // Reviewed guide copy when we know the topic.
+              if (key != null && guide.hasTopic(key) && key != 'catalog') {
                 return guide.answer(key, clean, hint);
+              }
+              // Never discard a real spoken answer from the server.
+              if (result.responseText.trim().isNotEmpty) {
+                return result;
               }
               return notFound(clean, hint);
             }
-            if (askModel || indirectCatalog || question != null) {
-              return notFound(clean, hint);
+            // Outdated servers often return none for “open shiv aarti”. Recover on-device.
+            if (result.action.type == 'none' || result.status == 'not_found') {
+              final recovered = recoverMedia(clean, hint, catalog);
+              if (recovered != null) return recovered;
+              if (result.responseText.trim().isNotEmpty) return result;
             }
             if (topics.length == 1 &&
                 guide.supportsScreen(
@@ -361,42 +454,28 @@ class VoiceAgentService {
               return guide.openTopic(topics.single, clean, hint);
             }
             switch (result.action.type) {
+              case 'answer_app_question':
+                if (result.responseText.trim().isNotEmpty) return result;
+                final key = result.action.featureKey;
+                if (key != null && guide.hasTopic(key)) {
+                  return guide.answer(key, clean, hint);
+                }
+                return notFound(clean, hint);
               case 'open_notifications':
               case 'open_feedback':
               case 'open_more':
               case 'open_bhajans':
-                return guide.supportsRoute(result.action.type, query)
-                    ? result
-                    : notFound(clean, hint);
               case 'open_premium':
               case 'open_mandir':
               case 'open_akhand_diya':
               case 'set_language':
               case 'open_aarti_reminders':
               case 'open_language_settings':
-              case 'none':
-              case 'search_aarti':
-                return notFound(clean, hint);
-              case 'open_aarti':
-              case 'play_aarti':
-                if (catalog == null && loadCatalog == null) return result;
-                return catalog?.any(
-                          (item) => item.id == result.action.aartiId,
-                        ) ==
-                        true
-                    ? result
-                    : notFound(clean, hint);
-              case BirthRashiDialog.action:
-                return pendingAction == 'ask_rashi'
-                    ? birth.turn(clean, hint)
-                    : notFound(clean, hint);
-              case 'ask_rashi':
-                return guide.routeResult('ask_rashi', clean, hint);
-              case 'open_horoscope':
-                final sign = LocalVoiceIntentParser.matchRashiInText(clean);
-                return sign == null
-                    ? guide.routeResult('ask_rashi', clean, hint)
-                    : LocalVoiceIntentParser.horoscope(sign, clean, hint);
+              case 'open_request_deity':
+              case 'open_deity_aarti_list':
+              case 'open_granth_book':
+              case 'set_wake_word':
+              case 'open_song_video':
               case 'open_panchang':
               case 'start_jaap':
               case 'open_jaap_stats':
@@ -408,6 +487,36 @@ class VoiceAgentService {
               case 'open_greetings':
               case 'open_grahan':
                 return result;
+              case 'none':
+                final recovered = recoverMedia(clean, hint, catalog);
+                if (recovered != null) return recovered;
+                return result.responseText.trim().isNotEmpty
+                    ? result
+                    : notFound(clean, hint);
+              case 'search_aarti':
+                return notFound(clean, hint);
+              case 'open_aarti':
+              case 'play_aarti':
+                if (catalog == null && loadCatalog == null) return result;
+                if (catalog?.any((item) => item.id == result.action.aartiId) ==
+                    true) {
+                  return result;
+                }
+                // Catalog id drift: still open the deity list for “shiv aarti”.
+                final listFallback =
+                    VoiceCatalog.deityAartiList(clean, catalog ?? const [], hint);
+                return listFallback ?? notFound(clean, hint);
+              case BirthRashiDialog.action:
+                return pendingAction == 'ask_rashi'
+                    ? birth.turn(clean, hint)
+                    : notFound(clean, hint);
+              case 'ask_rashi':
+                return guide.routeResult('ask_rashi', clean, hint);
+              case 'open_horoscope':
+                final sign = LocalVoiceIntentParser.matchRashiInText(clean);
+                return sign == null
+                    ? guide.routeResult('ask_rashi', clean, hint)
+                    : LocalVoiceIntentParser.horoscope(sign, clean, hint);
               default:
                 return notFound(clean, hint);
             }
@@ -423,10 +532,20 @@ class VoiceAgentService {
     if (kDebugMode) {
       debugPrint('Voice agent backend unavailable — using local intent parser');
     }
-    if (featureQuestion && topics.length == 1) {
+    final recovered = recoverMedia(clean, hint, catalog);
+    if (recovered != null) return recovered;
+    // Offline / unreachable server: still answer from the reviewed app guide.
+    if (topics.isNotEmpty &&
+        (featureQuestion ||
+            askModel ||
+            guide.asksForInstructions(query) ||
+            guide.asksAboutFeature(query))) {
+      return guide.answer(topics.first, clean, hint);
+    }
+    if (topics.length == 1 && guide.hasTopic(topics.single)) {
       return guide.answer(topics.single, clean, hint);
     }
-    return notFound(clean, hint);
+    return guidedFallback(guide, clean, hint);
   }
 
   static VoiceAgentResult notFound(String text, String locale) =>
@@ -442,4 +561,26 @@ class VoiceAgentService {
         action: const VoiceAction(type: 'none'),
         choices: const [],
       );
+
+  /// Rare catch-all when nothing matched: stay put and speak a capabilities tip.
+  static VoiceAgentResult guidedFallback(
+    VoiceAppGuide guide,
+    String text,
+    String locale,
+  ) {
+    final tip = guide.topicReply('capabilities', locale);
+    final preface = switch (locale) {
+      'hi-IN' => 'भक्तिधारा में यह मेल नहीं खाया। ',
+      'mr-IN' => 'भक्तिधारामध्ये जुळले नाही. ',
+      _ => 'I couldn’t match that in BhaktiDhara. ',
+    };
+    return VoiceAgentResult(
+      status: 'not_found',
+      transcript: text,
+      locale: locale,
+      responseText: preface + tip,
+      action: const VoiceAction(type: 'none'),
+      choices: const [],
+    );
+  }
 }

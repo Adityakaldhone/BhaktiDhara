@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from .home_controls import validated_action
 from .intent_resolver import resolve_voice_turn, resolve_with_local_llm, detect_locale
+from .mandir_agent import classify_mandir_deterministic, mandir_reply, validated_mandir_action
 
 router = APIRouter(prefix="/api/v1/voice-agent", tags=["voice-agent"])
 
@@ -35,6 +36,9 @@ class VoiceAction(BaseModel):
     query: Optional[str] = None
     mantra_id: Optional[str] = None
     language_code: Optional[str] = None
+    deity_key: Optional[str] = None
+    book_slug: Optional[str] = None
+    enabled: Optional[bool] = None
 
 class VoiceAgentResponse(BaseModel):
     status: str
@@ -66,6 +70,31 @@ async def home_control(payload: TextCommandRequest):
         raise HTTPException(status_code=400, detail="Empty text command")
     proposal = await resolve_with_local_llm(text, detect_locale(text, payload.locale_hint), home_screen=True)
     return {"action": validated_action(proposal or {}, text) or {"type": "none"}}
+
+
+@router.post("/mandir-control")
+async def mandir_control(payload: TextCommandRequest):
+    """Classify a Mandir ritual/state utterance. Live values (ghee %, streak, deity) are resolved on device."""
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Empty text command")
+    locale = detect_locale(text, payload.locale_hint)
+    pending = payload.pending_action
+    # Follow-ups after clarify_jyot / clarify_offering prefer deterministic resolution.
+    if pending in (
+        "clarify_jyot",
+        "clarify_aarti",
+        "clarify_food",
+        "clarify_deity",
+        "clarify_offering",
+    ):
+        action = classify_mandir_deterministic(text, pending_action=pending)
+    else:
+        proposal = await resolve_with_local_llm(text, locale, mandir_screen=True)
+        action = validated_mandir_action(proposal, text) or classify_mandir_deterministic(
+            text, pending_action=pending
+        )
+    return {"action": action, "reply": mandir_reply(action["type"], locale)}
 
 
 @router.get("/health")

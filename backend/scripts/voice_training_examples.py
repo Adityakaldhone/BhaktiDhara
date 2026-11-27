@@ -1,6 +1,7 @@
 """Multilingual examples for supported voice routes and unsupported requests."""
 
 from pathlib import Path
+import re
 import runpy
 import unicodedata
 import json
@@ -13,9 +14,86 @@ HOME_PROMPT = _prompts["HOME_PROMPT"]
 HOME_CONTROL_PROMPT = _prompts["HOME_CONTROL_PROMPT"]
 HOME_DATA = Path(__file__).resolve().parents[1] / "datasets/home"
 
+# Speech-to-text often emits Devanagari loanwords or glues tokens for ANY command.
+_STT_VERB_FORMS = (
+    ("open", ("ओपन", "ओपेन", "खोलो", "खोलना", "उघडा")),
+    ("show", ("शो", "दिखाओ", "दिखाना", "दाखवा")),
+    ("play", ("प्ले", "प्लेय", "चलाओ", "सुनाओ", "लावा", "ऐका")),
+    ("read", ("रीड", "पढ़ो", "वाचा")),
+    ("start", ("स्टार्ट", "शुरू करो", "सुरू करा")),
+)
+
 
 def transcript_key(query):
     return " ".join(unicodedata.normalize("NFKC", query).casefold().strip(" ?!.,।").split())
+
+
+def speech_variants(query: str, *, limit: int = 14) -> list[str]:
+    """General STT/Hinglish paraphrases for any in-app command (not one-off phrases)."""
+    base = " ".join(str(query or "").split())
+    if not base:
+        return []
+    lower = base.casefold()
+    priority = [base]  # leading loanwords first — matches real Hindi STT
+    secondary = []
+
+    for en, forms in _STT_VERB_FORMS:
+        prefix = en + " "
+        if lower.startswith(prefix):
+            rest = base[len(en):].lstrip()
+            if not rest:
+                continue
+            for form in forms:
+                priority.append(f"{form} {rest}")
+                secondary.append(f"{rest} {form}")
+                secondary.append(f"{rest} {form} करो")
+                secondary.append(f"{rest} {form} करा")
+        pattern = re.compile(rf"(?<![\w\u0900-\u097f]){re.escape(en)}(?![\w\u0900-\u097f])", re.I)
+        if pattern.search(base):
+            for form in forms[:3]:
+                secondary.append(pattern.sub(form, base, count=1))
+
+    # Glued deity/content tokens: "shiv aarti" / "शिव आरती" → "shivarti" / "शिवआरती"
+    pool = list(dict.fromkeys(priority + secondary))
+    for item in list(pool):
+        def _glue(token: str, kind: str) -> str:
+            if token.isascii():
+                return f"{token}{'aarti' if kind == 'aarti' else 'jaap'}"
+            return f"{token}{'आरती' if kind == 'aarti' else 'जप'}"
+
+        glued_aarti = re.sub(
+            r"(?<![\w\u0900-\u097f])([A-Za-z\u0900-\u097f]{2,24})\s+(?:a+r+t[iy]|aarati|arrti|आरती|आरत्या)(?![\w\u0900-\u097f])",
+            lambda m: _glue(m.group(1), "aarti"),
+            item,
+            flags=re.I,
+        )
+        glued_jaap = re.sub(
+            r"(?<![\w\u0900-\u097f])([A-Za-z\u0900-\u097f]{2,24})\s+(?:jaap|jap|japa|जाप|जप|नामजप)(?![\w\u0900-\u097f])",
+            lambda m: _glue(m.group(1), "jaap"),
+            item,
+            flags=re.I,
+        )
+        if glued_aarti != item:
+            priority.append(glued_aarti)
+        if glued_jaap != item:
+            secondary.append(glued_jaap)
+        if re.search(r"\baarti\b", item, flags=re.I):
+            secondary.append(re.sub(r"\baarti\b", "arti", item, flags=re.I))
+            secondary.append(re.sub(r"\baarti\b", "arrti", item, flags=re.I))
+            secondary.append(re.sub(r"\baarti\b", "aarati", item, flags=re.I))
+
+    # Explicit short screen seeds so STT loanwords cover navigation too.
+    ordered = []
+    seen = set()
+    for item in priority + secondary:
+        key = transcript_key(item)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        ordered.append(item)
+        if len(ordered) >= limit:
+            break
+    return ordered
 
 
 def home_records(split):
@@ -28,19 +106,55 @@ def home_evaluation_queries():
 
 
 FEATURE_EXAMPLES = (
-    ("open_calendar", "calendar", ("Show the festival calendar", "इस महीने के त्योहार दिखाओ", "सणांची दिनदर्शिका उघडा", "aane wale tyohar dikhao", "udya konta san aahe")),
-    ("open_jaap_stats", "jaap_stats", ("Show my chanting streak", "जाप का इतिहास खोलो", "माझ्या जपाची आकडेवारी दाखवा", "mere jap ka record dikhao", "maajhi sadhana dakhva", "show how many times I chanted")),
-
-    ("open_horoscope", "horoscope", ("Open the horoscope screen", "आज का राशिफल खोलो", "आजचे राशीभविष्य उघडा")),
-    ("open_panchang", "panchang", ("Show today’s Hindu calendar", "आज का पंचांग खोलो", "आजचे नक्षत्र सांगा", "aaj ka panchang dikhao")),
-    ("open_mandir", "mandir", ("Take me to the shrine", "भगवान के दर्शन करने हैं", "देवघर दाखवा", "mandir mein darshan karna hai")),
-    ("open_akhand_diya", "akhand_diya", ("Open the akhand diya", "अखंड ज्योत दिखाओ", "अखंड दिवा दाखवा")),
-    ("open_granth", "granth", ("Show the sacred books library", "पवित्र ग्रंथ दिखाओ", "पोथ्यांची यादी दाखवा", "granth ki list kholo")),
-    ("open_kundali", "kundali", ("I want to make my natal chart", "मेरी जन्मपत्री बनाओ", "माझी जन्मपत्रिका काढा", "meri kundli banao")),
-    ("open_milan", "milan", ("Compare two birth charts for marriage", "विवाह के लिए गुण मिलाओ", "लग्नासाठी पत्रिका जुळवा", "shaadi ke liye gun milao")),
-    ("open_ishta_devta", "ishta_devta", ("Find my personal deity", "मेरे इष्ट देव कौन हैं", "माझे उपास्य दैवत शोधा", "mera isht dev kaun hai")),
-    ("open_greetings", "greetings", ("Show devotional greeting cards", "भक्ति शुभकामना कार्ड दिखाओ", "भक्ती शुभेच्छापत्रे दाखवा", "bhakti status card dikhao")),
-    ("open_grahan", "grahan", ("Show lunar eclipse timings", "सूर्य ग्रहण का समय बताओ", "चंद्रग्रहणाची वेळ दाखवा", "agraha nahi, grahan ka samay batao")),
+    ("open_calendar", "calendar", (
+        "open calendar", "show calendar", "Show the festival calendar",
+        "इस महीने के त्योहार दिखाओ", "सणांची दिनदर्शिका उघडा", "aane wale tyohar dikhao", "udya konta san aahe",
+    )),
+    ("open_jaap_stats", "jaap_stats", (
+        "open jaap stats", "show jaap history", "Show my chanting streak",
+        "जाप का इतिहास खोलो", "माझ्या जपाची आकडेवारी दाखवा", "mere jap ka record dikhao",
+        "maajhi sadhana dakhva", "show how many times I chanted",
+    )),
+    ("open_horoscope", "horoscope", (
+        "open horoscope", "show horoscope", "Open the horoscope screen",
+        "आज का राशिफल खोलो", "आजचे राशीभविष्य उघडा",
+    )),
+    ("open_panchang", "panchang", (
+        "open panchang", "show panchang", "Show today’s Hindu calendar",
+        "आज का पंचांग खोलो", "आजचे नक्षत्र सांगा", "aaj ka panchang dikhao",
+    )),
+    ("open_mandir", "mandir", (
+        "open mandir", "show mandir", "Take me to the shrine",
+        "भगवान के दर्शन करने हैं", "देवघर दाखवा", "mandir mein darshan karna hai",
+    )),
+    ("open_akhand_diya", "akhand_diya", (
+        "open akhand diya", "show akhand diya", "Open the akhand diya",
+        "अखंड ज्योत दिखाओ", "अखंड दिवा दाखवा",
+    )),
+    ("open_granth", "granth", (
+        "open granth", "show granth", "Show the sacred books library",
+        "पवित्र ग्रंथ दिखाओ", "पोथ्यांची यादी दाखवा", "granth ki list kholo",
+    )),
+    ("open_kundali", "kundali", (
+        "open kundali", "show kundali", "I want to make my natal chart",
+        "मेरी जन्मपत्री बनाओ", "माझी जन्मपत्रिका काढा", "meri kundli banao",
+    )),
+    ("open_milan", "milan", (
+        "open milan", "show milan", "Compare two birth charts for marriage",
+        "विवाह के लिए गुण मिलाओ", "लग्नासाठी पत्रिका जुळवा", "shaadi ke liye gun milao",
+    )),
+    ("open_ishta_devta", "ishta_devta", (
+        "open ishta devta", "show ishta devta", "Find my personal deity",
+        "मेरे इष्ट देव कौन हैं", "माझे उपास्य दैवत शोधा", "mera isht dev kaun hai",
+    )),
+    ("open_greetings", "greetings", (
+        "open greetings", "show greetings", "Show devotional greeting cards",
+        "भक्ति शुभकामना कार्ड दिखाओ", "भक्ती शुभेच्छापत्रे दाखवा", "bhakti status card dikhao",
+    )),
+    ("open_grahan", "grahan", (
+        "open grahan", "show grahan", "Show lunar eclipse timings",
+        "सूर्य ग्रहण का समय बताओ", "चंद्रग्रहणाची वेळ दाखवा", "agraha nahi, grahan ka samay batao",
+    )),
 )
 
 FEATURE_PARAPHRASES = {
@@ -163,6 +277,12 @@ def coverage_examples():
         yield f"{latin} cha jap lava", action, f"Opening jaap for {latin}."
         yield f"{native} नामजप सुरू करा", action, f"{native} नामजप उघडत आहे."
 
+    # Rare unsupported / off-app asks — guided tip, never invent an action.
+    guided = (
+        "I couldn’t match that in BhaktiDhara. You can ask me to open a devotional text, play an aarti, start naam jaap, show your horoscope or find a feature. Try “read Pasayadan” or “open aarti reminders”.",
+        "भक्तिधारा में यह मेल नहीं खाया। आप आरती सुनने, ग्रंथ खोलने, नाम जप शुरू करने, राशिफल देखने या कोई सुविधा ढूँढने को कह सकते हैं। जैसे “पसायदान खोलो”।",
+        "भक्तिधारामध्ये जुळले नाही. आरती ऐकणे, ग्रंथ उघडणे, नामजप सुरू करणे, राशीभविष्य पाहणे किंवा एखादी सुविधा शोधणे यासाठी मला सांगा. उदाहरणार्थ “पसायदान उघडा”.",
+    )
     for query in (
         "What is the capital of Japan?", "Open my camera", "Open Gmail notifications", "Disable all phone notifications", "Delete my entire inbox", "Did you receive my complaint?", "Has my feedback been submitted yet?",
         "What languages are supported by my phone keyboard?", "Do not switch to Marathi",
@@ -177,11 +297,93 @@ def coverage_examples():
         "क्या इस मंत्र का मतलब बता सकते हो", "मंत्राचा अर्थ काय आहे", "माझे खाते हटवा",
         "कॉल लावा", "Share my birth chart publicly", "book a temple visit",
         "Can you order flowers?", "Find a hotel near my temple",
+        "What's the cricket score?", "Order Uber to the temple", "Send an email to support",
+        "Play Spotify", "Open Instagram", "Translate this to French", "Who won the election?",
+        "आज बारिश होगी क्या", "मुझे फिल्म सुझाओ", "बाजार भाव बताओ",
     ):
-        yield query, {"type": "none"}, localized(
-            query, "I couldn’t find a matching item or feature in BhaktiDhara.",
-            "मुझे भक्तिधारा में इसका कोई विकल्प नहीं मिला।", "भक्तिधारामध्ये यासाठी काही सापडले नाही."
+        yield query, {"type": "none"}, localized(query, *guided)
+
+    # New fulfillable app actions — premium, request form, wake word, deity lists, granth books.
+    for query in (
+        "Show premium plans", "Open premium", "Remove ads", "vip plans dikhao",
+        "प्रीमियम प्लान दिखाओ", "प्रीमियम उघडा", "जाहिराती काढा", "विज्ञापन हटाओ",
+        "premium ke plans kahan dekhu", "subscription plans kholo",
+    ):
+        yield query, {"type": "open_premium", "feature_key": "premium"}, localized(
+            query, "Opening Premium plans.", "प्रीमियम प्लान खोल रहे हैं।", "प्रीमियम योजना उघडत आहे."
         )
+    for query in (
+        "Request a missing deity", "Open the request form", "Add a new aarti", "request missing aarti",
+        "नया देवता जोड़ो", "नवीन आरतीची विनंती करा", "अनुरोध फॉर्म खोलो", "विनंती फॉर्म उघडा",
+        "add deity form kholo", "missing ganesh aarti request",
+    ):
+        yield query, {"type": "open_request_deity"}, localized(
+            query,
+            "Opening the request form to add a deity or aarti.",
+            "देवता या आरती जोड़ने का अनुरोध फ़ॉर्म खोल रहे हैं।",
+            "देव किंवा आरती जोडण्याचा विनंती फॉर्म उघडत आहे.",
+        )
+    for query, enabled in (
+        ("Turn on Hey Bhakti", True), ("Enable wake word", True), ("Hey Bhakti sunna chalu karo", True),
+        ("हे भक्ति सुनना चालू करो", True), ("हे भक्ती ऐका सुरू करा", True),
+        ("Turn off Hey Bhakti", False), ("Disable wake word", False),
+        ("हे भक्ति सुनना बंद करो", False), ("हे भक्ती ऐका बंद करा", False),
+    ):
+        yield query, {"type": "set_wake_word", "enabled": enabled, "feature_key": "wake_voice"}, localized(
+            query,
+            "Turning on Hey Bhakti listening." if enabled else "Turning off Hey Bhakti listening.",
+            "“हे भक्ति” सुनना चालू कर रहे हैं।" if enabled else "“हे भक्ति” सुनना बंद कर रहे हैं।",
+            "“हे भक्ती” ऐका सुरू करत आहे." if enabled else "“हे भक्ती” ऐका बंद करत आहे.",
+        )
+    for deity_key, labels in (
+        ("Lord Shiva", ("shiv", "shiva", "mahadev", "शिव", "महादेव")),
+        ("Lord Ganesha", ("ganesh", "ganpati", "गणेश", "गणपती")),
+        ("Lord Hanuman", ("hanuman", "हनुमान")),
+        ("Lord Krishna", ("krishna", "कृष्ण")),
+        ("Goddess Durga", ("durga", "दुर्गा")),
+        ("Lord Vitthal", ("vitthal", "विठ्ठल", "विट्ठल")),
+        ("Lord Rama", ("ram", "rama", "राम")),
+        ("Goddess Lakshmi", ("lakshmi", "laxmi", "लक्ष्मी")),
+        ("Lord Datta", ("datta", "dattatreya", "दत्त")),
+        ("Swami Samarth", ("swami samarth", "स्वामी समर्थ")),
+    ):
+        hi = next((label for label in labels if any(ord(c) > 127 for c in label)), labels[0])
+        mr = labels[-1]
+        seeds = []
+        for label in labels:
+            seeds.extend((
+                f"open {label} aarti",
+                f"show {label} aarti",
+                f"play {label} aarti",
+                f"{label} aarti kholo",
+                f"show all {label} aartis",
+                f"{label} ki saari aarti dikhao",
+                f"{label} chi aarti ughada",
+                f"{label} आरती खोलो",
+                f"{label} की सभी आरतियाँ दिखाओ",
+                f"{label} ची आरती उघडा",
+                f"{label} च्या सर्व आरत्या दाखवा",
+            ))
+        for query in seeds:
+            for variant in speech_variants(query, limit=10):
+                yield variant, {"type": "open_deity_aarti_list", "deity_key": deity_key, "feature_key": "catalog"}, localized(
+                    variant,
+                    f"Opening aartis for {deity_key}.",
+                    f"{hi} की आरतियाँ खोल रहे हैं।",
+                    f"{mr} च्या आरत्या उघडत आहे.",
+                )
+    for slug, names in (
+        ("bhagavad-gita", ("Bhagavad Gita", "Gita", "गीता", "भगवद्गीता")),
+        ("dasbodh", ("Dasbodh", "दासबोध")),
+        ("shiva-purana", ("Shiva Purana", "शिव पुराण")),
+        ("vishnu-purana", ("Vishnu Purana", "विष्णु पुराण")),
+        ("bhagavata-purana", ("Bhagavata", "भागवत")),
+    ):
+        for name in names:
+            for query in (f"Open the {name}", f"{name} खोलो", f"{name} उघडा", f"{name} dikhao", f"read {name}"):
+                yield query, {"type": "open_granth_book", "book_slug": slug, "feature_key": "granth"}, localized(
+                    query, f"Opening {slug.replace('-', ' ')}.", f"{name} खोल रहे हैं।", f"{name} उघडत आहे."
+                )
 
 
 def localized(query, english, hindi, marathi):

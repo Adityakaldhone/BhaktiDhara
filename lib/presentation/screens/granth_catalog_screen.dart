@@ -39,7 +39,10 @@ abstract final class _G {
 double _track(String langCode, double value) => langCode == 'en' ? value : 0;
 
 class GranthCatalogScreen extends ConsumerStatefulWidget {
-  const GranthCatalogScreen({super.key});
+  /// Optional chapter from a voice request; user still picks the book.
+  final int? hintChapter;
+
+  const GranthCatalogScreen({super.key, this.hintChapter});
 
   @override
   ConsumerState<GranthCatalogScreen> createState() => _GranthCatalogScreenState();
@@ -49,6 +52,26 @@ class _GranthCatalogScreenState extends ConsumerState<GranthCatalogScreen> {
   String _selectedCategory = 'all'; // 'all', 'canonical', 'mahapurana', 'upapurana'
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final chapter = widget.hintChapter;
+    if (chapter != null && chapter > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final lang = ref.read(localeProvider).languageCode;
+        final message = switch (lang) {
+          'hi' => 'अध्याय $chapter के लिए कोई ग्रंथ चुनें।',
+          'mr' => 'अध्याय $chapter साठी ग्रंथ निवडा.',
+          _ => 'Choose a book for chapter $chapter.',
+        };
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {

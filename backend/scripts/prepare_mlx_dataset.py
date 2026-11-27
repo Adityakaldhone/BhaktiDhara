@@ -56,7 +56,9 @@ def main() -> None:
         key = (action["type"], action.get("aarti_id") or action.get("query"),
                action.get("mantra_id"), action.get("rashi_id"),
                action.get("language_code"), action.get("feature_key"),
-               action.get("region"), action.get("section"), action.get("position"))
+               action.get("region"), action.get("section"), action.get("position"),
+               action.get("deity_key"), action.get("book_slug"), action.get("enabled"),
+               action.get("field"), action.get("chapter"))
         groups[key].append(row)
 
     train = [items[0] for items in groups.values()]

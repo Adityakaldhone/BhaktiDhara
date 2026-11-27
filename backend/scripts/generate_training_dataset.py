@@ -10,7 +10,8 @@ import os
 from pathlib import Path
 
 from voice_training_examples import (SYSTEM_PROMPT, HOME_PROMPT, coverage_examples,
-                                     home_evaluation_queries, home_records, transcript_key)
+                                     home_evaluation_queries, home_records, speech_variants,
+                                     transcript_key)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = BASE_DIR / "backend" / "data"
@@ -180,29 +181,58 @@ def main():
     for q, act, reply in feature_items:
         train_samples.append(create_sample(q, act, reply))
 
-    # 7. Live / remote deities (open deity list style → often aarti by deity name)
+    # 7. Deity-level aarti requests → open the deity list (many hymns per deity).
     for d in deities:
-        key = d.get("key") or ""
+        key = d.get("key") or d.get("name_en") or ""
+        if not key:
+            continue
         name_mr = d.get("name_mr") or key
         name_hi = d.get("name_hi") or key
         name_en = d.get("name_en") or key
-        aliases = d.get("aliases") or []
-        # Without a concrete aarti_id, teach open/search by deity query.
-        open_act = {
-            "type": "open_aarti",
-            "query": name_en,
-            "title": name_mr,
-        }
+        aliases = list(d.get("aliases") or [])
+        short = name_en.replace("Lord ", "").replace("Goddess ", "").strip()
+        if short and short.casefold() not in {a.casefold() for a in aliases}:
+            aliases.append(short)
+        list_act = {"type": "open_deity_aarti_list", "deity_key": key, "feature_key": "catalog"}
         queries = [
-            (f"{name_mr} ची आरती उघडा", f"{name_mr} ची आरती उघडत आहे."),
-            (f"{name_hi} की आरती खोलो", f"{name_hi} की आरती खोली जा रही है।"),
-            (f"Open {name_en} aarti", f"Opening aarti for {name_en}."),
-            (f"{name_en} aarti dikhao", f"Opening aarti for {name_en}."),
+            (f"{name_mr} ची आरती उघडा", f"{name_mr} च्या आरत्या उघडत आहे."),
+            (f"{name_mr} च्या सर्व आरत्या दाखवा", f"{name_mr} च्या आरत्या उघडत आहे."),
+            (f"{name_hi} की आरती खोलो", f"{name_hi} की आरतियाँ खोल रहे हैं।"),
+            (f"{name_hi} की सभी आरतियाँ दिखाओ", f"{name_hi} की आरतियाँ खोल रहे हैं।"),
+            (f"Open {name_en} aarti", f"Opening aartis for {name_en}."),
+            (f"Show all {name_en} aartis", f"Opening aartis for {name_en}."),
+            (f"{name_en} aarti dikhao", f"Opening aartis for {name_en}."),
+            (f"open {short.casefold()} aarti", f"Opening aartis for {name_en}."),
+            (f"{short.casefold()} aarti kholo", f"Opening aartis for {name_en}."),
         ]
-        for alias in aliases:
-            queries.append((f"{alias} aarti open", f"Opening aarti for {name_en}."))
+        for alias in aliases[:8]:
+            queries.append((f"open {alias} aarti", f"Opening aartis for {name_en}."))
+            queries.append((f"show {alias} aarti", f"Opening aartis for {name_en}."))
+            queries.append((f"{alias} ki aarti dikhao", f"Opening aartis for {name_en}."))
+            queries.append((f"{alias} aarti kholo", f"Opening aartis for {name_en}."))
         for q, reply in queries:
-            train_samples.append(create_sample(q, open_act, reply))
+            for variant in speech_variants(q, limit=12):
+                train_samples.append(create_sample(variant, list_act, reply))
+
+    # Extra screen / settings paraphrases so navigation stays strong.
+    for q, act, reply in (
+        ("open notifications", {"type": "open_notifications"}, "Opening your notifications."),
+        ("notification inbox", {"type": "open_notifications"}, "Opening your notifications."),
+        ("नोटिफिकेशन खोलो", {"type": "open_notifications"}, "आपकी सूचनाएँ खोल रहे हैं।"),
+        ("open more menu", {"type": "open_more"}, "Opening More."),
+        ("अधिक उघडा", {"type": "open_more"}, "अधिक उघडत आहे."),
+        ("open bhajans", {"type": "open_bhajans"}, "Opening the devotional collection."),
+        ("भजन संग्रह खोलो", {"type": "open_bhajans"}, "भक्ति संग्रह खोल रहे हैं।"),
+        ("open festival calendar", {"type": "open_calendar", "feature_key": "calendar"}, "Opening the festival calendar."),
+        ("सणांची दिनदर्शिका उघडा", {"type": "open_calendar", "feature_key": "calendar"}, "सणांची दिनदर्शिका उघडत आहे."),
+        ("open grahan", {"type": "open_grahan", "feature_key": "grahan"}, "Opening grahan timings."),
+        ("ग्रहण का समय बताओ", {"type": "open_grahan", "feature_key": "grahan"}, "ग्रहण समय खोला जा रहा है।"),
+        ("show my jaap history", {"type": "open_jaap_stats", "feature_key": "jaap_stats"}, "Opening your jaap history."),
+        ("माझी साधना दाखवा", {"type": "open_jaap_stats", "feature_key": "jaap_stats"}, "जपाचा इतिहास उघडत आहे."),
+        ("Open Akhand Diya", {"type": "open_akhand_diya", "feature_key": "akhand_diya"}, "Opening the Akhand Diya."),
+        ("अखंड दिवा दाखवा", {"type": "open_akhand_diya", "feature_key": "akhand_diya"}, "अखंड दिवा उघडत आहे."),
+    ):
+        train_samples.append(create_sample(q, act, reply))
 
     # 8. Aartis, Stotras & Bhajans (local + live catalog items)
     for a in aartis:
@@ -245,11 +275,40 @@ def main():
         train_samples.append(create_sample(f"{t_hi} चलाओ", play_act, f"{t_hi} शुरू की जा रही है।"))
         train_samples.append(create_sample(f"{t_hi} खोलो", open_act, f"{t_hi} खोला जा रहा है।"))
 
-        # English queries
-        train_samples.append(create_sample(f"Play {t_en}", play_act, f"Opening {t_en}."))
-        train_samples.append(create_sample(f"Read the lyrics of {t_en}", open_act, f"Opening {t_en}."))
-        train_samples.append(create_sample(f"{t_en} sunao", play_act, f"Opening {t_en}."))
-        train_samples.append(create_sample(f"{t_en} vachayche aahe", open_act, f"Opening {t_en}."))
+        # English / Hinglish / STT loanword variants for every catalog title.
+        media_seeds = [
+            (f"Play {t_en}", play_act, f"Opening {t_en}."),
+            (f"Read the lyrics of {t_en}", open_act, f"Opening {t_en}."),
+            (f"{t_en} sunao", play_act, f"Opening {t_en}."),
+            (f"{t_en} vachayche aahe", open_act, f"Opening {t_en}."),
+            (f"open {t_en}", open_act, f"Opening {t_en}."),
+            (f"show {t_en}", open_act, f"Opening {t_en}."),
+            (f"{t_en} kholo", open_act, f"Opening {t_en}."),
+            (f"{t_hi} खोलो", open_act, f"{t_hi} खोला जा रहा है।"),
+            (f"{t_mr} उघडा", open_act, f"{t_mr} उघडत आहे."),
+        ]
+        if has_audio:
+            media_seeds.extend((
+                (f"listen to {t_en}", play_act, f"Opening {t_en}."),
+                (f"{t_hi} सुनाओ", play_act, f"{t_hi} शुरू की जा रही है।"),
+                (f"{t_mr} ऐका", play_act, f"{t_mr} सुरू करत आहे."),
+                (f"play {t_hi}", play_act, f"{t_hi} शुरू की जा रही है।"),
+            ))
+        for q, act, reply in media_seeds:
+            for variant in speech_variants(q, limit=8):
+                train_samples.append(create_sample(variant, act, reply))
+
+    # Broad STT expansion pass: every in-app action gets loanword/glued paraphrases.
+    expanded = []
+    for sample in train_samples:
+        user = sample["messages"][1]["content"]
+        payload = json.loads(sample["messages"][2]["content"])
+        action = payload["action"]
+        reply = payload.get("response_text") or ""
+        limit = 1 if action.get("type") == "none" else 10
+        for variant in speech_variants(user, limit=limit):
+            expanded.append(create_sample(variant, action, reply))
+    train_samples = expanded
 
     held_out = home_evaluation_queries()
     home_rows = home_records("plain") + home_records("mixed")

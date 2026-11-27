@@ -7,6 +7,7 @@ VOICE_ACTIONS = (
     "open_akhand_diya",
     "start_jaap",
     "open_granth",
+    "open_granth_book",
     "open_kundali",
     "open_milan",
     "open_ishta_devta",
@@ -20,6 +21,10 @@ VOICE_ACTIONS = (
     "open_feedback",
     "open_bhajans",
     "open_more",
+    "open_premium",
+    "open_request_deity",
+    "open_deity_aarti_list",
+    "set_wake_word",
     "set_language",
     "open_language_settings",
     "open_aarti_reminders",
@@ -39,8 +44,16 @@ SYSTEM_PROMPT = (
     "capabilities, language, feedback, reminders, jaap, jaap_stats, panchang, kundali, milan, greetings, ishta_devta, granth, calendar or catalog. For Home questions also use "
     "home_region, home_search, home_books, home_cards, home_request, home_empty, home_bells, home_scroll, home_back, home_microphone, home_ads, home_offer, home_update, home_maintenance, home_tabs, home_jaap_card, home_loading, home_order. For catalog questions supply field (singer, duration, audio, availability or about) and query with the title. "
     "For a requested language change, set language_code to mr, hi or en. "
+    "Use open_premium for subscription or remove-ads plans. "
+    "Use open_request_deity to open the add-deity or add-aarti request form; optional query is the spoken name. "
+    "Use open_deity_aarti_list with deity_key for a deity's full aarti list. "
+    "Use open_granth_book with book_slug (bhagavad-gita, dasbodh, or a purana slug) and optional chapter. "
+    "Use set_wake_word with enabled true or false for Hey Bhakti listening. "
     "Feedback and reminder settings open forms. Never claim to submit a form or schedule a reminder. "
-    "Use none for unrelated, ambiguous, cancelled or unsupported commands. "
+    "Prefer a real app action whenever the request matches something in BhaktiDhara. "
+    "Speech transcripts may mix scripts or misspell verbs: treat ओपन/ओपेन as open, प्ले as play, "
+    "शो as show, and glued forms like shivarti or गणेशआरती as deity + aarti. "
+    "Use none only for unrelated, cancelled or clearly unsupported commands. "
     "Use open_aarti for reading and play_aarti for listening. Use query for the requested media title or deity."
 )
 

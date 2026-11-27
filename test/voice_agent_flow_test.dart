@@ -386,6 +386,39 @@ void main() {
     },
   );
 
+  test('open shiv aarti opens Shiva list even if outdated API says not found', () async {
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/health')) {
+        return http.Response(jsonEncode({'status': 'ready'}), 200);
+      }
+      return http.Response(
+        jsonEncode({
+          'status': 'not_found',
+          'transcript': 'open shiv aarti',
+          'locale': 'hi-IN',
+          'response_text': 'मुझे भक्तिधारा में इसका कोई विकल्प नहीं मिला।',
+          'action': {'type': 'none'},
+          'choices': [],
+        }),
+        200,
+      );
+    });
+    final result = await VoiceAgentService.processVoiceCommand(
+      'open shiv aarti',
+      localeHint: 'hi-IN',
+      loadCatalog: () async => kMarathiAartiCatalog,
+      client: client,
+    );
+    expect(result?.action.type, 'open_deity_aarti_list');
+    expect(result?.action.deityKey, 'Lord Shiva');
+    expect(
+      LocalVoiceIntentParser.parse('open shiv aarti', localeHint: 'hi-IN')
+          .action
+          .type,
+      'open_deity_aarti_list',
+    );
+  });
+
   testWidgets('voice language selection applies and persists Marathi', (
     tester,
   ) async {

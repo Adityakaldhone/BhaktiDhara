@@ -1,5 +1,6 @@
 import '../../../domain/entities/horoscope.dart';
 import '../data/voice_agent_service.dart';
+import 'voice_catalog.dart';
 
 /// On-device deterministic fallback when the FastAPI voice agent is unreachable.
 /// Mirrors the high-priority intents from backend/app/voice_agent/intent_resolver.py.
@@ -243,9 +244,28 @@ class LocalVoiceIntentParser {
       'दासबोध',
       'शिवलीलामृत',
       'अध्याय',
+      'gita',
+      'geeta',
+      'गीता',
+      'purana',
+      'पुराण',
     ])) {
       final chap = RegExp(r'(\d+)').firstMatch(clean);
       final chapter = int.tryParse(chap?.group(1) ?? '');
+      final bookSlug = _matchGranthBook(query);
+      if (bookSlug != null) {
+        return open(
+          VoiceAction(
+            type: 'open_granth_book',
+            bookSlug: bookSlug,
+            chapter: chapter,
+            featureKey: 'granth',
+          ),
+          'Opening ${bookSlug.replaceAll('-', ' ')}.',
+          '$bookSlug खोल रहे हैं।',
+          '$bookSlug उघडत आहे.',
+        );
+      }
       return VoiceAgentResult(
         status: 'action_ready',
         transcript: clean,
@@ -261,6 +281,46 @@ class LocalVoiceIntentParser {
           featureKey: 'granth',
         ),
         choices: const [],
+      );
+    }
+
+    if (_hasAny(lower, const [
+          'premium',
+          'subscription',
+          'vip plan',
+          'remove ads',
+          'प्रीमियम',
+          'जाहिराती काढा',
+          'विज्ञापन हटाओ',
+        ]) &&
+        !cancelled) {
+      return open(
+        const VoiceAction(type: 'open_premium', featureKey: 'premium'),
+        'Opening Premium plans.',
+        'प्रीमियम प्लान खोल रहे हैं।',
+        'प्रीमियम योजना उघडत आहे.',
+      );
+    }
+
+    if (_hasAny(lower, const [
+          'request a deity',
+          'request deity',
+          'add a deity',
+          'add deity',
+          'request form',
+          'missing deity',
+          'missing aarti',
+          'नया देवता',
+          'नवीन देव',
+          'विनंती फॉर्म',
+          'अनुरोध फॉर्म',
+        ]) &&
+        !cancelled) {
+      return open(
+        const VoiceAction(type: 'open_request_deity'),
+        'Opening the request form to add a deity or aarti.',
+        'देवता या आरती जोड़ने का अनुरोध फ़ॉर्म खोल रहे हैं।',
+        'देव किंवा आरती जोडण्याचा विनंती फॉर्म उघडत आहे.',
       );
     }
 
@@ -412,6 +472,28 @@ class LocalVoiceIntentParser {
       );
     }
 
+    // “open shiv aarti” / mixed deity+aarti → deity list (catalog filled by caller).
+    final deity = VoiceCatalog.matchDeity(clean);
+    if (deity != null && VoiceCatalog.isGenericDeityAarti(clean, deity)) {
+      final name = deity.localizedName(
+        locale.startsWith('hi')
+            ? 'hi'
+            : locale.startsWith('en')
+            ? 'en'
+            : 'mr',
+      );
+      return open(
+        VoiceAction(
+          type: 'open_deity_aarti_list',
+          deityKey: deity.key,
+          featureKey: 'catalog',
+        ),
+        'Opening aartis for $name.',
+        '$name की आरतियाँ खोल रहे हैं।',
+        '$name च्या आरत्या उघडत आहे.',
+      );
+    }
+
     // No strong feature match — keep existing aarti search behavior.
     return VoiceAgentResult(
       status: 'fallback_search',
@@ -449,10 +531,16 @@ class LocalVoiceIntentParser {
     r'अभिप्राय|प्रतिक्रिया|फीडबैक|फीडबॅक|सूचना द्या|सुझाव|तक्रार|समस्या बताएं',
   );
   static final _shrineRequest = RegExp(
-    r'^[\s,]*(?:please )?(?:(?:open|show|go to|take me to) (?:the |my )?)?'
-    r'(?:virtual shrine|shrine|temple|mandir(?: darshan)?|garbhagriha|darshan|मंदिर|देवघर|दर्शन|गाभारा)'
-    r'(?: (?:open|kholo|khol do|dikhao|please|उघडा|दाखवा|खोलो|दिखाओ|दर्शन खोलो))?[.!?।]*$'
-    r'|देवघरात (?:घेऊन जा|घेऊन जाल)|(?:दर्शन|darshan) (?:घ्यायचे|करना है)',
+    r'^[\s,]*(?:please |pls |kindly )?'
+    r'(?:(?:open|show|go to|take me to|start|begin) (?:the |my |a )?)?'
+    r'(?:'
+    r'virtual shrine|shrine|temple|garbhagriha|darshan|'
+    r'mandir(?:(?:\s+ka)?\s+darshan)?|'
+    r'मंदिर(?:(?:\s+का|\s+चे|\s+चं)?\s+दर्शन)?|'
+    r'देवघर(?:\s+दर्शन)?|दर्शन|गाभारा'
+    r')'
+    r'(?: (?:open|kholo|khol do|dikhao|please|उघडा|दाखवा|खोलो|दिखाओ|दर्शन खोलो|करो|करा|घेऊ))?[.!?।]*$'
+    r'|देवघरात (?:घेऊन जा|घेऊन जाल)|(?:दर्शन|darshan) (?:घ्यायचे|करना है|करा|करो|घ्या|करो)',
   );
   static final _diyaRequest = RegExp(
     r'^(?:please )?(?:(?:open|show) (?:the )?)?'
@@ -588,6 +676,25 @@ class LocalVoiceIntentParser {
       }
     }
     return match;
+  }
+
+  static String? _matchGranthBook(String query) {
+    const books = <(String, List<String>)>[
+      ('bhagavad-gita', ['bhagavad gita', 'bhagavad-gita', 'gita', 'geeta', 'गीता', 'भगवद्गीता', 'भगवद् गीता']),
+      ('dasbodh', ['dasbodh', 'das bodh', 'दासबोध']),
+      ('vishnu-purana', ['vishnu purana', 'विष्णु पुराण', 'विष्णू पुराण']),
+      ('shiva-purana', ['shiva purana', 'शिव पुराण']),
+      ('bhagavata-purana', ['bhagavata', 'bhagavatam', 'भागवत', 'भागवत पुराण']),
+      ('skanda-purana', ['skanda purana', 'स्कंद पुराण']),
+      ('markandeya-purana', ['markandeya', 'मार्कंडेय']),
+      ('narasimha-purana', ['narasimha purana', 'नरसिंह पुराण']),
+    ];
+    for (final (slug, aliases) in books) {
+      for (final alias in aliases) {
+        if (query.contains(alias)) return slug;
+      }
+    }
+    return null;
   }
 
   static VoiceAgentResult horoscope(Rashi rashi, String clean, String locale) {

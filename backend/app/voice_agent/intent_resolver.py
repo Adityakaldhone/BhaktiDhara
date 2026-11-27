@@ -11,7 +11,7 @@ from contextlib import closing
 import httpx
 
 from . import app_help, birth_rashi
-from .prompt import HOME_PROMPT, SYSTEM_PROMPT, RASHI_FOLLOWUP_PROMPT, feature_prompt
+from .prompt import HOME_PROMPT, SYSTEM_PROMPT, RASHI_FOLLOWUP_PROMPT, feature_prompt, VOICE_ACTIONS
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
@@ -277,9 +277,39 @@ MEDIA_ALIASES = {
     "शनिदेवाची आरती": "shani_aarti", "शनि देव की आरती": "shani_aarti",
 }
 MEDIA_REQUEST_WORDS = re.compile(
-    r"^(?:(?:please|could you|can you|can we|could we|i would like to|i'd like to|i d like to|i want to|please let me|mujhe|mala|मला|मुझे|कृपया|जरा|play|open|show|read|listen to|hear|lyrics of|the) )+|"
-    r"(?: (?:please|for me|sunna hai|sunni hai|aikaycha aahe|aikaychay|सुनना है|सुननी है|ऐकायचं आहे|ऐकायचे आहे|ऐकायचंय|वाचायचं आहे|पढ़ना है|lyrics|वाजवा|लावा|ऐका|उघडा|दाखवा|चलाओ|सुनाओ|खोलो|दिखाओ|chalao|sunao|kholo|dikhao))+$"
+    r"^(?:(?:please|could you|can you|can we|could we|i would like to|i'd like to|i d like to|i want to|please let me|mujhe|mala|मला|मुझे|कृपया|जरा|play|open|ओपन|प्ले|शो|show|read|listen to|hear|lyrics of|the) )+|"
+    r"(?: (?:please|for me|sunna hai|sunni hai|aikaycha aahe|aikaychay|सुनना है|सुननी है|ऐकायचं आहे|ऐकायचे आहे|ऐकायचंय|वाचायचं आहे|पढ़ना है|lyrics|वाजवा|लावा|ऐका|उघडा|दाखवा|चलाओ|सुनाओ|खोलो|दिखाओ|करो|करा|do|chalao|sunao|kholo|dikhao|opan|open))+$"
 )
+
+
+def normalize_spoken_query(text: str) -> str:
+    """Normalize STT quirks: Hindi loan verbs, glued deity+aarti (shivarti)."""
+    query = " ".join(text.lower().split())
+    # Devanagari / Hinglish command verbs often left as-is by speech recognition.
+    for src, dst in (
+        ("ओपन", "open"),
+        ("ओपेन", "open"),
+        ("प्ले", "play"),
+        ("प्लेय", "play"),
+        ("शो", "show"),
+        ("लिस्ट", "list"),
+    ):
+        query = query.replace(src, dst)
+    query = re.sub(r"\b(?:a+r+t[iy]|aarati|arrti)\b", "aarti", query)
+    # “shivarti” / “ganeshaarti” from rushed speech → “shiv aarti”
+    deity_bits = sorted(
+        {alias.casefold() for _, aliases in DEITY_ALIASES for alias in aliases if alias.isascii()},
+        key=len,
+        reverse=True,
+    )
+    for alias in deity_bits:
+        query = re.sub(
+            rf"(?<![\w]){re.escape(alias)}(?:a+r+t[iy]|aarati|arrti)(?![\w])",
+            f"{alias} aarti",
+            query,
+            flags=re.I,
+        )
+    return " ".join(query.split())
 
 
 _indexed_songs = None
@@ -321,9 +351,11 @@ def search_aarti_db(query: str, limit: int = 3, *, prefer_audio: bool = False) -
         "song", "chalao", "sunao", "dikhao", "open", "show", "please", "the", "my",
         "karo", "kholo", "dikhao", "chart", "kundali", "kundli", "patrika", "कुंडली",
         "horoscope", "rashifal", "panchang", "पंचांग", "mandir", "मंदिर",
+        "darshan", "दर्शन",  # shrine cue — must not substring-match सुदर्शन aartis
+        "का", "की", "के", "चे", "चं", "ची",
         "jaap", "jap", "japa", "जप", "जाप", "naamjaap", "namjaap", "chant", "mala", "माला",
         "granth", "पोथी", "ग्रंथ", "today", "आजचा", "आज", "for", "me", "select", "continue",
-        "goddess", "mata", "माता", "devi", "देवी",
+        "goddess", "mata", "माता", "devi", "देवी", "devghar", "देवघर", "garbhagriha", "गाभारा",
     }
     tokens = [w for w in query.split() if w.lower() not in stop_words and len(w) > 1]
     if not tokens:
@@ -356,7 +388,7 @@ def search_aarti_db(query: str, limit: int = 3, *, prefer_audio: bool = False) -
     request_words = {
         "i", "d", "me", "like", "to", "read", "listen", "hear", "the", "of", "for", "ji",
         "play", "open", "show", "please", "lyrics", "can", "could", "you",
-        "की", "का", "ची", "लावा", "चलाओ", "सुनाओ", "सुना", "सकते", "हैं", "क्या", "आप",
+        "की", "का", "चे", "चं", "ची", "लावा", "चलाओ", "सुनाओ", "सुना", "सकते", "हैं", "क्या", "आप",
         "मला", "ऐकायची", "आहे", "पाहायची", "वाचायची", "जरा", "कृपया",
     }
     query_words = set(alias_query.split())
@@ -447,8 +479,18 @@ def search_aarti_db(query: str, limit: int = 3, *, prefer_audio: bool = False) -
         )
         rows = cur.fetchall()
         if rows:
-            results = [dict(r) for r in rows]
-        else:
+            # Reject substring false-positives (e.g. दर्शन ⊂ सुदर्शन).
+            filtered = []
+            for r in rows:
+                item = dict(r)
+                blob = " ".join(
+                    str(item.get(f) or "")
+                    for f in ("title", "title_hi", "title_mr", "deity", "deity_hi", "deity_mr", "id")
+                )
+                if all(_alias_in_query(w, blob) for w in words):
+                    filtered.append(item)
+            results = filtered
+        if not results:
             fts_query = " AND ".join(f'"{w}"*' for w in words)
             try:
                 cur.execute(
@@ -469,11 +511,14 @@ def search_aarti_db(query: str, limit: int = 3, *, prefer_audio: bool = False) -
     conn.close()
     return results
 
-async def resolve_with_ollama(text: str, locale: str, *, home_screen: bool = False, feature_intents: bool = False, pending_action: str | None = None) -> Optional[Dict[str, Any]]:
+async def resolve_with_ollama(text: str, locale: str, *, home_screen: bool = False, mandir_screen: bool = False, feature_intents: bool = False, pending_action: str | None = None) -> Optional[Dict[str, Any]]:
     """Calls local Ollama for ambiguous or complex intent understanding."""
     system = feature_prompt(app_help.TOPICS) if feature_intents else SYSTEM_PROMPT
     if home_screen:
         system = HOME_PROMPT
+    elif mandir_screen:
+        from .mandir_agent import MANDIR_GUIDE
+        system = MANDIR_GUIDE["prompt"]
     if pending_action == "ask_rashi":
         system = RASHI_FOLLOWUP_PROMPT + " Previous question: which sign? Locale: " + locale
     try:
@@ -499,7 +544,7 @@ async def resolve_with_ollama(text: str, locale: str, *, home_screen: bool = Fal
 
 
 async def resolve_with_local_llm(text: str, locale: str, *, navigation: bool = False,
-                                 app_questions: bool = False, home_screen: bool = False, feature_intents: bool = False, pending_action: str | None = None) -> Optional[Dict[str, Any]]:
+                                 app_questions: bool = False, home_screen: bool = False, mandir_screen: bool = False, feature_intents: bool = False, pending_action: str | None = None) -> Optional[Dict[str, Any]]:
     """Prefer fine-tuned MLX adapter on Mac, then Ollama."""
     try:
         from .mlx_classifier import classify_with_mlx, mlx_available
@@ -508,14 +553,14 @@ async def resolve_with_local_llm(text: str, locale: str, *, navigation: bool = F
             import asyncio
 
             mlx_res = await asyncio.to_thread(classify_with_mlx, text, locale, navigation=navigation,
-                                              app_questions=app_questions, feature_intents=feature_intents, home_screen=home_screen, pending_action=pending_action)
+                                              app_questions=app_questions, feature_intents=feature_intents, home_screen=home_screen, mandir_screen=mandir_screen, pending_action=pending_action)
             if mlx_res and mlx_res.get("action"):
                 print(f"[voice-mlx] classified -> {mlx_res.get('action')}")
                 return mlx_res
     except Exception as e:
         print(f"MLX resolution fallback error: {e}")
 
-    return await resolve_with_ollama(text, locale, feature_intents=feature_intents, home_screen=home_screen, pending_action=pending_action)
+    return await resolve_with_ollama(text, locale, feature_intents=feature_intents, home_screen=home_screen, mandir_screen=mandir_screen, pending_action=pending_action)
 
 
 REMINDER_REQUEST = re.compile(
@@ -540,10 +585,16 @@ FEEDBACK_REQUEST = re.compile(
     r"अभिप्राय|प्रतिक्रिया|फीडबैक|फीडबॅक|सूचना द्या|सुझाव|तक्रार|समस्या बताएं"
 )
 SHRINE_REQUEST = re.compile(
-    r"^[\s,]*(?:please )?(?:(?:open|show|go to|take me to) (?:the |my )?)?"
-    r"(?:virtual shrine|shrine|temple|mandir(?: darshan)?|garbhagriha|darshan|मंदिर|देवघर|दर्शन|गाभारा)"
-    r"(?: (?:open|kholo|khol do|dikhao|please|उघडा|दाखवा|खोलो|दिखाओ|दर्शन खोलो))?[.!?।]*$"
-    r"|देवघरात (?:घेऊन जा|घेऊन जाल)|(?:दर्शन|darshan) (?:घ्यायचे|करना है)"
+    r"^[\s,]*(?:please |pls |kindly )?"
+    r"(?:(?:open|show|go to|take me to|start|begin) (?:the |my |a )?)?"
+    r"(?:"
+    r"virtual shrine|shrine|temple|garbhagriha|darshan|"
+    r"mandir(?:(?:\s+ka)?\s+darshan)?|"
+    r"मंदिर(?:(?:\s+का|\s+चे|\s+चं)?\s+दर्शन)?|"
+    r"देवघर(?:\s+दर्शन)?|दर्शन|गाभारा"
+    r")"
+    r"(?: (?:open|kholo|khol do|dikhao|please|उघडा|दाखवा|खोलो|दिखाओ|दर्शन खोलो|करो|करा|घेऊ))?[.!?।]*$"
+    r"|देवघरात (?:घेऊन जा|घेऊन जाल)|(?:दर्शन|darshan) (?:घ्यायचे|करना है|करा|करो|घ्या|करो)"
 )
 DIYA_REQUEST = re.compile(
     r"^(?:please )?(?:(?:open|show) (?:the )?)?"
@@ -556,6 +607,7 @@ MODEL_ROUTE_CUES = {
     "open_horoscope": ("horoscope", "rashifal", "rashi", "star sign", "zodiac", "राशी", "राशि", "राशिफल", "राशीभविष्य", "forecast"),
     "open_panchang": ("hindu calendar", "auspicious", "पंचांग"),
     "open_granth": ("scripture", "scriptures", "sacred books", "पोथ्या"),
+    "open_granth_book": ("gita", "dasbodh", "purana", "गीता", "दासबोध", "पुराण"),
     "open_kundali": ("natal", "born", "birth details", "birth time", "janam patri", "जन्मपत्री", "janmapatrika"),
     "open_milan": ("marriage", "matrimony", "wedding match", "compatibility", "shaadi", "विवाह", "लग्नासाठी"),
     "open_ishta_devta": ("personal deity", "tutelary deity", "आराध्य देवता"),
@@ -564,7 +616,132 @@ MODEL_ROUTE_CUES = {
     "open_calendar": ("festival", "festivals", "tyoharon", "उत्सव", "सण", "त्योहार"),
     "start_jaap": ("recite", "repeat the mantra", "मंत्र जपा", "नामस्मरण"),
     "open_jaap_stats": ("recitations", "streak", "नामस्मरण"),
+    "open_premium": ("premium", "subscription", "vip", "remove ads", "प्रीमियम", "जाहिराती"),
+    "open_request_deity": ("request", "missing deity", "add deity", "add aarti", "विनंती", "अनुरोध"),
+    "open_deity_aarti_list": ("aartis of", "all aartis", "आरत्या", "आरतियाँ"),
+    "set_wake_word": ("hey bhakti", "wake word", "hands-free", "हे भक्ति", "हे भक्ती"),
 }
+
+# Flutter BhaktiDeity.key values with spoken aliases.
+DEITY_ALIASES = (
+    ("Lord Ganesha", ("ganesha", "ganesh", "ganpati", "गणेश", "गणपती", "गणपति")),
+    ("Lord Hanuman", ("hanuman", "हनुमान", "maruti", "मारुती")),
+    ("Lord Shiva", ("shiva", "shiv", "mahadev", "शिव", "महादेव", "shankar", "शंकर", "bholenath", "भोलेनाथ")),
+    ("Lord Vitthal", ("vitthal", "vithoba", "विठ्ठल", "विट्ठल", "पंढरपूर")),
+    ("Lord Krishna", ("krishna", "कृष्ण", "kanha", "कान्हा")),
+    ("Lord Rama", ("rama", "ram", "राम", "श्रीराम", "shri ram")),
+    ("Goddess Durga", ("durga", "दुर्गा", "durga mata", "माँ दुर्गा")),
+    ("Goddess Lakshmi", ("lakshmi", "लक्ष्मी", "mahalakshmi", "महालक्ष्मी")),
+    ("Swami Samarth", ("swami samarth", "स्वामी समर्थ")),
+    ("Lord Datta", ("datta", "dattatreya", "दत्त", "दत्तात्रेय")),
+)
+
+GRANTH_BOOKS = (
+    ("bhagavad-gita", ("bhagavad gita", "bhagavad-gita", "gita", "geeta", "गीता", "भगवद्गीता", "भगवद् गीता")),
+    ("dasbodh", ("dasbodh", "das bodh", "दासबोध")),
+    ("vishnu-purana", ("vishnu purana", "विष्णु पुराण", "विष्णू पुराण")),
+    ("shiva-purana", ("shiva purana", "शिव पुराण")),
+    ("bhagavata-purana", ("bhagavata", "bhagavatam", "भागवत", "भागवत पुराण")),
+    ("skanda-purana", ("skanda purana", "स्कंद पुराण")),
+    ("markandeya-purana", ("markandeya", "मार्कंडेय")),
+    ("narasimha-purana", ("narasimha purana", "नरसिंह पुराण")),
+)
+
+
+def match_deity_key(text: str) -> Optional[str]:
+    lowered = text.casefold()
+    # Prefer longer aliases first so "shiva" wins cleanly over shorter tokens.
+    ranked = sorted(
+        ((key, alias) for key, aliases in DEITY_ALIASES for alias in aliases),
+        key=lambda item: len(item[1]),
+        reverse=True,
+    )
+    for key, alias in ranked:
+        if _alias_in_query(alias, lowered):
+            return key
+    return None
+
+
+def match_granth_book(text: str) -> Optional[str]:
+    lowered = text.casefold()
+    for slug, aliases in GRANTH_BOOKS:
+        if any(alias.casefold() in lowered for alias in aliases):
+            return slug
+    return None
+
+
+def _aarti_mentioned(query: str) -> bool:
+    return any(
+        _alias_in_query(term, query)
+        for term in (
+            "aarti", "aartis", "aarati", "arti", "आरती", "आरत्या", "आरतियाँ", "आरतिया",
+        )
+    )
+
+
+def _token_pattern(*tokens: str) -> str:
+    body = "|".join(re.escape(token) for token in tokens if token)
+    return rf"(?<![\w\u0900-\u097f])(?:{body})(?![\w\u0900-\u097f])"
+
+
+def _generic_deity_aarti_query(query: str, deity_key: str) -> bool:
+    """True for “open shiv aarti” / “शिव आरती खोलो”, false for a specific hymn title."""
+    if not _aarti_mentioned(query):
+        return False
+    aliases = next((a for key, a in DEITY_ALIASES if key == deity_key), ())
+    leftover = MEDIA_REQUEST_WORDS.sub("", query)
+    leftover = re.sub(
+        _token_pattern("aarti", "aartis", "aarati", "arti", "आरती", "आरत्या", "आरतियाँ", "आरतिया"),
+        " ",
+        leftover,
+        flags=re.I,
+    )
+    for alias in sorted(aliases, key=len, reverse=True):
+        leftover = re.sub(_token_pattern(alias), " ", leftover, flags=re.I)
+    leftover = re.sub(
+        _token_pattern(
+            "all", "list", "collection", "of", "for", "the", "a", "an", "my", "me", "please",
+            "saari", "saare", "sabhi", "sare", "sari", "सारी", "सारे", "सभी", "सर्व", "सगळ्या",
+            "ki", "chi", "ची", "की", "का", "के", "जी", "ji",
+            "dev", "devta", "देव", "देवता", "lord", "goddess", "mata", "माता", "show", "open",
+            "ओपन", "ओपेन", "प्ले", "शो", "opan", "play", "browse", "see", "find", "get", "give",
+            "do", "karo", "kara", "करो", "करा",
+            "kholo", "dikhao", "ughada", "ughda", "दाखवा", "उघडा", "खोलो", "दिखाओ",
+            "मुझे", "मला", "कृपया",
+        ),
+        " ",
+        leftover,
+        flags=re.I,
+    )
+    leftover = " ".join(leftover.split())
+    return leftover == ""
+
+
+def count_deity_aartis(deity_key: str) -> int:
+    if not DB_PATH.exists():
+        knowledge = get_knowledge().get("aartis", [])
+        return sum(1 for item in knowledge if (item.get("deity") or "") == deity_key)
+    aliases = next((a for key, a in DEITY_ALIASES if key == deity_key), (deity_key,))
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        rows = conn.execute(
+            "SELECT deity, deity_hi, deity_mr, id, title, title_hi, title_mr FROM aartis"
+        ).fetchall()
+    count = 0
+    for deity, deity_hi, deity_mr, item_id, title, title_hi, title_mr in rows:
+        blob = " ".join(
+            str(part or "") for part in (deity, deity_hi, deity_mr, item_id, title, title_hi, title_mr)
+        ).casefold()
+        if deity == deity_key or any(alias.casefold() in blob for alias in aliases):
+            # Keep hymn-like items; skip pure “open shrine” noise.
+            if any(
+                term in blob
+                for term in ("aarti", "आरती", "chalisa", "चालीसा", "stotra", "स्तोत्र", "bhajan", "भजन")
+            ) or deity == deity_key:
+                count += 1
+    return count
+
+
+EXECUTABLE_ACTIONS = set(VOICE_ACTIONS) - {"none", "answer_app_question"}
 
 
 async def resolve_voice_turn(text: str, locale_hint: Optional[str] = None, *, pending_action: Optional[str] = None,
@@ -575,7 +752,7 @@ async def resolve_voice_turn(text: str, locale_hint: Optional[str] = None, *, pe
     """
     text_clean = text.strip()
     locale = detect_locale(text_clean, locale_hint)
-    query = " ".join(text_clean.lower().split())
+    query = normalize_spoken_query(text_clean)
 
     def result(action, replies, status="action_ready"):
         return {
@@ -594,6 +771,19 @@ async def resolve_voice_turn(text: str, locale_hint: Optional[str] = None, *, pe
                 "I couldn’t find a matching item or feature in BhaktiDhara.",
                 "मुझे भक्तिधारा में इसका कोई विकल्प नहीं मिला।",
                 "भक्तिधारामध्ये यासाठी काही सापडले नाही.",
+            ),
+            status="not_found",
+        )
+
+    def guided_fallback():
+        """Rare catch-all: stay put, speak a short capabilities tip."""
+        tip = app_help.TOPICS["capabilities"]["reply"]
+        return result(
+            {"type": "none"},
+            (
+                "I couldn’t match that in BhaktiDhara. " + tip["en"],
+                "भक्तिधारा में यह मेल नहीं खाया। " + tip["hi"],
+                "भक्तिधारामध्ये जुळले नाही. " + tip["mr"],
             ),
             status="not_found",
         )
@@ -798,6 +988,34 @@ async def resolve_voice_turn(text: str, locale_hint: Optional[str] = None, *, pe
             ]
         }
 
+    def deity_list_result(deity_key: str):
+        labels = {
+            "Lord Shiva": ("Lord Shiva", "शिव", "शिव"),
+            "Lord Ganesha": ("Lord Ganesha", "गणेश", "गणेश"),
+            "Lord Hanuman": ("Lord Hanuman", "हनुमान", "हनुमान"),
+            "Lord Krishna": ("Lord Krishna", "कृष्ण", "कृष्ण"),
+            "Lord Rama": ("Lord Rama", "राम", "राम"),
+            "Goddess Durga": ("Goddess Durga", "दुर्गा", "दुर्गा"),
+            "Goddess Lakshmi": ("Goddess Lakshmi", "लक्ष्मी", "लक्ष्मी"),
+            "Lord Vitthal": ("Lord Vitthal", "विट्ठल", "विठ्ठल"),
+            "Lord Datta": ("Lord Datta", "दत्त", "दत्त"),
+            "Swami Samarth": ("Swami Samarth", "स्वामी समर्थ", "स्वामी समर्थ"),
+        }.get(deity_key, (deity_key, deity_key, deity_key))
+        return result(
+            {"type": "open_deity_aarti_list", "deity_key": deity_key, "feature_key": "catalog"},
+            (
+                f"Opening aartis for {labels[0]}.",
+                f"{labels[1]} की आरतियाँ खोल रहे हैं।",
+                f"{labels[2]} च्या आरत्या उघडत आहे.",
+            ),
+        )
+
+    # “open shiv aarti” / mixed “shiv aarti kholo” → deity list when several hymns exist.
+    deity_for_list = match_deity_key(query)
+    if deity_for_list and _generic_deity_aarti_query(query, deity_for_list):
+        if count_deity_aartis(deity_for_list) > 1:
+            return deity_list_result(deity_for_list)
+
     media_words = MEDIA_REQUEST_WORDS.sub("", query.strip(" ?!।.")).strip()
     if DB_PATH.is_file() and media_words:
         # Preserve punctuation inside titles, e.g. "(108 Jap)".
@@ -925,23 +1143,47 @@ async def resolve_voice_turn(text: str, locale_hint: Optional[str] = None, *, pe
         None,
     )
     if field or "पंचांग" in query or _alias_in_query("panchang", query):
-        reply = {
-            "en-IN": "Opening today's Panchang.",
-            "hi-IN": "आज का पंचांग खोल रहे हैं।",
-            "mr-IN": "आजचे पंचांग उघडत आहे.",
-        }[locale]
-        return {
-            "status": "action_ready",
-            "transcript": text_clean,
-            "locale": locale,
-            "response_text": reply,
-            "action": {
-                "type": "open_panchang",
-                "field": field,
-                "feature_key": "panchang"
-            },
-            "choices": []
+        field_replies = {
+            "rahu_kaal": (
+                "Opening today’s Panchang for Rahu Kaal.",
+                "आज का पंचांग राहुकाल के लिए खोल रहे हैं।",
+                "आजचे पंचांग राहुकाळासाठी उघडत आहे.",
+            ),
+            "tithi": (
+                "Opening today’s Panchang for the tithi.",
+                "आज का पंचांग तिथि के लिए खोल रहे हैं।",
+                "आजचे पंचांग तिथीसाठी उघडत आहे.",
+            ),
+            "muhurat": (
+                "Opening today’s Panchang for muhurat.",
+                "आज का पंचांग मुहूर्त के लिए खोल रहे हैं।",
+                "आजचे पंचांग मुहूर्तासाठी उघडत आहे.",
+            ),
+            "nakshatra": (
+                "Opening today’s Panchang for the nakshatra.",
+                "आज का पंचांग नक्षत्र के लिए खोल रहे हैं।",
+                "आजचे पंचांग नक्षत्रासाठी उघडत आहे.",
+            ),
+            "sunrise": (
+                "Opening today’s Panchang for sunrise.",
+                "आज का पंचांग सूर्योदय के लिए खोल रहे हैं।",
+                "आजचे पंचांग सूर्योदयासाठी उघडत आहे.",
+            ),
+            "sunset": (
+                "Opening today’s Panchang for sunset.",
+                "आज का पंचांग सूर्यास्त के लिए खोल रहे हैं।",
+                "आजचे पंचांग सूर्यास्तासाठी उघडत आहे.",
+            ),
         }
+        replies = field_replies.get(field) or (
+            "Opening today's Panchang.",
+            "आज का पंचांग खोल रहे हैं।",
+            "आजचे पंचांग उघडत आहे.",
+        )
+        return result(
+            {"type": "open_panchang", "field": field, "feature_key": "panchang"},
+            replies,
+        )
         
     if DIYA_REQUEST.search(query):
         return {
@@ -972,31 +1214,82 @@ async def resolve_voice_turn(text: str, locale_hint: Optional[str] = None, *, pe
             "choices": []
         }
         
+    # Explicit “show all Durga aartis” style asks (also covered earlier for generic forms).
+    deity_list = match_deity_key(query)
+    if deity_list and _aarti_mentioned(query) and (
+        _generic_deity_aarti_query(query, deity_list)
+        or any(
+            term in query
+            for term in ("all", "list", "collection", "सभी", "सगळ्या", "सर्व")
+        )
+    ):
+        return deity_list_result(deity_list)
+
+    wake_on = re.search(
+        r"(?:turn on|enable|start|चालू|सुरू|on)\b.*(?:wake|hey bhakti|हे भक्त[ीि]|hands.?free)|"
+        r"(?:wake|hey bhakti|हे भक्त[ीि]|hands.?free).*(?:turn on|enable|चालू|सुरू)",
+        query,
+    )
+    wake_off = re.search(
+        r"(?:turn off|disable|stop|बंद|बंद करा|off)\b.*(?:wake|hey bhakti|हे भक्त[ीि]|hands.?free)|"
+        r"(?:wake|hey bhakti|हे भक्त[ीि]|hands.?free).*(?:turn off|disable|बंद)",
+        query,
+    )
+    if wake_on or wake_off:
+        enabled = bool(wake_on)
+        return result(
+            {"type": "set_wake_word", "enabled": enabled, "feature_key": "wake_voice"},
+            (
+                "Turning on Hey Bhakti listening." if enabled else "Turning off Hey Bhakti listening.",
+                "“हे भक्ति” सुनना चालू कर रहे हैं।" if enabled else "“हे भक्ति” सुनना बंद कर रहे हैं।",
+                "“हे भक्ती” ऐका सुरू करत आहे." if enabled else "“हे भक्ती” ऐका बंद करत आहे.",
+            ),
+        )
+
     # Granth / Pothi Matching
     granth_signals = (
         "पोथी", "पोथ्या", "ग्रंथ", "गुरुचरित्र", "दासबोध", "शिवलीलामृत", "अध्याय",
-        "granth", "pothi", "gurucharitra", "dasbodh", "shivlilamrut",
+        "granth", "pothi", "gurucharitra", "dasbodh", "shivlilamrut", "gita", "geeta",
+        "गीता", "पुराण", "purana",
     )
-    if any(sig in query for sig in granth_signals):
+    if any(sig in query for sig in granth_signals) or match_granth_book(query):
         chap_match = re.search(r"(\d+)", text_clean)
         chapter = int(chap_match.group(1)) if chap_match else None
-        reply = {
-            "en-IN": "Opening the granth library.",
-            "hi-IN": "ग्रंथ संग्रह खोल रहे हैं।",
-            "mr-IN": "ग्रंथ संग्रह उघडत आहे.",
-        }[locale]
-        return {
-            "status": "action_ready",
-            "transcript": text_clean,
-            "locale": locale,
-            "response_text": reply,
-            "action": {
-                "type": "open_granth",
-                "chapter": chapter,
-                "feature_key": "granth"
-            },
-            "choices": []
-        }
+        book_slug = match_granth_book(query)
+        if book_slug:
+            replies = (
+                f"Opening {book_slug.replace('-', ' ')}"
+                + (f", chapter {chapter}." if chapter else "."),
+                f"{book_slug.replace('-', ' ')} खोल रहे हैं"
+                + (f", अध्याय {chapter}." if chapter else "।"),
+                f"{book_slug.replace('-', ' ')} उघडत आहे"
+                + (f", अध्याय {chapter}." if chapter else "."),
+            )
+            return result(
+                {
+                    "type": "open_granth_book",
+                    "book_slug": book_slug,
+                    "chapter": chapter,
+                    "feature_key": "granth",
+                },
+                replies,
+            )
+        if chapter:
+            replies = (
+                f"Opening the granth library. Choose a book for chapter {chapter}.",
+                f"ग्रंथ संग्रह खोल रहे हैं। अध्याय {chapter} के लिए पुस्तक चुनें।",
+                f"ग्रंथ संग्रह उघडत आहे. अध्याय {chapter} साठी ग्रंथ निवडा.",
+            )
+        else:
+            replies = (
+                "Opening the granth library.",
+                "ग्रंथ संग्रह खोल रहे हैं।",
+                "ग्रंथ संग्रह उघडत आहे.",
+            )
+        return result(
+            {"type": "open_granth", "chapter": chapter, "feature_key": "granth"},
+            replies,
+        )
 
     # Kundali / birth chart
     q_lower = text_clean.lower()
@@ -1133,4 +1426,85 @@ async def resolve_voice_turn(text: str, locale_hint: Optional[str] = None, *, pe
         if (kind.get("type") if isinstance(kind, dict) else kind) == birth_rashi.ACTION:
             return birth_rashi.turn(text_clean, locale)
 
-    return not_found()
+    # Soft recovery: one matched topic is enough to answer or open without a bare miss.
+    if len(topics) == 1 and not app_help.EXCLUDE.search(query):
+        if app_help.FEATURE_NAVIGATION.search(query):
+            return open_topic(topics[0])
+        if (app_help.FEATURE_INQUIRY.search(query) or app_help.MODEL_QUESTION.search(query)
+                or app_help.FEATURE_EXPLANATION.search(query)):
+            return answer_topic(topics[0])
+        # Short screen-name style requests ("premium", "more tab") should open.
+        if app_help.screen_topic(query) == topics[0] or app_help.direct_topic(query, topics):
+            info = app_help.TOPICS[topics[0]]
+            return open_topic(topics[0]) if info.get("screen_action") else answer_topic(topics[0])
+
+    # Media play with no catalog hit must stay a hard miss (not a guessed screen).
+    if is_play_intent:
+        return not_found()
+
+    # Last chance: local model may map remaining in-app asks, but only with evidence.
+    proposal = await resolve_with_local_llm(text_clean, locale, feature_intents=True) or {}
+    action = proposal.get("action")
+    fields = action if isinstance(action, dict) else {**proposal, "type": action}
+    kind = fields.get("type")
+    if kind == "answer_app_question" and fields.get("feature_key") in app_help.TOPICS:
+        return answer_topic(fields["feature_key"])
+    if isinstance(kind, str) and kind in EXECUTABLE_ACTIONS:
+        # Don't turn a failed media lookup into an unrelated screen open.
+        media_words = ("recording", "hymn", "aarti", "aarati", "song", "track", "आरती", "भजन")
+        if kind in ("open_mandir", "open_akhand_diya", "open_more", "open_premium") and any(
+            word in query for word in media_words
+        ):
+            return not_found()
+        cue_terms = MODEL_ROUTE_CUES.get(kind, ())
+        route_cues = app_help.ROUTES.get(kind, {}).get("cues")
+        evidenced = any(_alias_in_query(term, query) for term in cue_terms)
+        if route_cues and re.search(route_cues, query):
+            evidenced = True
+        if kind in app_help.ROUTES and app_help.match_route(query) == kind:
+            evidenced = True
+        if topics and app_help.TOPICS.get(topics[0], {}).get("screen_action") == kind:
+            evidenced = True
+        if not evidenced:
+            return guided_fallback()
+        if kind == "open_deity_aarti_list":
+            deity = fields.get("deity_key") or match_deity_key(query)
+            if not deity:
+                return guided_fallback()
+            fields = {**fields, "deity_key": deity}
+        if kind == "open_granth_book":
+            slug = fields.get("book_slug") or match_granth_book(query)
+            if not slug:
+                return open_topic("granth")
+            fields = {**fields, "book_slug": slug}
+        if kind == "set_wake_word" and "enabled" not in fields:
+            fields = {**fields, "enabled": not bool(re.search(r"off|disable|बंद", query))}
+        if kind == "open_horoscope" and not fields.get("rashi_id"):
+            if sign := match_rashi(query):
+                return horoscope_result(sign)
+        if kind == "start_jaap":
+            fields = {**fields, "mantra_id": fields.get("mantra_id") or match_jaap_mantra(query)}
+        route = app_help.ROUTES.get(kind)
+        if route:
+            replies = tuple(route["reply"][lang] for lang in ("en", "hi", "mr"))
+        else:
+            spoken = proposal.get("response_text")
+            if isinstance(spoken, str) and spoken.strip():
+                replies = (spoken, spoken, spoken)
+            else:
+                replies = (
+                    "Opening that in BhaktiDhara.",
+                    "भक्तिधारा में यह खोल रहे हैं।",
+                    "भक्तिधारामध्ये हे उघडत आहे.",
+                )
+        payload = {"type": kind}
+        for key in (
+            "rashi_id", "rashi_name", "aarti_id", "song_id", "title", "field",
+            "feature_key", "chapter", "query", "mantra_id", "language_code",
+            "deity_key", "book_slug", "enabled",
+        ):
+            if key in fields and fields[key] is not None:
+                payload[key] = fields[key]
+        return result(payload, replies)
+
+    return guided_fallback()

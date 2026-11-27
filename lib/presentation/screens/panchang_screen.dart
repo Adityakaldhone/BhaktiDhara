@@ -32,7 +32,10 @@ import '../widgets/language_dropdown.dart';
 /// - Sun & Moon 2x2 grid cards with warm peach and soft lavender accents
 /// - Upcoming festivals & vrats with date badges and search pill button
 class PanchangScreen extends ConsumerStatefulWidget {
-  const PanchangScreen({super.key});
+  /// Optional voice deep-link: tithi, nakshatra, rahu_kaal, muhurat, sunrise, sunset.
+  final String? focusField;
+
+  const PanchangScreen({super.key, this.focusField});
 
   @override
   ConsumerState<PanchangScreen> createState() => _PanchangScreenState();
@@ -119,6 +122,55 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
     ref.read(panchangRefreshTriggerProvider.notifier).state++;
   }
 
+  Widget _buildVoiceFocusHint(PanchangStrings s, String langCode) {
+    const labels = {
+      'rahu_kaal': ('Rahu Kaal', 'राहुकाल', 'राहुकाळ'),
+      'tithi': ('Tithi', 'तिथि', 'तिथी'),
+      'muhurat': ('Muhurat', 'मुहूर्त', 'मुहूर्त'),
+      'nakshatra': ('Nakshatra', 'नक्षत्र', 'नक्षत्र'),
+      'sunrise': ('Sunrise', 'सूर्योदय', 'सूर्योदय'),
+      'sunset': ('Sunset', 'सूर्यास्त', 'सूर्यास्त'),
+    };
+    final names = labels[widget.focusField];
+    if (names == null) return const SizedBox.shrink();
+    final label = switch (langCode) {
+      'hi' => names.$2,
+      'mr' => names.$3,
+      _ => names.$1,
+    };
+    final hint = switch (langCode) {
+      'hi' => 'वॉइस अनुरोध: $label देखें',
+      'mr' => 'आवाज विनंती: $label पाहा',
+      _ => 'Voice request: see $label',
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Material(
+        color: const Color(0xFFFFF1E4),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              const Icon(Icons.mic_none_rounded, size: 18, color: Color(0xFFBA471A)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  hint,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF6D3214),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final panchangAsync = ref.watch(currentPanchangDataProvider);
@@ -144,6 +196,8 @@ class _PanchangScreenState extends ConsumerState<PanchangScreen> {
 
             // Date Navigation Row
             _buildDateSelector(selectedDate, isToday, s),
+
+            if (widget.focusField != null) _buildVoiceFocusHint(s, langCode),
 
             // Main Content Area
             Expanded(

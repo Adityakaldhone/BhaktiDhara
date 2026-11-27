@@ -65,6 +65,11 @@
 		<string>BhaktiDhara lets you pick a photo to show on your greeting cards. The photo stays on your phone.</string>
 		<key>NSPhotoLibraryAddUsageDescription</key>
 		<string>BhaktiDhara saves the greeting images you choose to your Photos.</string>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsLocalNetworking</key>
+			<true/>
+		</dict>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>BhaktiDhara uses the microphone for voice commands and, when enabled, to listen for “Bhakti” while the app is open.</string>
 		<key>NSSpeechRecognitionUsageDescription</key>

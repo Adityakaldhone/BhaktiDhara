@@ -2,13 +2,22 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../presentation/providers/aarti_providers.dart';
+import 'mandir_voice_commands.dart';
 
 /// Master release toggle for Bhakti AI voice assistant UI & wake-word listener.
 /// Flip to `true` when ready to ship Bhakti AI.
-const bool kEnableBhaktiAi = false;
+const bool kEnableBhaktiAi = true;
 
 /// Only the screen that was visible when listening began can handle a command.
-typedef HomeVoiceReply = ({String text, VoidCallback? apply});
+/// [pendingAction] keeps the mic open for a follow-up (Mandir clarify turns).
+typedef HomeVoiceReply = ({String text, VoidCallback? apply, String? pendingAction});
+
+HomeVoiceReply voiceReply(
+  String text, {
+  VoidCallback? apply,
+  String? pendingAction,
+}) => (text: text, apply: apply, pendingAction: pendingAction);
+
 typedef HomeVoiceHandler =
     HomeVoiceReply? Function(
       String transcript,
@@ -19,6 +28,8 @@ typedef HomeVoiceHandler =
 class HomeVoiceBinding {
   HomeVoiceHandler? homeHandler;
   HomeVoiceHandler? Function()? activeHandler;
+  MandirVoiceHandler? mandirHandler;
+  MandirVoiceHandler? Function()? activeMandirHandler;
 }
 
 final homeVoiceBindingProvider = Provider((ref) => HomeVoiceBinding());

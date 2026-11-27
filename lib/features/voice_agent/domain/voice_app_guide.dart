@@ -358,14 +358,17 @@ class VoiceAppGuide {
 
   bool hasTopic(String key) => _topics.containsKey(key);
 
-  VoiceAgentResult answer(String key, String text, String locale) {
+  String topicReply(String key, String locale) {
     final replies = _topics[key]['reply'] as Map<String, dynamic>;
+    return (replies[locale.split('-').first] ?? replies['mr']) as String;
+  }
+
+  VoiceAgentResult answer(String key, String text, String locale) {
     return VoiceAgentResult(
       status: 'answered',
       transcript: text,
       locale: locale,
-      responseText:
-          (replies[locale.split('-').first] ?? replies['mr']) as String,
+      responseText: topicReply(key, locale),
       action: VoiceAction(type: 'answer_app_question', featureKey: key),
       choices: const [],
     );

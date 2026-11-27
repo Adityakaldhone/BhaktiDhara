@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../../../presentation/providers/bhakti_darshan_providers.dart';
@@ -18,6 +19,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../data/voice_agent_service.dart';
 import '../../domain/voice_action_dispatcher.dart';
 import '../../domain/home_voice_commands.dart';
+import '../../domain/mandir_voice_commands.dart';
 
 enum VoiceOrbState { greeting, listening, processing, speaking, idle }
 
@@ -26,15 +28,20 @@ class BhaktiVoiceModal extends ConsumerStatefulWidget {
     super.key,
     this.fromWake = false,
     this.homeHandler,
+    this.mandirHandler,
     this.homeScreen = false,
     this.onHomeAction,
   });
   final bool homeScreen;
   final HomeVoiceHandler? homeHandler;
+  final MandirVoiceHandler? mandirHandler;
   final ValueChanged<VoidCallback>? onHomeAction;
   final bool fromWake;
   static bool _showing = false;
   static VoidCallback? _wakeIdleSheet;
+  /// Intro greeting plays at most once per install.
+  static const _greetingPlayedKey = 'bhakti_voice_greeting_played';
+  static bool _greetingPlayedThisSession = false;
 
   static Future<void> show(
     BuildContext context,
@@ -46,13 +53,13 @@ class BhaktiVoiceModal extends ConsumerStatefulWidget {
       return;
     }
     _showing = true;
-    final homeHandler = ref
-        .read(homeVoiceBindingProvider)
-        .activeHandler
-        ?.call();
+    final binding = ref.read(homeVoiceBindingProvider);
+    final mandirHandler = binding.activeMandirHandler?.call();
+    final homeHandler = mandirHandler == null
+        ? binding.activeHandler?.call()
+        : null;
     final homeScreen =
-        homeHandler != null &&
-        homeHandler == ref.read(homeVoiceBindingProvider).homeHandler;
+        homeHandler != null && homeHandler == binding.homeHandler;
     VoidCallback? homeAction;
     final wake = ref.read(bhaktiWakeProvider);
     VoiceAgentResult? result;
@@ -74,6 +81,7 @@ class BhaktiVoiceModal extends ConsumerStatefulWidget {
           return BhaktiVoiceModal(
             fromWake: fromWake,
             homeHandler: homeHandler,
+            mandirHandler: mandirHandler,
             homeScreen: homeScreen,
             onHomeAction: (action) => homeAction = action,
           );
@@ -114,6 +122,8 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
   String _recognizedTranscript = '';
   String? _pendingAction;
   Map<String, String>? _birthDetails;
+  Timer? _finalizeSpeechTimer;
+  StreamSubscription<void>? _greetingCompleteSub;
 
   @override
   void initState() {
@@ -141,6 +151,8 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
   @override
   void dispose() {
     BhaktiVoiceModal._wakeIdleSheet = null;
+    _finalizeSpeechTimer?.cancel();
+    unawaited(_greetingCompleteSub?.cancel());
     _pulseController.dispose();
     _rotationController.dispose();
     _audioPlayer.dispose();
@@ -153,24 +165,31 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
 
   Future<void> _initAndStartFlow() async {
     try {
-      void onIdle() {
-        if (mounted && _state == VoiceOrbState.listening) {
-          _idle(message: "");
-        }
-      }
-
       void onStatus(String status) {
-        if (status == stt.SpeechToText.doneStatus) onIdle();
+        if (!mounted) return;
+        if (status == stt.SpeechToText.doneStatus ||
+            status == stt.SpeechToText.notListeningStatus) {
+          // Engine ended — finalize after a short beat so the last words arrive.
+          _scheduleFinalize(forceSoon: true);
+        }
       }
 
       // initialize() retains the first callbacks on this platform singleton.
       final available = await _speechToText.initialize(
         onStatus: onStatus,
-        onError: (_) => onIdle(),
+        onError: (_) {
+          if (mounted && _state == VoiceOrbState.listening) {
+            _scheduleFinalize(forceSoon: true);
+          }
+        },
       );
       if (!mounted) return;
       _speechToText.statusListener = onStatus;
-      _speechToText.errorListener = (_) => onIdle();
+      _speechToText.errorListener = (_) {
+        if (mounted && _state == VoiceOrbState.listening) {
+          _scheduleFinalize(forceSoon: true);
+        }
+      };
       if (!available) {
         _showSpeechUnavailable();
         return;
@@ -181,7 +200,7 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
     }
 
     if (!mounted || _state != VoiceOrbState.greeting) return;
-    if (widget.fromWake) {
+    if (widget.fromWake || await _shouldSkipGreeting()) {
       await _startListening();
       return;
     }
@@ -206,8 +225,10 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
     setState(() {
       _activeMessage = greetingText;
     });
+    await _markGreetingPlayed();
 
-    _audioPlayer.onPlayerComplete.listen((_) {
+    await _greetingCompleteSub?.cancel();
+    _greetingCompleteSub = _audioPlayer.onPlayerComplete.listen((_) {
       if (mounted && _state == VoiceOrbState.greeting) {
         _startListening();
       }
@@ -224,6 +245,43 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
         }
       });
     }
+  }
+
+  Future<bool> _shouldSkipGreeting() async {
+    if (BhaktiVoiceModal._greetingPlayedThisSession) return true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(BhaktiVoiceModal._greetingPlayedKey) ?? false;
+    } catch (_) {
+      return BhaktiVoiceModal._greetingPlayedThisSession;
+    }
+  }
+
+  Future<void> _markGreetingPlayed() async {
+    BhaktiVoiceModal._greetingPlayedThisSession = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(BhaktiVoiceModal._greetingPlayedKey, true);
+    } catch (_) {}
+  }
+
+  /// Wait for a pause after the last STT update so mid-sentence silence
+  /// does not cut the user off and fire the model early.
+  void _scheduleFinalize({bool forceSoon = false}) {
+    if (!mounted || _state != VoiceOrbState.listening) return;
+    _finalizeSpeechTimer?.cancel();
+    final delay = forceSoon
+        ? const Duration(milliseconds: 450)
+        : const Duration(milliseconds: 2200);
+    _finalizeSpeechTimer = Timer(delay, () {
+      if (!mounted || _state != VoiceOrbState.listening) return;
+      final q = _recognizedTranscript.trim();
+      if (q.isNotEmpty) {
+        unawaited(_handleFinalUserQuery(q));
+      } else if (forceSoon) {
+        _idle(message: '');
+      }
+    });
   }
 
   void _idle({String? message}) {
@@ -243,6 +301,7 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
 
   Future<void> _startListening({String? prompt}) async {
     if (!mounted || _state == VoiceOrbState.listening) return;
+    _finalizeSpeechTimer?.cancel();
     // Reserve the mic before an idle sheet can get a second wake callback.
     setState(() => _state = VoiceOrbState.listening);
     await ref.read(bhaktiWakeProvider).setModal(true);
@@ -269,20 +328,23 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
     try {
       await _speechToText.listen(
         onResult: (result) {
-          if (!mounted) return;
+          if (!mounted || _state != VoiceOrbState.listening) return;
+          final words = result.recognizedWords.trim();
+          if (words.isEmpty) return;
           setState(() {
-            _recognizedTranscript = result.recognizedWords;
+            _recognizedTranscript = words;
           });
-
-          if (result.finalResult && _recognizedTranscript.trim().isNotEmpty) {
-            _handleFinalUserQuery(_recognizedTranscript.trim());
-          }
+          // Keep listening across brief pauses; finalize only after silence.
+          _scheduleFinalize();
         },
         listenOptions: stt.SpeechListenOptions(
           localeId: targetLocaleId,
-          listenMode: stt.ListenMode.search,
+          listenMode: stt.ListenMode.dictation,
           cancelOnError: false,
           partialResults: true,
+          autoPunctuation: false,
+          listenFor: const Duration(seconds: 60),
+          pauseFor: const Duration(seconds: 3),
         ),
       );
     } catch (_) {
@@ -292,6 +354,7 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
 
   Future<void> _handleFinalUserQuery(String query) async {
     if (!mounted || _state != VoiceOrbState.listening) return;
+    _finalizeSpeechTimer?.cancel();
 
     setState(() {
       _state = VoiceOrbState.processing;
@@ -305,24 +368,54 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
         ? 'hi-IN'
         : (langCode == 'en' ? 'en-IN' : 'mr-IN');
 
-    var homeReply = _pendingAction == null
-        ? widget.homeHandler?.call(query, langCode)
+    final mandirPending = MandirCommand.clarificationTopics.contains(
+      _pendingAction,
+    );
+    var screenReply = (_pendingAction == null || mandirPending)
+        ? (widget.mandirHandler?.call(
+                query,
+                langCode,
+                pendingTopic: mandirPending ? _pendingAction : null,
+              ) ??
+              (_pendingAction == null
+                  ? widget.homeHandler?.call(query, langCode)
+                  : null))
         : null;
-    if (homeReply == null && _pendingAction == null && widget.homeScreen) {
-      final predicted = await VoiceAgentService.predictHomeCommand(
-        query,
-        localeHint,
-      );
-      if (!mounted) return;
-      if (predicted != null)
-        homeReply = widget.homeHandler?.call(
+    if (screenReply == null &&
+        (widget.mandirHandler != null || _pendingAction == null)) {
+      if (widget.mandirHandler != null) {
+        final predicted = await VoiceAgentService.predictMandirCommand(
           query,
-          langCode,
-          prediction: predicted,
+          localeHint,
+          pendingTopic: _pendingAction,
         );
+        if (!mounted) return;
+        if (predicted != null) {
+          screenReply = widget.mandirHandler?.call(
+            query,
+            langCode,
+            prediction: predicted,
+            pendingTopic: _pendingAction,
+          );
+        }
+      } else if (widget.homeScreen) {
+        final predicted = await VoiceAgentService.predictHomeCommand(
+          query,
+          localeHint,
+        );
+        if (!mounted) return;
+        if (predicted != null) {
+          screenReply = widget.homeHandler?.call(
+            query,
+            langCode,
+            prediction: predicted,
+          );
+        }
+      }
     }
-    final reply = homeReply;
+    final reply = screenReply;
     if (reply != null) {
+      _pendingAction = reply.pendingAction;
       setState(() {
         _state = VoiceOrbState.speaking;
         _activeMessage = reply.text;
@@ -331,6 +424,10 @@ class _BhaktiVoiceModalState extends ConsumerState<BhaktiVoiceModal>
         await BhaktiSpeech.speak(reply.text, localeHint: localeHint);
       } catch (_) {}
       if (!mounted) return;
+      if (reply.pendingAction != null) {
+        await _startListening(prompt: reply.text);
+        return;
+      }
       if (reply.apply case final apply?) {
         widget.onHomeAction?.call(apply);
         Navigator.of(context).pop();

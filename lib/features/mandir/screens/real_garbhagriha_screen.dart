@@ -20,6 +20,9 @@ import '../../../services/audio_service.dart';
 import '../../../services/backend_service.dart';
 import '../controllers/akhand_diya_controller.dart';
 import '../../../presentation/screens/ishta_devta_screen.dart';
+import '../../voice_agent/domain/home_voice_commands.dart';
+import '../../voice_agent/domain/mandir_voice_commands.dart';
+import '../../voice_agent/presentation/widgets/bhakti_voice_modal.dart';
 import '../widgets/mandir_aarti_session.dart';
 import '../widgets/mandir_deity_picker.dart';
 import '../widgets/mandir_painters.dart';
@@ -234,6 +237,8 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
   /// Daily Seva persistence so morning rituals remain visible all day.
   final Set<String> _dailySevas = <String>{};
   bool _sankalpCelebratedToday = false;
+  late final HomeVoiceBinding _voiceBinding;
+  late final MandirVoiceHandler? Function() _mandirVoiceEntry = _activeMandirVoiceHandler;
 
   AnimationController _controller(int ms) => AnimationController(
     vsync: this,
@@ -245,6 +250,9 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
   @override
   void initState() {
     super.initState();
+    _voiceBinding = ref.read(homeVoiceBindingProvider)
+      ..mandirHandler = _mandirVoice
+      ..activeMandirHandler = _mandirVoiceEntry;
     _pour.addListener(_onPourTick);
     _enableWakelock();
     _loadPrefs();
@@ -293,6 +301,10 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
 
   @override
   void dispose() {
+    if (_voiceBinding.activeMandirHandler == _mandirVoiceEntry) {
+      _voiceBinding.activeMandirHandler = null;
+      _voiceBinding.mandirHandler = null;
+    }
     _shrineClock.dispose();
     _completeTimer?.cancel();
     _whisperTimer?.cancel();
@@ -617,6 +629,253 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
     _track('change_deity');
   }
 
+  MandirVoiceHandler? _activeMandirVoiceHandler() {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return null;
+    return _mandirVoice;
+  }
+
+  HomeVoiceReply? _mandirVoice(
+    String text,
+    String lang, {
+    MandirCommand? prediction,
+    String? pendingTopic,
+  }) {
+    if (!mounted) return null;
+    final cmd = prediction ?? MandirCommand.parse(text, pendingTopic: pendingTopic);
+    if (cmd == null || cmd is OtherMandir) return null;
+    String say(String en, String hi, String mr) => _t(lang, en: en, hi: hi, mr: mr);
+    HomeVoiceReply act(String message, VoidCallback apply) => voiceReply(
+      message,
+      apply: () {
+        if (mounted && ModalRoute.of(context)?.isCurrent == true) apply();
+      },
+    );
+    HomeVoiceReply speak(String message, {String? pending}) => voiceReply(
+      message,
+      pendingAction: pending ?? cmd.pendingTopic,
+    );
+    final diya = ref.read(akhandDiyaControllerProvider.notifier);
+    final deity = ref.read(jyotDeityProvider);
+
+    return switch (cmd) {
+      OfferGheeMandir() => act(
+        say('Offering ghee to the lamp.', 'दीये में घी अर्पित कर रही हूँ।', 'दिव्याला तूप अर्पण करत आहे.'),
+        _pourGhee,
+      ),
+      ReadGheeMandir() => speak(say(
+        'The lamp has ${(diya.gheeRatio * 100).round()}% ghee left.',
+        'दीये में ${(diya.gheeRatio * 100).round()}% घी बचा है।',
+        'दिव्यात ${(diya.gheeRatio * 100).round()}% तूप शिल्लक आहे.',
+      )),
+      ReadTimeMandir() => speak('${_remainingText(lang, diya.gheeRatio)}.'),
+      ReadStreakMandir() => () {
+        final days = math.max(diya.streakDays, 1);
+        return speak(say(
+          'Your lamp streak is $days days.',
+          'दीये का आपका क्रम $days दिन है।',
+          'दिव्याचे सलग दिवस $days आहेत.',
+        ));
+      }(),
+      RingBellMandir() => act(
+        say('Ringing the temple bells.', 'मंदिर की घंटियाँ बजा रही हूँ।', 'मंदिरातील घंटा वाजवत आहे.'),
+        _ghantaNaad,
+      ),
+      BlowConchMandir() => act(
+        say('Sounding the conch.', 'शंख बजा रही हूँ।', 'शंख वाजवत आहे.'),
+        _shankhNaad,
+      ),
+      OfferFlowersMandir() => act(
+        say('Offering flowers to the deity.', 'देवता को फूल अर्पित कर रही हूँ।', 'देवाला फुले अर्पण करत आहे.'),
+        _pushpanjali,
+      ),
+      OfferFoodMandir() => act(
+        say('Placing naivedya before the deity.', 'देवता के सामने नैवेद्य रख रही हूँ।', 'देवासमोर नैवेद्य ठेवत आहे.'),
+        _placeNaivedya,
+      ),
+      ReadFoodMandir() => (
+        text: _naivedyaPlaced
+            ? say(
+                'Naivedya is already placed before the deity.',
+                'देवता के सामने नैवेद्य पहले से रखा है।',
+                'देवासमोर नैवेद्य आधीच ठेवलेला आहे.',
+              )
+            : say(
+                'No food offering is placed yet.',
+                'अभी नैवेद्य नहीं रखा गया है।',
+                'सध्या नैवेद्य ठेवलेला नाही.',
+              ),
+        apply: null,
+        pendingAction: null,
+      ),
+      StartAartiMandir() => _aarti
+          ? (
+              text: say(
+                'The aarti thali is already open.',
+                'आरती की थाली पहले से खुली है।',
+                'आरतीचे ताट आधीच सुरू आहे.',
+              ),
+              apply: null,
+              pendingAction: null,
+            )
+          : act(
+              say('Opening the aarti thali.', 'आरती की थाली खोल रही हूँ।', 'आरतीचे ताट उघडत आहे.'),
+              _toggleAarti,
+            ),
+      StopAartiMandir() => !_aarti
+          ? (
+              text: say(
+                'The aarti thali is already closed.',
+                'आरती की थाली पहले से बंद है।',
+                'आरतीचे ताट आधीच बंद आहे.',
+              ),
+              apply: null,
+              pendingAction: null,
+            )
+          : act(
+              say('Closing the aarti thali.', 'आरती की थाली बंद कर रही हूँ।', 'आरतीचे ताट बंद करत आहे.'),
+              _toggleAarti,
+            ),
+      ReadAartiMandir() => (
+        text: _aarti
+            ? say(
+                'The aarti thali is open right now.',
+                'आरती की थाली अभी खुली है।',
+                'आरतीचे ताट सध्या सुरू आहे.',
+              )
+            : say(
+                'The aarti thali is currently closed.',
+                'आरती की थाली अभी बंद है।',
+                'आरतीचे ताट सध्या बंद आहे.',
+              ),
+        apply: null,
+        pendingAction: null,
+      ),
+      ChangeDeityMandir() => act(
+        say(
+          'Opening the deity picker. Choose the deity you want to seat.',
+          'देवता चुनने की सूची खोल रही हूँ। अपने इच्छित देवता चुनें।',
+          'देवता निवडण्याची यादी उघडत आहे. हवे ते दैवत निवडा.',
+        ),
+        _changeDeity,
+      ),
+      ReadDeityMandir() => (
+        text: say(
+          'The seated deity is ${deity.localizedName(lang)}.',
+          'अभी ${deity.localizedName(lang)} विराजमान हैं।',
+          'सध्या ${deity.localizedName(lang)} विराजमान आहेत.',
+        ),
+        apply: null,
+        pendingAction: null,
+      ),
+      CancelMandir() => speak(say('Okay.', 'ठीक है।', 'ठीक आहे.')),
+      ExplainMandirTopic(:final topic) => speak(
+        _mandirGuideReply(topic, lang),
+        pending: MandirCommand.clarificationTopics.contains(topic) ? topic : null,
+      ),
+      OtherMandir() => null,
+    };
+  }
+
+  String _mandirGuideReply(String topic, String lang) => switch (topic) {
+    'explain_ghee' => _t(
+      lang,
+      en: 'Tap Offer ghee or the ghee pot to refill the lamp. A full pot lasts 24 hours. Refilling can advance your streak once per calendar day.',
+      hi: 'घी अर्पण करें या कलश दबाकर दीया भरें। पूरा कलश 24 घंटे चलता है। एक दिन में लगातार दिनों की गिनती एक बार बढ़ सकती है।',
+      mr: 'तूप अर्पण करा किंवा कलशावर टॅप करून दिवा भरा. भरलेला कलश २४ तास पुरतो. सलग दिवसांची नोंद एका दिवशी एकदाच वाढू शकते.',
+    ),
+    'explain_bell' => _t(
+      lang,
+      en: 'Tap a hanging bell to ring it, or choose Ring bell to ring both in sequence.',
+      hi: 'किसी लटकती घंटी को दबाएँ या दोनों घंटियाँ क्रम से बजाने के लिए घंटा नाद चुनें।',
+      mr: 'एखाद्या लटकत्या घंटेवर टॅप करा किंवा दोन्ही क्रमाने वाजवण्यासाठी घंटानाद निवडा.',
+    ),
+    'explain_conch' => _t(
+      lang,
+      en: 'Choose Shankh naad on the right to sound the conch.',
+      hi: 'दाईं ओर शंखनाद चुनकर शंख बजाएँ।',
+      mr: 'उजवीकडील शंखनाद निवडून शंख वाजवा.',
+    ),
+    'explain_flowers' => _t(
+      lang,
+      en: 'Choose Pushpanjali to offer flowers. Petals fall and a garland appears around the deity.',
+      hi: 'फूल चढ़ाने के लिए पुष्पांजलि चुनें। पंखुड़ियाँ गिरती हैं और देवता के चारों ओर माला दिखती है।',
+      mr: 'फुले वाहण्यासाठी पुष्पांजली निवडा. पाकळ्या पडतात आणि देवाला हार दिसतो.',
+    ),
+    'explain_food' => _t(
+      lang,
+      en: 'Choose Naivedya on the right to place a food offering in front of the deity.',
+      hi: 'देवता के सामने भोग रखने के लिए दाईं ओर नैवेद्य भोग चुनें।',
+      mr: 'देवासमोर भोग ठेवण्यासाठी उजवीकडील नैवेद्य निवडा.',
+    ),
+    'explain_aarti' => _t(
+      lang,
+      en: 'Open Aarti thali and drag the thali with your finger. The lyrics panel lets you choose an aarti and move between verses.',
+      hi: 'आरती थाली खोलें और उंगली से थाली घुमाएँ। बोलों के पैनल में आरती चुनें और पद बदलें।',
+      mr: 'आरती ताट उघडा आणि बोटाने ताट फिरवा. बोलांच्या पॅनेलमध्ये आरती निवडा आणि कडवी बदला.',
+    ),
+    'explain_player' => _t(
+      lang,
+      en: 'With the thali open, use the arrows to move between verses. Choose Sing myself for manual singing, or Video for the recording when available. Drag the video to move it.',
+      hi: 'थाली खुली हो तो तीरों से पद बदलें। स्वयं गाएं चुनकर खुद गाएँ या उपलब्ध हो तो वीडियो चुनें। वीडियो को खींचकर हटा सकते हैं।',
+      mr: 'ताट उघडे असताना बाणांनी कडवे बदला. स्वतः गा निवडून स्वतः गा किंवा उपलब्ध असल्यास व्हिडिओ निवडा. व्हिडिओ ओढून हलवता येतो.',
+    ),
+    'explain_deity' => _t(
+      lang,
+      en: 'Choose Change deity, search for a name, then tap the deity. The picker also offers a request form for a missing deity.',
+      hi: 'देवता बदलें दबाएँ, नाम खोजें और देवता चुनें। नाम न मिले तो सूची में अनुरोध फ़ॉर्म भी है।',
+      mr: 'देवता बदला निवडा, नाव शोधा आणि दैवत निवडा. दैवत न मिळाल्यास यादीत विनंतीचा फॉर्मही आहे.',
+    ),
+    'overview' => _t(
+      lang,
+      en: 'Here you can have darshan, tend the lamp, offer flowers or naivedya, ring the bells, sound the conch and perform aarti.',
+      hi: 'यहाँ दर्शन करें, दीये में घी भरें, फूल या भोग चढ़ाएँ, घंटी या शंख बजाएँ और आरती करें।',
+      mr: 'इथे दर्शन घ्या, दिव्यात तूप घाला, फुले किंवा नैवेद्य अर्पण करा, घंटा किंवा शंख वाजवा आणि आरती करा.',
+    ),
+    'clarify_jyot' => _t(
+      lang,
+      en: 'For the lamp, do you want to refill ghee, check how much is left, remaining time, or your streak?',
+      hi: 'ज्योत के लिए आप क्या चाहेंगे: घी भरें, कितना बचा है देखें, कितनी देर चलेगी, या streak?',
+      mr: 'ज्योतीसाठी काय करू: तूप भरायचे, शिल्लक पहायची, किती वेळ पुरेल, की streak?',
+    ),
+    'clarify_aarti' => _t(
+      lang,
+      en: 'For aarti, do you want to open the thali, close it, check if it is open, or hear how it works?',
+      hi: 'आरती के लिए आप क्या चाहेंगे: थाली खोलें, बंद करें, स्थिति देखें, या कैसे करें समझें?',
+      mr: 'आरतीसाठी काय करू: ताट उघडायचे, बंद करायचे, स्थिती पहायची, की कसे करायचे सांगू?',
+    ),
+    'clarify_food' => _t(
+      lang,
+      en: 'For naivedya, do you want to place food, check if it is already placed, or hear how?',
+      hi: 'नैवेद्य के लिए आप क्या चाहेंगे: भोग रखें, पहले से है या नहीं देखें, या कैसे करें?',
+      mr: 'नैवेद्यासाठी काय करू: भोग ठेवायचा, आधीच आहे का ते पहायचे, की कसे करायचे?',
+    ),
+    'clarify_deity' => _t(
+      lang,
+      en: 'For the deity, do you want to change who is seated, hear the current name, or learn how to switch?',
+      hi: 'देवता के लिए आप क्या चाहेंगे: बदलें, अभी कौन हैं बताएँ, या कैसे बदलें?',
+      mr: 'दैवतासाठी काय करू: बदलायचे, सध्या कोण आहे सांगायचे, की कसे बदलायचे?',
+    ),
+    'clarify_offering' => _t(
+      lang,
+      en: 'What would you like to offer: ghee, flowers or naivedya?',
+      hi: 'आप क्या चढ़ाना चाहेंगे: घी, फूल या नैवेद्य?',
+      mr: 'काय अर्पण करू: तूप, फुले की नैवेद्य?',
+    ),
+    'clarify' => _t(
+      lang,
+      en: 'Which Mandir service do you mean?',
+      hi: 'मंदिर की किस सेवा की बात कर रहे हैं?',
+      mr: 'मंदिरातील कोणती सेवा हवी आहे?',
+    ),
+    'unavailable' => _t(
+      lang,
+      en: 'That service is unavailable in this Mandir. You can offer flowers or naivedya here.',
+      hi: 'इस मंदिर में वह सेवा उपलब्ध नहीं है। यहाँ फूल या नैवेद्य अर्पित कर सकते हैं।',
+      mr: 'या मंदिरात ती सेवा उपलब्ध नाही. इथे फुले किंवा नैवेद्य अर्पण करता येतो.',
+    ),
+    _ => _t(lang, en: 'Okay.', hi: 'ठीक है।', mr: 'ठीक आहे.'),
+  };
+
   void _showSankalpSheet(String lang, AkhandDiyaController diya) {
     final streak = math.max(diya.streakDays, 1);
     final items = [
@@ -918,6 +1177,7 @@ class _RealGarbhagrihaScreenState extends ConsumerState<RealGarbhagrihaScreen> w
                         onDeityTap: _changeDeity,
                         onSankalpTap: () => _showSankalpSheet(lang, diya),
                         onDarshanToggle: () => setState(() => _pureDarshan = true),
+                        onVoiceTap: kEnableBhaktiAi ? () => BhaktiVoiceModal.show(context, ref) : null,
                         topPadding: padding.top,
                       ),
                     ),
@@ -1869,10 +2129,12 @@ class _DarshanHeader extends StatelessWidget {
     required this.onSankalpTap,
     required this.onDarshanToggle,
     required this.topPadding,
+    this.onVoiceTap,
   });
   final String lang, deityName;
   final SanctumPrahar prahar;
   final VoidCallback onDeityTap, onSankalpTap, onDarshanToggle;
+  final VoidCallback? onVoiceTap;
   final double topPadding;
 
   @override
@@ -1920,6 +2182,12 @@ class _DarshanHeader extends StatelessWidget {
               ),
             ),
           ),
+          if (onVoiceTap != null)
+            IconButton(
+              onPressed: onVoiceTap,
+              tooltip: _t(lang, en: 'Bhakti AI', hi: 'भक्ति AI', mr: 'भक्ती AI'),
+              icon: const Icon(Icons.mic_none_rounded, color: ink),
+            ),
           IconButton(
             onPressed: onSankalpTap,
             tooltip: _t(lang, en: 'Daily sankalp', hi: 'नित्य पूजा संकल्प', mr: 'नित्य पूजा संकल्प'),
