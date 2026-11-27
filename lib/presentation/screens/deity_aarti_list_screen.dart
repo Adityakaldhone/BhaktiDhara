@@ -1,4 +1,3 @@
-import '../../core/analytics/analytics_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +17,9 @@ import '../providers/review_provider.dart';
 import '../widgets/app_banner_ad.dart';
 import '../widgets/bhakti/deity_cutout_image.dart';
 import '../widgets/devotional_review_dialog.dart';
+import '../widgets/request_deity_section.dart';
 import 'altar_screen.dart';
+import 'request_deity_aarti_screen.dart';
 
 /// Configuration metadata for deity header presentation.
 class _DeityHeaderInfo {
@@ -480,7 +481,7 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                     _buildSearchBar(),
                     const SizedBox(height: 10),
 
-                    // Aarti Cards Scrollable List
+                    // Aarti Cards Scrollable List + Footer Request Section
                     Expanded(
                       child: filteredList.isEmpty
                           ? _buildEmptyState(localeCode)
@@ -492,8 +493,11 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                                 110,
                               ),
                               physics: const BouncingScrollPhysics(),
-                              itemCount: filteredList.length,
+                              itemCount: filteredList.length + 1,
                               itemBuilder: (context, index) {
+                                if (index == filteredList.length) {
+                                  return _buildMissingAartiFooterCard(localeCode);
+                                }
                                 return _buildAartiCard(
                                   filteredList[index],
                                   localeCode,
@@ -671,13 +675,17 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      info.subtitle,
-                      style: GoogleFonts.mukta(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF8B2B1B),
-                        letterSpacing: 0.5,
+                    Flexible(
+                      child: Text(
+                        info.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.mukta(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF8B2B1B),
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                     const Text(
@@ -903,6 +911,98 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
     );
   }
 
+  Widget _buildMissingAartiFooterCard(String localeCode) {
+    final query = _searchQuery.trim();
+    return Container(
+      key: const Key('aarti-list-request-card'),
+      margin: const EdgeInsets.only(top: 10, bottom: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF5DF), Color(0xFFFFE5B8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD4AF37), width: 1.2),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => RequestDeityAartiScreen(
+                initialText: query.isNotEmpty ? query : '',
+                initialKind: DeityRequestKind.aarti,
+                source: 'aarti_list_footer',
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7A0C08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.playlist_add_rounded,
+                    color: Color(0xFFFFE082),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        localeCode == 'hi'
+                            ? 'मनपसंद आरती नहीं मिली?'
+                            : (localeCode == 'mr'
+                                ? 'हवी असलेली आरती नाही मिळाली?'
+                                : 'Missing an Aarti here?'),
+                        style: GoogleFonts.mukta(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF7A0C08),
+                          height: 1.15,
+                        ),
+                      ),
+                      Text(
+                        localeCode == 'hi'
+                            ? 'नाम लिखकर भेजें · २४ घंटे में जोड़ देंगे 🙏'
+                            : (localeCode == 'mr'
+                                ? 'नाव लिहून पाठवा · २४ तासांत जोडून देऊ 🙏'
+                                : 'Write Aarti name — added in 24 hours 🙏'),
+                        style: GoogleFonts.mukta(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF5D4037),
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: Color(0xFF7A0C08),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // EMPTY SEARCH / REQUEST AARTI STATE
   // ═══════════════════════════════════════════════════════════════════════════
@@ -966,49 +1066,24 @@ class _DeityAartiListScreenState extends ConsumerState<DeityAartiListScreen> {
               ),
               const SizedBox(height: 18),
               ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   HapticFeedback.mediumImpact();
                   final targetAarti = hasQuery ? query : widget.deity;
 
-                  BackendService.trackEvent(
-                    'aarti_requested',
-                    item: targetAarti,
-                    props: {
-                      'query': targetAarti,
-                      'deity': widget.deity,
-                      'locale': localeCode,
-                    },
+                  await submitDeityOrAartiRequest(
+                    name: targetAarti,
+                    kind: DeityRequestKind.aarti,
+                    lang: localeCode,
+                    source: 'aarti_list_empty',
                   );
 
-                  AnalyticsService.logCustomEvent(
-                    'aarti_requested',
-                    parameters: {
-                      'query': targetAarti,
-                      'deity': widget.deity,
-                      'locale': localeCode,
-                    },
+                  if (!mounted) return;
+                  await showRequestSentConfirmationDialog(
+                    context,
+                    lang: localeCode,
+                    itemName: targetAarti,
+                    kind: DeityRequestKind.aarti,
                   );
-
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(
-                      SnackBar(
-                        backgroundColor: const Color(0xFF7A0C08),
-                        duration: const Duration(seconds: 4),
-                        content: Text(
-                          localeCode == 'hi'
-                              ? '🙏 "$targetAarti" का अनुरोध मिला! हम २४ घंटे में यह आरती जोड़ देंगे।'
-                              : (localeCode == 'mr'
-                                  ? '🙏 "$targetAarti" ची विनंती मिळाली! आम्ही २४ तासांत ही आरती जोडू.'
-                                  : '🙏 Request for "$targetAarti" received! Adding in 24 hours.'),
-                          style: GoogleFonts.mukta(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF7A0C08),

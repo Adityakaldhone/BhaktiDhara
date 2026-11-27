@@ -366,12 +366,17 @@ class LocalVoiceIntentParser {
     if (_hasAny(lower, const [
       'good morning cards',
       'cards that say good morning',
+      'good night cards',
+      'cards that say good night',
+      'good night',
       'सुविचार',
       'शुभेच्छा',
       'greeting',
       'greetings',
       'शुभकामना',
       'सुप्रभात',
+      'शुभ रात्री',
+      'शुभ रात्रि',
       'suvichar',
       'status card',
     ])) {

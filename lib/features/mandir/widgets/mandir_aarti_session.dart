@@ -276,7 +276,7 @@ class _MandirAartiSessionState extends ConsumerState<MandirAartiSession> {
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.mukta(
                             fontSize: 11,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                             color: const Color(0xFF3A1A06),
                           ),
                         ),
@@ -384,7 +384,7 @@ class _LyricsCard extends StatelessWidget {
       aarti.localizedTitle(lang),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: GoogleFonts.mukta(fontSize: 13.5, fontWeight: FontWeight.w800, color: const Color(0xFFFFE9B0)),
+      style: GoogleFonts.mukta(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFFFFE9B0)),
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 6, 2),
@@ -407,7 +407,7 @@ class _LyricsCard extends StatelessWidget {
                             c.localizedTitle(lang),
                             style: GoogleFonts.mukta(
                               fontSize: 14,
-                              fontWeight: c.id == aarti.id ? FontWeight.w800 : FontWeight.w600,
+                              fontWeight: c.id == aarti.id ? FontWeight.w700 : FontWeight.w400,
                               color: c.id == aarti.id ? Brass.gold : const Color(0xFFFFE9B0),
                             ),
                           ),
@@ -473,7 +473,7 @@ class _LyricsCard extends StatelessWidget {
                         style: GoogleFonts.mukta(
                           fontSize: i == index ? 16.5 : 14,
                           height: 1.35,
-                          fontWeight: i == index ? FontWeight.w800 : FontWeight.w600,
+                          fontWeight: i == index ? FontWeight.w700 : FontWeight.w400,
                           color: i == index ? const Color(0xFFFFE08A) : const Color(0x8CFFE9B0),
                           shadows: i == index ? const [Shadow(color: Color(0xAAFF8F00), blurRadius: 10)] : const [],
                         ),
@@ -651,7 +651,7 @@ class _ModePill extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 label,
-                style: GoogleFonts.mukta(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFFFFE9B0)),
+                style: GoogleFonts.mukta(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFFFFE9B0)),
               ),
             ],
           ),

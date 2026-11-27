@@ -366,14 +366,317 @@ THEME_ARCHETYPES_EN: List[Dict[str, str]] = [
     },
 ]
 
+NIGHT_THEME_ARCHETYPES_HI: List[Dict[str, str]] = [
+    {
+        "deity": "Moonlit Lake",
+        "theme": "Full Moon Reflection Over Serene Himalayan Lake",
+        "scene": "A peaceful Himalayan alpine lake at night reflecting a luminous silver full moon and glittering Milky Way stars, dark pine silhouettes, gentle water ripples, serene indigo and deep sapphire night sky.",
+        "badge": "Moonlit calm",
+        "heading": "शुभ रात्रि",
+        "quote": "दिन भर की थकान को भूलकर सुकून से सो जाएं, कल एक नई और सुंदर सुबह आपका इंतज़ार कर रही है।",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "Temple Twilight",
+        "theme": "Glowing Brass Diyas on Quiet Temple Courtyard at Night",
+        "scene": "Warm flickering brass oil lamps along ancient stone steps of a quiet Indian courtyard at night, white jasmine petals, soft incense haze, crescent moon visible in deep velvet sky.",
+        "badge": "Sacred evening peace",
+        "heading": "शुभ रात्रि",
+        "quote": "ईश्वर का आशीर्वाद और मन की शांति आपके साथ रहे। आपकी रात्रि सुखद और मंगलमय हो।",
+        "layout_style": "top_banner",
+    },
+    {
+        "deity": "Cozy Night",
+        "theme": "Warm Paper Lanterns & Jasmine Tea by Moonlit Window",
+        "scene": "A warm ceramic cup of calming chamomile tea on a rustic wooden windowsill at night, glowing fairy lights and soft golden bedside lamp, crescent moon and twinkling stars outside the window.",
+        "badge": "Cosy night warmth",
+        "heading": "शुभ रात्रि",
+        "quote": "सपने वो नहीं जो हम नींद में देखते हैं, बल्कि वो हैं जो हमें हर सुबह नई ऊर्जा से जगाते हैं। शुभ रात्रि।",
+        "layout_style": "magazine_minimal",
+    },
+    {
+        "deity": "Lotus Night",
+        "theme": "Night-Blooming White Lotus Pond Under Silver Moonlight",
+        "scene": "Tranquil dark pond filled with glowing white water lilies and lotus leaves under silvery moonlight, soft fireflies hovering above the water, dreamy starry reflections.",
+        "badge": "Moonlit lotus serenity",
+        "heading": "शुभ रात्रि",
+        "quote": "शांत मन और सकारात्मक विचारों के साथ विश्राम करें, ईश्वर की कृपा सदा आप पर बनी रहे।",
+        "layout_style": "center_card",
+    },
+    {
+        "deity": "Starry Valley",
+        "theme": "Milky Way Over Quiet Mountain Meadow & Lanterns",
+        "scene": "Clear starry night sky filled with the Milky Way galaxy arching above a quiet mountain valley, warm glowing cottage lanterns in the distance, peaceful nocturnal calm.",
+        "badge": "Starlit serenity",
+        "heading": "शुभ रात्रि",
+        "quote": "रात का सन्नाटा हमें सिखाता है कि हर दिन के बाद थोड़ा ठहरकर खुद को संभालना भी ज़रूरी है।",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "River Ghat Night",
+        "theme": "Floating Earthen Diyas on Calm River Under Crescent Moon",
+        "scene": "Small glowing clay diyas with marigold petals drifting gently down a calm dark river at night, silver crescent moon reflected on water, peaceful silhouettes of riverside trees.",
+        "badge": "Floating night lamps",
+        "heading": "शुभ रात्रि",
+        "quote": "मन से हर चिंता निकालकर सुकून भरी नींद लें, कल का दिन आपके लिए ढेरों खुशियाँ लाएगा।",
+        "layout_style": "top_banner",
+    },
+    {
+        "deity": "Garden Fireflies",
+        "theme": "Glowing Fireflies & Fragrant Night-Blooming Jasmine",
+        "scene": "Lush garden arbor at night covered with blooming white raat-rani jasmine flowers, dozens of soft golden fireflies floating in deep indigo twilight, dreamy soft bokeh.",
+        "badge": "Night jasmine bloom",
+        "heading": "शुभ रात्रि",
+        "quote": "अपनों की याद और मीठे सपनों के साथ, आपकी यह रात बेहद शांत और सुकून भरी हो।",
+        "layout_style": "magazine_minimal",
+    },
+    {
+        "deity": "Bamboo Night",
+        "theme": "Zen Stone Lantern & Bamboo Grove Under Full Moon",
+        "scene": "Traditional carved stone lantern softly glowing in a peaceful bamboo grove at night, silver moonbeams filtering through slender bamboo leaves, calm pebbles and still water.",
+        "badge": "Zen night garden",
+        "heading": "शुभ रात्रि",
+        "quote": "अच्छे विचार और कृतज्ञ हृदय के साथ सोया गया हर व्यक्ति सुबह नई चमक के साथ जागता है।",
+        "layout_style": "center_card",
+    },
+    {
+        "deity": "Coastal Moonrise",
+        "theme": "Calm Ocean Waves Sparkling Under Silver Moonlight",
+        "scene": "Quiet moonlit ocean beach at night with gentle silver-lit waves lapping smooth sand, radiant full moon path shimmering on the sea, palm silhouettes under starry sky.",
+        "badge": "Moonlit ocean calm",
+        "heading": "शुभ रात्रि",
+        "quote": "ईश्वर की असीम कृपा आपके परिवार की सदा रक्षा करे। मीठी नींद और शुभ रात्रि!",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "Warm Balcony",
+        "theme": "Glowing Brass Lantern on Peaceful Terrace Under Stars",
+        "scene": "An ornate perforated brass lantern casting warm golden geometric light patterns on a quiet terrace table with rose petals, deep starry midnight sky in the background.",
+        "badge": "Golden lantern glow",
+        "heading": "शुभ रात्रि",
+        "quote": "हर रात एक नया सुकून और हर सुबह एक नई उम्मीद लेकर आती है। शुभ रात्रि।",
+        "layout_style": "magazine_minimal",
+    },
+]
 
-def build_image_prompt(theme: Dict[str, str], lang: str, for_overlay: bool = False) -> str:
+NIGHT_THEME_ARCHETYPES_MR: List[Dict[str, str]] = [
+    {
+        "deity": "Moonlit Lake",
+        "theme": "शांत पर्वतीय तलावावर चमकणारे पौर्णिमेचे चांदणे",
+        "scene": "Peaceful mountain lake at night reflecting a glowing full moon and clear starry sky, dark pine silhouettes, soft mist hovering over tranquil water, deep sapphire night tones.",
+        "badge": "शांत चांदणे",
+        "heading": "शुभ रात्री",
+        "quote": "दिवसभराची सर्व धावपळ विसरून शांत मनाने विश्रांती घ्या. उद्याची पहाट तुमच्यासाठी नवा आनंद घेऊन येवो!",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "Temple Twilight",
+        "theme": "अंगणातील तेवणारी समई आणि मोगऱ्याचा सुगंध",
+        "scene": "Traditional brass samai oil lamp glowing softly beside fresh white mogra flowers on a quiet stone veranda at night, crescent moon visible in deep indigo sky.",
+        "badge": "भक्तीमय शुभ रात्री",
+        "heading": "शुभ रात्री",
+        "quote": "ईश्वराच्या आशीर्वादाने तुमचे मन शांत, आरोग्य उत्तम आणि झोप सुखद होवो. शुभ रात्री!",
+        "layout_style": "top_banner",
+    },
+    {
+        "deity": "Cozy Night",
+        "theme": "चंद्रप्रकाशात उबदार दिवा आणि शांत खिडकी",
+        "scene": "A softly glowing warm bedside lamp and ceramic mug on a wooden table next to a window overlooking a starry night sky and glowing crescent moon.",
+        "badge": "निवांत रात्रीची वेळ",
+        "heading": "शुभ रात्री",
+        "quote": "चांगले विचार आणि कृतज्ञ मन हीच गाढ आणि सुखाच्या झोपेची गुरुकिल्ली आहे.",
+        "layout_style": "magazine_minimal",
+    },
+    {
+        "deity": "Lotus Night",
+        "theme": "चांदण्यात बहरलेली पांढरी कमळे आणि काजव्यांचा प्रकाश",
+        "scene": "Serene pond at night with blooming white lotuses illuminated by silver moonlight, delicate golden fireflies hovering above still dark water.",
+        "badge": "चांदण्यातील कमळ",
+        "heading": "शुभ रात्री",
+        "quote": "सकारात्मक विचारांच्या सावलीत शांत झोप घ्या, तुमची उद्याची सकाळ सुंदर आणि उत्साही होवो!",
+        "layout_style": "center_card",
+    },
+    {
+        "deity": "Sahyadri Night",
+        "theme": "सह्याद्रीच्या शिखरांवर पसरलेले तारकांचे आभाळ",
+        "scene": "Majestic Sahyadri mountain peaks under a clear Milky Way night sky, soft golden cottage lights glowing gently in the dark valley below.",
+        "badge": "तारकांचे आभाळ",
+        "heading": "शुभ रात्री",
+        "quote": "प्रत्येक रात्र आपल्याला उद्याच्या नव्या स्वप्नांना बळ देण्यासाठी शांततेचा संदेश देऊन जाते.",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "River Ghat Night",
+        "theme": "शांत नदीपात्रात तरंगणारे पणतीचे दिवे",
+        "scene": "Glowing clay diyas floating peacefully on a calm river at night under a silver crescent moon, soft reflections shimmering on dark water.",
+        "badge": "नदीकाठची शांतता",
+        "heading": "शुभ रात्री",
+        "quote": "मनातील सर्व चिंता बाजूला ठेवून सुखाची आणि शांततेची झोप घ्या. शुभ रात्री!",
+        "layout_style": "top_banner",
+    },
+    {
+        "deity": "Jasmine Night",
+        "theme": "रातराणीचा सुगंध आणि चांदण्यांची बरसात",
+        "scene": "Night-blooming white jasmine blossoms bathed in silver moonlight with soft golden fireflies drifting in a tranquil garden.",
+        "badge": "रातराणीची रात्र",
+        "heading": "शुभ रात्री",
+        "quote": "आपल्या माणसांची गोड आठवण आणि गोड स्वप्नांसह तुमची रात्र आनंददायी जावो!",
+        "layout_style": "magazine_minimal",
+    },
+    {
+        "deity": "Zen Bamboo Night",
+        "theme": "बांबूच्या बनातील शांत दगडी कंदील आणि चंद्रप्रकाश",
+        "scene": "A glowing Japanese-style stone lantern in a quiet bamboo grove under full moonlight, smooth pebbles and calm water ripples.",
+        "badge": "निसर्गरम्य शांतता",
+        "heading": "शुभ रात्री",
+        "quote": "जो दिवस गेला त्याबद्दल कृतज्ञ राहा आणि येणाऱ्या उद्याचे आनंदाने स्वागत करा. शुभ रात्री!",
+        "layout_style": "center_card",
+    },
+    {
+        "deity": "Coastal Moonrise",
+        "theme": "समुद्रकिनाऱ्यावर चमकणारे चंद्राचे प्रतिबिंब",
+        "scene": "Peaceful moonlit seashore at night with gentle silver waves touching wet sand, bright full moon reflecting across the calm sea, palm silhouettes.",
+        "badge": "सागरकिनारी चांदणे",
+        "heading": "शुभ रात्री",
+        "quote": "देवाची कृपा सदैव तुमच्या आणि तुमच्या कुटुंबाच्या पाठीशी राहो. गोड स्वप्ने व शुभ रात्री!",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "Warm Balcony",
+        "theme": "गच्चीवर तेवणारा नक्षीदार कंदील आणि तारकांगण",
+        "scene": "A decorative brass lantern casting warm golden shadows across a peaceful rooftop terrace with flower petals under a deep starry midnight sky.",
+        "badge": "रात्रीचा कंदील",
+        "heading": "शुभ रात्री",
+        "quote": "प्रत्येक शांत रात्र नव्या उमेदीची आणि यशाची नांदी असते. शुभ रात्री!",
+        "layout_style": "magazine_minimal",
+    },
+]
+
+NIGHT_THEME_ARCHETYPES_EN: List[Dict[str, str]] = [
+    {
+        "deity": "Moonlit Lake",
+        "theme": "Silver Full Moon Over Tranquil Mountain Lake",
+        "scene": "Peaceful mountain lake at midnight reflecting a luminous silver full moon and sparkling stars, dark pine silhouettes, gentle water ripples, deep sapphire sky.",
+        "badge": "Moonlit serenity",
+        "heading": "Good Night",
+        "quote": "Let go of today's worries, breathe in the quiet of the night, and wake up refreshed tomorrow.",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "Temple Twilight",
+        "theme": "Warm Brass Lamps on Quiet Courtyard Steps at Night",
+        "scene": "Warm flickering brass oil lamps along quiet stone steps at night with white jasmine petals and a glowing crescent moon in deep velvet sky.",
+        "badge": "Sacred night calm",
+        "heading": "Good Night",
+        "quote": "May peace fill your home tonight and gentle blessings guard your dreams.",
+        "layout_style": "top_banner",
+    },
+    {
+        "deity": "Cozy Night",
+        "theme": "Warm Herbal Tea & Soft Lamp by Moonlit Window",
+        "scene": "A cosy ceramic mug of herbal tea on a rustic wooden table beside a glowing bedside lamp and a window framing a starry crescent-moon night sky.",
+        "badge": "Cosy evening calm",
+        "heading": "Good Night",
+        "quote": "End the day with a grateful heart, a quiet mind, and peaceful dreams. Good night!",
+        "layout_style": "magazine_minimal",
+    },
+    {
+        "deity": "Lotus Night",
+        "theme": "Moonlit White Water Lilies with Soft Fireflies",
+        "scene": "A calm dark pond dotted with glowing white water lilies under silvery moonlight, delicate golden fireflies floating softly above the water.",
+        "badge": "Night lotus peace",
+        "heading": "Good Night",
+        "quote": "Rest gently tonight. Tomorrow brings fresh light, new strength, and quiet joy.",
+        "layout_style": "center_card",
+    },
+    {
+        "deity": "Starry Valley",
+        "theme": "Milky Way Galaxy Above Quiet Misty Valley",
+        "scene": "Sweeping Milky Way starry sky over a serene pine valley with distant warm cottage lights glowing softly in the calm night mist.",
+        "badge": "Starlit sky",
+        "heading": "Good Night",
+        "quote": "Even the darkest night reveals the brightest stars. Sleep peacefully and dream big.",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "River Ghat Night",
+        "theme": "Floating Clay Lamps Drifting on Moonlit River",
+        "scene": "Warm clay diyas with marigold petals drifting softly on a calm dark river reflecting a silver crescent moon, tranquil night atmosphere.",
+        "badge": "Drifting night lamps",
+        "heading": "Good Night",
+        "quote": "May tonight's stillness heal your tiredness and bring you sweet, restful sleep.",
+        "layout_style": "top_banner",
+    },
+    {
+        "deity": "Garden Fireflies",
+        "theme": "Night-Blooming Jasmine & Golden Fireflies",
+        "scene": "Lush garden pathway at night framed by blooming white jasmine vines and warm glowing fireflies, dreamy indigo twilight bokeh.",
+        "badge": "Jasmine night",
+        "heading": "Good Night",
+        "quote": "Sending warm thoughts across the quiet miles. Wishing you a calm and restful night.",
+        "layout_style": "magazine_minimal",
+    },
+    {
+        "deity": "Zen Night",
+        "theme": "Glowing Stone Lantern in Moonlit Bamboo Grove",
+        "scene": "A softly lit stone garden lantern nestled beside emerald bamboo stalks and smooth pebbles under gentle silver moonlight.",
+        "badge": "Zen night stillness",
+        "heading": "Good Night",
+        "quote": "Release what you cannot change today and trust tomorrow's sunrise. Good night.",
+        "layout_style": "center_card",
+    },
+    {
+        "deity": "Coastal Moonrise",
+        "theme": "Gentle Ocean Waves Under Full Moon Sky",
+        "scene": "Quiet coastal beach at night with soft silver waves washing over smooth sand beneath a luminous full moon path across the ocean.",
+        "badge": "Moonlit waves",
+        "heading": "Good Night",
+        "quote": "May your sleep be as deep and peaceful as the calm midnight sea.",
+        "layout_style": "bottom_gradient",
+    },
+    {
+        "deity": "Warm Balcony",
+        "theme": "Ornate Brass Lantern on Starlit Terrace",
+        "scene": "A glowing brass filigree lantern casting warm amber light on a peaceful terrace with rose petals beneath a clear starry night sky.",
+        "badge": "Warm lantern glow",
+        "heading": "Good Night",
+        "quote": "Wishing you and your loved ones a peaceful night and a bright morning ahead.",
+        "layout_style": "magazine_minimal",
+    },
+]
+
+
+def build_image_prompt(
+    theme: Dict[str, str],
+    lang: str,
+    for_overlay: bool = False,
+    category: str = "morning",
+) -> str:
     """Constructs a prompt tailored for portrait 9:16 vertical greeting cards.
-    If using an overlay compositor (e.g. Cloudflare FLUX), prompts for clean photorealistic morning scenery without text."""
+    If using an overlay compositor (e.g. Cloudflare FLUX), prompts for clean photorealistic scenery without text."""
     heading = theme["heading"]
     quote = theme["quote"]
     scene = theme["scene"]
-    badge = theme.get("badge", "morning light")
+    badge = theme.get("badge", "night moonlight" if category == "night" else "morning light")
+
+    if category == "night":
+        if for_overlay or _get_provider() == "cloudflare":
+            return (
+                f"Magnificent vertical mobile wallpaper. Photorealistic 8k quality, serene moonlight and warm ambient night lighting with soft glowing bokeh. "
+                f"{scene}. Peaceful tranquil night atmosphere, calming restful mood, hyper-detailed textures, perfectly balanced composition, vertical mobile aspect ratio (9:16), clean background, no text, no watermark, no writing."
+            )
+
+        return (
+            f"A magnificent vertical 9:16 mobile wallpaper greeting card. "
+            f"Photorealistic 8k quality, serene moonlight and warm ambient night lighting with soft glowing bokeh. "
+            f"{scene} "
+            f"In the center or upper-middle section, placed tastefully on a {badge}, "
+            f"is large, elegant, stylized calligraphy text clearly displaying the heading '{heading}'. "
+            f"Directly below the heading '{heading}', in clean, legible, beautifully spaced typography, "
+            f"the following inspirational quote is displayed: '{quote}'. "
+            f"Peaceful restful night atmosphere, hyper-detailed textures, perfectly balanced composition, "
+            f"captivating visual aesthetic, vertical mobile aspect ratio (9:16)."
+        )
 
     if for_overlay or _get_provider() == "cloudflare":
         return (
@@ -912,6 +1215,19 @@ async def generate_single_greeting_image(
 
 # ── Database Ingestion Helper ─────────────────────────────────────────────────
 
+async def get_category_image_count(category_slug: str) -> int:
+    """Returns active image count for a greeting category."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            """SELECT COUNT(*) FROM greeting_images gi
+               JOIN greeting_categories c ON c.id = gi.category_id
+               WHERE c.slug = ? AND gi.active = 1""",
+            (category_slug,),
+        ) as cur:
+            row = await cur.fetchone()
+    return int(row[0]) if row else 0
+
+
 async def _save_greeting_to_db(raw_bytes: bytes, lang: str, category_slug: str = "morning") -> int:
     """Processes raw image bytes into 1080w HD JPEG and 480w WebP thumbnail,
     and inserts a record into greeting_images table."""
@@ -923,6 +1239,12 @@ async def _save_greeting_to_db(raw_bytes: bytes, lang: str, category_slug: str =
         if not row:
             raise ValueError(f"Category '{category_slug}' does not exist in greeting_categories table")
         category_id = row[0]
+
+        if category_slug in ("morning", "night"):
+            await db.execute(
+                "UPDATE greeting_categories SET active = 1 WHERE id = ? AND active = 0",
+                (category_id,),
+            )
 
         cur = await db.execute(
             """INSERT INTO greeting_images
@@ -944,15 +1266,33 @@ async def _save_greeting_to_db(raw_bytes: bytes, lang: str, category_slug: str =
 
 # ── Batch Generation Pipeline ─────────────────────────────────────────────────
 
-async def run_daily_morning_greetings_pipeline(
+_CATEGORY_THEME_BANKS: Dict[str, Dict[str, List[Dict[str, str]]]] = {
+    "morning": {
+        "hi": THEME_ARCHETYPES_HI,
+        "mr": THEME_ARCHETYPES_MR,
+        "en": THEME_ARCHETYPES_EN,
+    },
+    "night": {
+        "hi": NIGHT_THEME_ARCHETYPES_HI,
+        "mr": NIGHT_THEME_ARCHETYPES_MR,
+        "en": NIGHT_THEME_ARCHETYPES_EN,
+    },
+}
+
+
+async def run_daily_greetings_pipeline(
+    category_slug: str = "morning",
     languages: Optional[List[str]] = None,
     images_per_lang: int = 8,
     is_manual_trigger: bool = False,
 ) -> Dict[str, Any]:
-    """Generates Good Morning greeting cards for each language and stores them on the server.
-    Target: 24 total images (8 per language: 5 with quote, 3 title-only without quote).
+    """Generates Good Morning or Good Night greeting cards for each language and stores them on the server.
+    Target: 24 total images (8 per language: with quotes + title-only without quote).
     Ensures zero duplicate themes in the batch and paces calls to stay well within Cloudflare free limits.
     """
+    if category_slug not in _CATEGORY_THEME_BANKS:
+        raise ValueError(f"Unsupported daily greeting category: {category_slug}")
+
     if _generator_lock.locked():
         msg = "Greeting generation job is already running; skipping concurrent trigger."
         logger.info(msg)
@@ -960,34 +1300,34 @@ async def run_daily_morning_greetings_pipeline(
 
     languages = languages or ["hi", "mr", "en"]
     total_target = len(languages) * images_per_lang
+    label = "Night" if category_slug == "night" else "Morning"
+    emoji = "🌙" if category_slug == "night" else "🌅"
 
     async with _generator_lock:
-        run_id = await start_job_run("morning_greetings_generation")
+        run_id = await start_job_run(f"{category_slug}_greetings_generation")
         _last_job_status["running"] = True
         _last_job_status["last_run"] = utc_now_iso()
         _last_job_status["errors"] = []
 
         logger.info(
-            f"🌅 Starting Automated Morning Greetings Pipeline: {images_per_lang} images each for {languages} (Total: {total_target} images: {len(languages) * 5} with quotes, {len(languages) * 3} title-only)"
+            f"{emoji} Starting Automated {label} Greetings Pipeline: {images_per_lang} images each for {languages} (Total: {total_target})"
         )
 
         success_count = 0
         failed_count = 0
         details: List[str] = []
 
-        theme_banks = {
-            "hi": list(THEME_ARCHETYPES_HI),
-            "mr": list(THEME_ARCHETYPES_MR),
-            "en": list(THEME_ARCHETYPES_EN),
-        }
+        raw_banks = _CATEGORY_THEME_BANKS[category_slug]
+        theme_banks = {l: list(bank) for l, bank in raw_banks.items()}
 
         # Shuffle each theme bank so every day's order is different
         for l in theme_banks:
             random.shuffle(theme_banks[l])
 
+        title_only_count = min(3, max(0, images_per_lang // 3 + (1 if images_per_lang >= 6 else 0)))
         idx = 0
         for lang in languages:
-            themes = theme_banks.get(lang, THEME_ARCHETYPES_EN)
+            themes = theme_banks.get(lang, raw_banks["en"])
 
             for i in range(images_per_lang):
                 idx += 1
@@ -995,34 +1335,34 @@ async def run_daily_morning_greetings_pipeline(
                 theme_name = theme.get("theme", f"Theme #{i+1}")
                 layout_style = theme.get("layout_style", "bottom_gradient")
 
-                # The last 3 images in each language are title-only (no quote, only heading)
-                is_title_only = (i >= (images_per_lang - 3))
+                # Keep a mix of quote cards and clean title-only cards
+                is_title_only = title_only_count > 0 and (i >= (images_per_lang - title_only_count))
                 if is_title_only:
                     theme["quote"] = ""
                     card_mode = "Title-Only"
                 else:
                     card_mode = "Quote"
 
-                progress_msg = f"[{idx}/{total_target}] Generating {lang.upper()} ({theme_name} [{layout_style}] [{card_mode}])..."
+                progress_msg = f"[{idx}/{total_target}] Generating {category_slug} {lang.upper()} ({theme_name} [{layout_style}] [{card_mode}])..."
                 _last_job_status["current_progress"] = progress_msg
                 logger.info(progress_msg)
                 await update_job_run_detail(run_id, progress_msg)
 
-                prompt = build_image_prompt(theme, lang)
+                prompt = build_image_prompt(theme, lang, category=category_slug)
 
                 try:
                     # Generate with primary or fallback AI engine
                     raw_bytes = await generate_single_greeting_image(prompt, theme=theme, lang=lang)
 
                     # Store and process
-                    img_id = await _save_greeting_to_db(raw_bytes, lang=lang, category_slug="morning")
+                    img_id = await _save_greeting_to_db(raw_bytes, lang=lang, category_slug=category_slug)
                     success_count += 1
-                    details.append(f"✓ {lang} #{img_id}: {theme_name}")
-                    logger.info(f"✅ Saved {lang.upper()} image #{img_id} to database.")
+                    details.append(f"✓ {category_slug} {lang} #{img_id}: {theme_name}")
+                    logger.info(f"✅ Saved {category_slug} {lang.upper()} image #{img_id} to database.")
 
                 except Exception as e:
                     failed_count += 1
-                    err_entry = f"✗ Error generating {lang} ({theme_name}): {str(e)}"
+                    err_entry = f"✗ Error generating {category_slug} {lang} ({theme_name}): {str(e)}"
                     logger.error(err_entry)
                     _last_job_status["errors"].append(err_entry)
                     details.append(err_entry)
@@ -1031,7 +1371,7 @@ async def run_daily_morning_greetings_pipeline(
                 if idx < total_target:
                     await asyncio.sleep(4)
 
-        summary_msg = f"Completed: {success_count} generated, {failed_count} failed out of {total_target}."
+        summary_msg = f"{label} completed: {success_count} generated, {failed_count} failed out of {total_target}."
         _last_job_status["running"] = False
         _last_job_status["current_progress"] = summary_msg
         _last_job_status["total_generated"] += success_count
@@ -1041,15 +1381,44 @@ async def run_daily_morning_greetings_pipeline(
         job_status = "success" if failed_count == 0 else ("partial" if success_count > 0 else "failed")
         await finish_job_run(run_id, job_status, summary_msg)
         await log_admin_action(
-            "morning_greetings_auto_generated",
+            f"{category_slug}_greetings_auto_generated",
             f"Trigger: {'manual' if is_manual_trigger else 'cron_midnight'}, Success: {success_count}/{total_target}",
         )
 
-        logger.info(f"🏁 Morning Greetings Pipeline Finished: {summary_msg}")
+        logger.info(f"🏁 {label} Greetings Pipeline Finished: {summary_msg}")
         return {
             "status": job_status,
+            "category": category_slug,
             "success": success_count,
             "failed": failed_count,
             "total": total_target,
             "details": details,
         }
+
+
+async def run_daily_morning_greetings_pipeline(
+    languages: Optional[List[str]] = None,
+    images_per_lang: int = 8,
+    is_manual_trigger: bool = False,
+) -> Dict[str, Any]:
+    """Generates Good Morning greeting cards for each language."""
+    return await run_daily_greetings_pipeline(
+        category_slug="morning",
+        languages=languages,
+        images_per_lang=images_per_lang,
+        is_manual_trigger=is_manual_trigger,
+    )
+
+
+async def run_daily_night_greetings_pipeline(
+    languages: Optional[List[str]] = None,
+    images_per_lang: int = 8,
+    is_manual_trigger: bool = False,
+) -> Dict[str, Any]:
+    """Generates Good Night greeting cards for each language."""
+    return await run_daily_greetings_pipeline(
+        category_slug="night",
+        languages=languages,
+        images_per_lang=images_per_lang,
+        is_manual_trigger=is_manual_trigger,
+    )

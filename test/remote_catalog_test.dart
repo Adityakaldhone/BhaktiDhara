@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nitya_aarti/data/datasources/catalog.dart';
 import 'package:nitya_aarti/domain/entities/aarti_item.dart';
 import 'package:nitya_aarti/domain/entities/bhakti_deity.dart';
 import 'package:nitya_aarti/domain/entities/lyric_stanza.dart';
@@ -163,6 +164,13 @@ void main() {
       expect(catalog.version, 'abc');
       expect(catalog.aartis, hasLength(1));
       expect(catalog.deities, hasLength(1));
+    });
+
+    test('Lord Vishnu pins Om Jai Jagdish Hare at index 0 by default', () {
+      final merged = mergeAartiCatalogs(kDevotionalCatalog, const []);
+      final vishnu = merged.where((i) => i.deity == 'Lord Vishnu').toList();
+      expect(vishnu, isNotEmpty);
+      expect(vishnu.first.id, 'vishnu_om_jai_jagdish_hare');
     });
   });
 }

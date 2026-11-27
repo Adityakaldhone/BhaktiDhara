@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -25,7 +26,10 @@ class MandirClockScope extends InheritedWidget {
 /// Flat Garbhagriha stage: runs the animation clock and opens with the
 /// Mandir Dwar swinging inwards while the devotee steps in.
 class MandirStage extends StatefulWidget {
-  const MandirStage({super.key, required this.child});
+  const MandirStage({super.key, required this.child, required this.clock, this.lightRendering = false});
+
+  final ValueNotifier<double> clock;
+  final bool lightRendering;
 
   final Widget child;
 
@@ -33,18 +37,28 @@ class MandirStage extends StatefulWidget {
   State<MandirStage> createState() => _MandirStageState();
 }
 
-class _MandirStageState extends State<MandirStage> with TickerProviderStateMixin {
-  final _clock = ValueNotifier<double>(0);
-  late final Ticker _ticker = createTicker((elapsed) => _clock.value = elapsed.inMicroseconds / 1e6);
+class _MandirStageState extends State<MandirStage> with TickerProviderStateMixin, WidgetsBindingObserver {
+  ValueNotifier<double> get _clock => widget.clock;
+  static const _lightInterval = Duration(microseconds: 33333);
+  Timer? _ambientTimer;
+  double _startTime = 0;
+  bool _visible = false;
+  bool _resumed = true;
+  late final Ticker _ticker = createTicker((elapsed) {
+    _clock.value = _startTime + elapsed.inMicroseconds / 1e6;
+  });
   late final AnimationController _entrance = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1600),
+    duration: const Duration(milliseconds: 1050),
   );
   bool _started = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _resumed = lifecycle == null || lifecycle == AppLifecycleState.resumed;
     _entrance.addStatusListener((status) {
       if (status == AnimationStatus.completed) HapticFeedback.selectionClick();
     });
@@ -53,22 +67,56 @@ class _MandirStageState extends State<MandirStage> with TickerProviderStateMixin
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    _visible = !reducedMotion && TickerMode.valuesOf(context).enabled && (ModalRoute.isCurrentOf(context) ?? true);
+    _syncClock();
+    if (reducedMotion) _entrance.value = 1;
     if (_started) return;
     _started = true;
-    _ticker.start();
-    if (MediaQuery.of(context).disableAnimations) {
-      _entrance.value = 1;
-    } else {
+    if (!reducedMotion) {
       HapticFeedback.heavyImpact();
       _entrance.forward();
     }
   }
 
   @override
+  void didUpdateWidget(MandirStage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.lightRendering != widget.lightRendering) _syncClock();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    _syncClock();
+  }
+
+  void _syncClock() {
+    final active = _visible && _resumed;
+    if (!active || !widget.lightRendering) {
+      _ambientTimer?.cancel();
+      _ambientTimer = null;
+    }
+    if ((!active || widget.lightRendering) && _ticker.isActive) _ticker.stop();
+    if (!active) return;
+    if (widget.lightRendering) {
+      if (_ambientTimer != null) return;
+      _startTime = _clock.value;
+      _ambientTimer = Timer.periodic(_lightInterval, (timer) {
+        _clock.value = _startTime + timer.tick * _lightInterval.inMicroseconds / 1e6;
+      });
+    } else if (!_ticker.isActive) {
+      _startTime = _clock.value;
+      _ticker.start();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _ambientTimer?.cancel();
     _ticker.dispose();
     _entrance.dispose();
-    _clock.dispose();
     super.dispose();
   }
 
@@ -85,7 +133,7 @@ class _MandirStageState extends State<MandirStage> with TickerProviderStateMixin
               animation: _entrance,
               child: widget.child,
               builder: (context, child) =>
-                  Transform.scale(scale: 0.84 + 0.16 * Curves.easeOutCubic.transform(_entrance.value), child: child),
+                  Transform.scale(scale: 0.88 + 0.12 * Curves.easeOutCubic.transform(_entrance.value), child: child),
             ),
             AnimatedBuilder(
               animation: _entrance,
@@ -118,9 +166,11 @@ class MandirDwar extends StatelessWidget {
       transform: Matrix4.identity()
         ..setEntry(3, 2, 0.0018)
         ..rotateY(left ? -angle : angle),
-      child: CustomPaint(
-        painter: _TeakDoorPainter(left: left),
-        size: Size.infinite,
+      child: RepaintBoundary(
+        child: CustomPaint(
+          painter: _TeakDoorPainter(left: left),
+          size: Size.infinite,
+        ),
       ),
     );
 

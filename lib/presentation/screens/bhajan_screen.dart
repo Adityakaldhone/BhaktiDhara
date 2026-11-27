@@ -634,15 +634,8 @@ class _DarshanPage extends StatelessWidget {
     required this.onCategoryTap,
   });
 
-  // TEMP: trying a single full-scene artwork for Shiva instead of temple bg + mandap + deity.
   static const _fullScenes = {
-    // 'Lord Shiva': (asset: 'assets/bhakti/shiva_darshan_full.webp', hasOwnTitle: true),
-    // 'Goddess Lakshmi': (asset: 'assets/bhakti/lakshmi_darshan_full.webp', hasOwnTitle: false),
-    // 'Lord Hanuman': (asset: 'assets/bhakti/hanuman_darshan_full.webp', hasOwnTitle: false),
     'Lord Siddhanath': (asset: 'assets/bhakti/siddhanath_darshan_full.webp', hasOwnTitle: false),
-    // 'Lord Ganesha': (asset: 'assets/bhakti/ganesh_darshan_full.webp', hasOwnTitle: false),
-    // 'Lord Rama': (asset: 'assets/bhakti/rama_darshan_full.webp', hasOwnTitle: false),
-    // 'Lord Vishnu': (asset: 'assets/bhakti/vishnu_darshan_full.webp', hasOwnTitle: false),
   };
 
   /// Every image a page for [deity] draws, so neighbours can be decoded before they slide in.

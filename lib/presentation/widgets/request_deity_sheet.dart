@@ -5,9 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../core/analytics/analytics_service.dart';
 import '../../core/theme/theme.dart';
-import '../../services/backend_service.dart';
+import 'request_deity_section.dart';
 
 String _t(String lang, {required String en, required String hi, required String mr}) =>
     switch (lang) {
@@ -16,12 +15,13 @@ String _t(String lang, {required String en, required String hi, required String 
       _ => en,
     };
 
-/// Bottom sheet for requesting a missing deity (name required; image + YouTube optional).
+/// Bottom sheet for requesting a missing deity or aarti (name required; image + YouTube optional).
 Future<void> showRequestDeitySheet(
   BuildContext context, {
   required String lang,
   String initialText = '',
   String source = 'unknown',
+  DeityRequestKind initialKind = DeityRequestKind.deity,
   VoidCallback? onSubmitted,
 }) {
   HapticFeedback.mediumImpact();
@@ -33,6 +33,7 @@ Future<void> showRequestDeitySheet(
       lang: lang,
       initialText: initialText,
       source: source,
+      initialKind: initialKind,
       onSubmitted: onSubmitted,
     ),
   );
@@ -43,12 +44,14 @@ class _RequestDeitySheet extends StatefulWidget {
     required this.lang,
     required this.initialText,
     required this.source,
+    required this.initialKind,
     this.onSubmitted,
   });
 
   final String lang;
   final String initialText;
   final String source;
+  final DeityRequestKind initialKind;
   final VoidCallback? onSubmitted;
 
   @override
@@ -57,7 +60,7 @@ class _RequestDeitySheet extends StatefulWidget {
 
 class _RequestDeitySheetState extends State<_RequestDeitySheet> {
   late final TextEditingController _nameController;
-  late final TextEditingController _youtubeController;
+  final TextEditingController _youtubeController = TextEditingController();
   XFile? _image;
   bool _submitting = false;
 
@@ -65,7 +68,6 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialText);
-    _youtubeController = TextEditingController();
   }
 
   @override
@@ -92,40 +94,18 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
     if (name.isEmpty || _submitting) return;
     setState(() => _submitting = true);
 
-    final youtube = _youtubeController.text.trim();
     final lang = widget.lang;
     final source = widget.source;
+    final kind = widget.initialKind;
+    final rootNavContext = Navigator.of(context, rootNavigator: true).context;
 
-    try {
-      await BackendService.submitDeityRequest(
-        deityName: name,
-        lang: lang,
-        source: source,
-        youtubeUrl: youtube,
-        imagePath: _image?.path,
-      );
-    } catch (_) {
-      // Still track locally if upload fails.
-      BackendService.trackEvent(
-        'deity_requested',
-        item: name,
-        props: {
-          'deity_name': name,
-          'source': source,
-          'lang': lang,
-          if (youtube.isNotEmpty) 'youtube_url': youtube,
-          if (_image != null) 'has_image': true,
-        },
-      );
-    }
-
-    AnalyticsService.logCustomEvent(
-      'deity_requested',
-      parameters: {
-        'deity_name': name,
-        'source': source,
-        'lang': lang,
-      },
+    await submitDeityOrAartiRequest(
+      name: name,
+      kind: kind,
+      lang: lang,
+      source: source,
+      youtubeUrl: _youtubeController.text,
+      imagePath: _image?.path,
     );
 
     if (!mounted) return;
@@ -133,43 +113,34 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
     HapticFeedback.mediumImpact();
     widget.onSubmitted?.call();
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 4),
-          backgroundColor: MandirTheme.secondaryMaroon,
-          content: Text(
-            _t(
-              lang,
-              en: '🙏 Request for "$name" received! We will add it within 24 hours.',
-              hi: '🙏 "$name" का अनुरोध मिला! हम २४ घंटे में जोड़ देंगे।',
-              mr: '🙏 "$name" ची विनंती मिळाली! आम्ही २४ तासांत जोडू.',
-            ),
-            style: GoogleFonts.mukta(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ),
+    if (rootNavContext.mounted) {
+      await showRequestSentConfirmationDialog(
+        rootNavContext,
+        lang: lang,
+        itemName: name,
+        kind: kind,
       );
+    }
   }
 
   InputDecoration _fieldDecoration({required String hint}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.mukta(fontSize: 15, color: MandirTheme.textMuted),
+      hintStyle: GoogleFonts.mukta(fontSize: 15.5, color: MandirTheme.textMuted),
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: MandirTheme.cardBorder),
+        borderSide: const BorderSide(color: MandirTheme.goldenAccent, width: 1.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: MandirTheme.goldenAccent, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: MandirTheme.primarySaffron, width: 2),
+        borderSide: const BorderSide(color: MandirTheme.primarySaffron, width: 2.2),
       ),
     );
   }
@@ -207,14 +178,14 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: MandirTheme.primarySaffron.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+                      color: MandirTheme.secondaryMaroon,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.temple_hindu_rounded,
-                      color: MandirTheme.secondaryMaroon,
+                      color: Color(0xFFFFE082),
                       size: 26,
                     ),
                   ),
@@ -226,12 +197,12 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
                         Text(
                           _t(
                             lang,
-                            en: 'Can’t find your Deity / Kuldevta?',
-                            hi: 'अपने इष्टदेव या कुलदेवता का नाम बताएं',
-                            mr: 'आपले इष्टदेव किंवा कुलदैवत सांगा',
+                            en: 'Add Your Deity or Aarti',
+                            hi: 'नया देवता या आरती जोड़ें',
+                            mr: 'नवीन देव किंवा आरती जोडा',
                           ),
                           style: GoogleFonts.mukta(
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: MandirTheme.secondaryMaroon,
                           ),
@@ -239,11 +210,14 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
                         Text(
                           _t(
                             lang,
-                            en: 'We will add your deity within 24 hours 🙏',
-                            hi: 'हम २४ घंटे में यह देवता और आरती जोड़ देंगे 🙏',
-                            mr: 'आम्ही २४ तासांत हे दैवत आणि आरती जोडू 🙏',
+                            en: 'We will add it within 24 hours 🙏',
+                            hi: 'हम २४ घंटे में जोड़ देंगे 🙏',
+                            mr: 'आम्ही २४ तासांत जोडून देऊ 🙏',
                           ),
-                          style: GoogleFonts.mukta(fontSize: 13, color: MandirTheme.textMuted),
+                          style: GoogleFonts.mukta(
+                            fontSize: 14.5,
+                            color: MandirTheme.textDark,
+                          ),
                         ),
                       ],
                     ),
@@ -251,34 +225,62 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
                 ],
               ),
               const SizedBox(height: 16),
+              Text(
+                _t(
+                  lang,
+                  en: 'Write God or Aarti Name:',
+                  hi: 'भगवान या आरती का नाम लिखें:',
+                  mr: 'देवाचे किंवा आरतीचे नाव लिहा:',
+                ),
+                style: GoogleFonts.mukta(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
+                  color: MandirTheme.secondaryMaroon,
+                ),
+              ),
+              const SizedBox(height: 6),
               TextField(
                 controller: _nameController,
                 autofocus: true,
                 style: GoogleFonts.mukta(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
                   color: MandirTheme.textDark,
                 ),
                 decoration: _fieldDecoration(
                   hint: _t(
                     lang,
-                    en: 'e.g. Tuljabhavani, Jyotiba, Banke Bihari...',
-                    hi: 'उदा. माँ तुलजा भवानी, बांके बिहारी, जोतिबा...',
-                    mr: 'उदा. तुळजाभवानी, जोतिबा, बांके बिहारी...',
+                    en: 'e.g. Tuljabhavani, Jyotiba...',
+                    hi: 'जैसे: माँ तुळजाभवानी, जोतिबा...',
+                    mr: 'उदा. तुळजाभवानी, जोतिबा...',
                   ),
                 ),
               ),
               const SizedBox(height: 12),
+              Text(
+                _t(
+                  lang,
+                  en: 'YouTube Video Link (Optional):',
+                  hi: 'YouTube वीडियो लिंक (ज़रूरी नहीं):',
+                  mr: 'YouTube व्हिडिओ लिंक (ऐच्छिक):',
+                ),
+                style: GoogleFonts.mukta(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: MandirTheme.secondaryMaroon,
+                ),
+              ),
+              const SizedBox(height: 6),
               TextField(
                 controller: _youtubeController,
                 keyboardType: TextInputType.url,
-                style: GoogleFonts.mukta(fontSize: 15, color: MandirTheme.textDark),
+                style: GoogleFonts.mukta(fontSize: 16, color: MandirTheme.textDark),
                 decoration: _fieldDecoration(
                   hint: _t(
                     lang,
-                    en: 'YouTube link (optional)',
-                    hi: 'YouTube लिंक (वैकल्पिक)',
-                    mr: 'YouTube लिंक (पर्यायी)',
+                    en: 'Paste YouTube link here (if you have one)',
+                    hi: 'अगर YouTube लिंक हो तो यहाँ डालें...',
+                    mr: 'YouTube लिंक असल्यास येथे पेस्ट करा...',
                   ),
                 ),
               ),
@@ -287,29 +289,30 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
                 onPressed: _submitting ? null : _pickImage,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: MandirTheme.secondaryMaroon,
-                  side: BorderSide(color: MandirTheme.primarySaffron.withValues(alpha: 0.5)),
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: MandirTheme.cardBorder, width: 1.3),
                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: Icon(
-                  _image == null ? Icons.add_photo_alternate_outlined : Icons.check_circle_rounded,
-                  size: 20,
+                  _image == null ? Icons.photo_camera_outlined : Icons.check_circle_rounded,
+                  size: 22,
                 ),
                 label: Text(
                   _image == null
                       ? _t(
                           lang,
-                          en: 'Upload deity image (optional)',
-                          hi: 'देवता की छवि अपलोड करें (वैकल्पिक)',
-                          mr: 'दैवताचे चित्र अपलोड करा (पर्यायी)',
+                          en: 'Attach Photo (Optional)',
+                          hi: 'फोटो लगाएं (ज़रूरी नहीं)',
+                          mr: 'फोटो जोडा (ऐच्छिक)',
                         )
                       : _t(
                           lang,
-                          en: 'Image selected — tap to change',
-                          hi: 'छवि चुनी गई — बदलने के लिए टैप करें',
-                          mr: 'चित्र निवडले — बदलण्यासाठी टॅप करा',
+                          en: 'Photo Added — Tap to Change',
+                          hi: 'फोटो लग गई — बदलने के लिए दबाएं',
+                          mr: 'फोटो जोडला — बदलण्यासाठी दाबा',
                         ),
-                  style: GoogleFonts.mukta(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.mukta(fontSize: 15, fontWeight: FontWeight.w700),
                 ),
               ),
               if (_image != null) ...[
@@ -325,30 +328,32 @@ class _RequestDeitySheetState extends State<_RequestDeitySheet> {
                 ),
               ],
               const SizedBox(height: 18),
-              ElevatedButton(
-                onPressed: _submitting ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: MandirTheme.primarySaffron,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 2,
-                ),
-                child: _submitting
-                    ? const SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
-                      )
-                    : Text(
-                        _t(
-                          lang,
-                          en: 'Submit Request 🙏',
-                          hi: 'अनुरोध भेजें 🙏',
-                          mr: 'विनंती पाठवा 🙏',
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: MandirTheme.primarySaffron,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 2,
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                        )
+                      : Text(
+                          _t(
+                            lang,
+                            en: 'Send Request 🙏',
+                            hi: 'अनुरोध भेजें 🙏',
+                            mr: 'विनंती पाठवा 🙏',
+                          ),
+                          style: GoogleFonts.mukta(fontSize: 17, fontWeight: FontWeight.w700),
                         ),
-                        style: GoogleFonts.mukta(fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
+                ),
               ),
             ],
           ),

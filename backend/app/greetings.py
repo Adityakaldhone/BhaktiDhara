@@ -53,12 +53,12 @@ FILE_RE = re.compile(r"^[a-f0-9]{32}\.(jpg|webp)$")
 Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 
 DEFAULT_CATEGORIES = [
-    ("morning", "शुभ सकाळ", "सुप्रभात", "Good Morning", "🌅"),
-    ("motivation", "प्रेरणा", "मोटिवेशन", "Motivation", "💪"),
-    ("love", "प्रेम", "लव", "Love", "❤️"),
-    ("friendship", "मैत्री", "दोस्ती", "Friendship", "🤝"),
-    ("devotional", "भक्ती", "भक्ति", "Devotional", "🙏"),
-    ("night", "शुभ रात्री", "शुभ रात्रि", "Good Night", "🌙"),
+    ("morning", "शुभ सकाळ", "सुप्रभात", "Good Morning", "🌅", 0),
+    ("night", "शुभ रात्री", "शुभ रात्रि", "Good Night", "🌙", 5),
+    ("motivation", "प्रेरणा", "मोटिवेशन", "Motivation", "💪", 10),
+    ("love", "प्रेम", "लव", "Love", "❤️", 20),
+    ("friendship", "मैत्री", "दोस्ती", "Friendship", "🤝", 30),
+    ("devotional", "भक्ती", "भक्ति", "Devotional", "🙏", 40),
 ]
 
 
@@ -106,15 +106,16 @@ async def init_greetings_db() -> None:
         await db.execute(
             "CREATE INDEX IF NOT EXISTS idx_greeting_images_hash ON greeting_images(category_id, source_hash)"
         )
-        async with db.execute("SELECT COUNT(*) FROM greeting_categories") as cur:
-            empty = (await cur.fetchone())[0] == 0
-        if empty:
-            now = utc_now_iso()
-            await db.executemany(
-                """INSERT INTO greeting_categories (slug, name_mr, name_hi, name_en, emoji, sort_order, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                [(slug, mr, hi, en, emoji, i * 10, now) for i, (slug, mr, hi, en, emoji) in enumerate(DEFAULT_CATEGORIES)],
-            )
+        now = utc_now_iso()
+        await db.executemany(
+            """INSERT OR IGNORE INTO greeting_categories
+               (slug, name_mr, name_hi, name_en, emoji, sort_order, active, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, 1, ?)""",
+            [(slug, mr, hi, en, emoji, sort_order, now) for slug, mr, hi, en, emoji, sort_order in DEFAULT_CATEGORIES],
+        )
+        await db.execute(
+            "UPDATE greeting_categories SET active = 1, sort_order = 5 WHERE slug = 'night'"
+        )
         await db.commit()
 
 
@@ -611,20 +612,40 @@ def build_admin_router(require_admin) -> APIRouter:
     async def admin_autogen_trigger(
         images_per_lang: int = Query(8, ge=1, le=20),
         languages: Optional[str] = Query("hi,mr,en"),
+        category: str = Query("morning", description="morning, night, or both"),
     ):
-        from app.greeting_generator import run_daily_morning_greetings_pipeline, get_generator_status
+        from app.greeting_generator import (
+            run_daily_morning_greetings_pipeline,
+            run_daily_night_greetings_pipeline,
+            get_generator_status,
+        )
         status = get_generator_status()
         if status.get("running"):
             raise HTTPException(status_code=409, detail="A generation job is already running.")
+        cat = category.strip().lower()
+        if cat not in ("morning", "night", "both"):
+            raise HTTPException(status_code=400, detail="category must be 'morning', 'night', or 'both'")
         langs = [l.strip().lower() for l in (languages or "hi,mr,en").split(",") if l.strip()]
-        asyncio.create_task(
-            run_daily_morning_greetings_pipeline(
-                languages=langs,
-                images_per_lang=images_per_lang,
-                is_manual_trigger=True,
-            )
-        )
-        return {"status": "started", "languages": langs, "images_per_lang": images_per_lang}
+
+        async def _run():
+            if cat == "morning":
+                await run_daily_morning_greetings_pipeline(
+                    languages=langs, images_per_lang=images_per_lang, is_manual_trigger=True
+                )
+            elif cat == "night":
+                await run_daily_night_greetings_pipeline(
+                    languages=langs, images_per_lang=images_per_lang, is_manual_trigger=True
+                )
+            else:
+                await run_daily_morning_greetings_pipeline(
+                    languages=langs, images_per_lang=max(1, images_per_lang // 2), is_manual_trigger=True
+                )
+                await run_daily_night_greetings_pipeline(
+                    languages=langs, images_per_lang=max(1, images_per_lang // 2), is_manual_trigger=True
+                )
+
+        asyncio.create_task(_run())
+        return {"status": "started", "category": cat, "languages": langs, "images_per_lang": images_per_lang}
 
     @router.get("/festival/status")
     async def admin_festival_status():
@@ -644,24 +665,34 @@ def build_admin_router(require_admin) -> APIRouter:
     async def admin_autogen_test(
         lang: str = Query("hi", description="hi, mr, or en"),
         with_quote: bool = Query(True, description="Set false to generate title-only cards without quotes"),
+        category: str = Query("morning", description="morning or night"),
     ):
         from app.greeting_generator import (
             THEME_ARCHETYPES_HI, THEME_ARCHETYPES_MR, THEME_ARCHETYPES_EN,
+            NIGHT_THEME_ARCHETYPES_HI, NIGHT_THEME_ARCHETYPES_MR, NIGHT_THEME_ARCHETYPES_EN,
             build_image_prompt, generate_single_greeting_image, _save_greeting_to_db
         )
         import random
-        banks = {"hi": THEME_ARCHETYPES_HI, "mr": THEME_ARCHETYPES_MR, "en": THEME_ARCHETYPES_EN}
-        chosen_bank = banks.get(lang.lower(), THEME_ARCHETYPES_HI)
+        cat = category.strip().lower()
+        if cat not in ("morning", "night"):
+            raise HTTPException(status_code=400, detail="category must be 'morning' or 'night'")
+        banks = (
+            {"hi": NIGHT_THEME_ARCHETYPES_HI, "mr": NIGHT_THEME_ARCHETYPES_MR, "en": NIGHT_THEME_ARCHETYPES_EN}
+            if cat == "night"
+            else {"hi": THEME_ARCHETYPES_HI, "mr": THEME_ARCHETYPES_MR, "en": THEME_ARCHETYPES_EN}
+        )
+        chosen_bank = banks.get(lang.lower(), banks["hi"])
         theme = dict(random.choice(chosen_bank))
         if not with_quote:
             theme["quote"] = ""
-        prompt = build_image_prompt(theme, lang.lower())
+        prompt = build_image_prompt(theme, lang.lower(), category=cat)
         try:
             raw_bytes = await generate_single_greeting_image(prompt, theme=theme, lang=lang.lower())
-            img_id = await _save_greeting_to_db(raw_bytes, lang=lang.lower(), category_slug="morning")
+            img_id = await _save_greeting_to_db(raw_bytes, lang=lang.lower(), category_slug=cat)
             return {
                 "status": "ok",
                 "imageId": img_id,
+                "category": cat,
                 "theme": theme.get("theme"),
                 "deity": theme.get("deity"),
                 "layout_style": theme.get("layout_style", "bottom_gradient"),

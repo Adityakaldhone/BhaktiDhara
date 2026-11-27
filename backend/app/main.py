@@ -181,8 +181,13 @@ async def lifespan(app: FastAPI):
         misfire_grace_time=3600,
     )
     # 4. Schedule Daily 12:00 AM IST Greetings Generation (18:30 UTC) using Cloudflare Workers AI FLUX.
-    # GREETING_AUTOGEN_MODE: "festival" (default) fills upcoming festival categories,
-    # "morning" generates 24 Good Morning cards, "off" disables generation.
+    # GREETING_AUTOGEN_MODE:
+    #   "festival" / "auto" (default): fills upcoming Panchang festivals first, then uses any remaining
+    #     daily budget for Good Night and Good Morning cards so categories stay fresh every night.
+    #   "morning": generates 24 Good Morning cards.
+    #   "night": generates 24 Good Night cards.
+    #   "daily": generates 12 Good Morning + 12 Good Night cards.
+    #   "off": disables generation (still syncs festival visibility).
     from app.festival_greetings import run_festival_greetings_pipeline, sync_festival_categories
 
     await sync_festival_categories()
@@ -191,12 +196,50 @@ async def lifespan(app: FastAPI):
         mode = os.getenv("GREETING_AUTOGEN_MODE", "festival").strip().lower()
         logger.info("🌅 [Cron] Scheduled greetings generation, mode=%s", mode)
         try:
-            if mode == "festival":
-                result = await run_festival_greetings_pipeline()
+            from app.greeting_generator import (
+                get_category_image_count,
+                run_daily_morning_greetings_pipeline,
+                run_daily_night_greetings_pipeline,
+            )
+
+            if mode in ("festival", "auto"):
+                daily_budget = int(os.getenv("FESTIVAL_DAILY_BUDGET", "24"))
+                fest_result = await run_festival_greetings_pipeline(budget=daily_budget)
+                attempted = int(fest_result.get("total", 0) or 0)
+                remaining = max(0, daily_budget - attempted)
+                if remaining >= 3:
+                    night_count = await get_category_image_count("night")
+                    morning_count = await get_category_image_count("morning")
+                    if night_count < morning_count:
+                        per_lang = min(8, max(1, remaining // 3))
+                        night_result = await run_daily_night_greetings_pipeline(
+                            languages=["hi", "mr", "en"], images_per_lang=per_lang
+                        )
+                        result = {"festival": fest_result, "night": night_result}
+                    else:
+                        half = remaining // 2
+                        night_per_lang = min(4, max(1, half // 3))
+                        morning_per_lang = min(4, max(1, (remaining - night_per_lang * 3) // 3))
+                        night_result = await run_daily_night_greetings_pipeline(
+                            languages=["hi", "mr", "en"], images_per_lang=night_per_lang
+                        )
+                        morning_result = await run_daily_morning_greetings_pipeline(
+                            languages=["hi", "mr", "en"], images_per_lang=morning_per_lang
+                        )
+                        result = {"festival": fest_result, "night": night_result, "morning": morning_result}
+                else:
+                    result = fest_result
             elif mode == "morning":
                 await sync_festival_categories()
-                from app.greeting_generator import run_daily_morning_greetings_pipeline
                 result = await run_daily_morning_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=8)
+            elif mode == "night":
+                await sync_festival_categories()
+                result = await run_daily_night_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=8)
+            elif mode == "daily":
+                await sync_festival_categories()
+                morning_result = await run_daily_morning_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=4)
+                night_result = await run_daily_night_greetings_pipeline(languages=["hi", "mr", "en"], images_per_lang=4)
+                result = {"morning": morning_result, "night": night_result}
             else:
                 await sync_festival_categories()
                 return

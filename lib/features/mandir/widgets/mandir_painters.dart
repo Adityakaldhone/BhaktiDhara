@@ -4,6 +4,58 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+/// Time-of-day sacred temple atmosphere (Pratah, Madhyanha, Sandhya, Shayan).
+enum SanctumPrahar {
+  morning,
+  midday,
+  evening,
+  night;
+
+  static SanctumPrahar fromHour(int hour) {
+    if (hour >= 5 && hour < 11) return morning;
+    if (hour >= 11 && hour < 16) return midday;
+    if (hour >= 16 && hour < 20) return evening;
+    return night;
+  }
+
+  String localizedLabel(String lang) => switch (this) {
+    morning => switch (lang) {
+      'hi' => 'प्रातः दर्शन',
+      'mr' => 'प्रातः दर्शन',
+      _ => 'Pratah Darshan',
+    },
+    midday => switch (lang) {
+      'hi' => 'मध्याह्न दर्शन',
+      'mr' => 'मध्यान्ह दर्शन',
+      _ => 'Madhyanha',
+    },
+    evening => switch (lang) {
+      'hi' => 'संध्या आरती',
+      'mr' => 'संध्या आरती',
+      _ => 'Sandhya Aarti',
+    },
+    night => switch (lang) {
+      'hi' => 'शयन दर्शन',
+      'mr' => 'शयन दर्शन',
+      _ => 'Shayan Darshan',
+    },
+  };
+
+  Color get ambientTint => switch (this) {
+    morning => const Color(0x18FFB74D),
+    midday => const Color(0x12FFE082),
+    evening => const Color(0x28FF6D00),
+    night => const Color(0x5A0A0414),
+  };
+
+  double get rayStrength => switch (this) {
+    morning => 1.25,
+    midday => 1.1,
+    evening => 0.95,
+    night => 0.45,
+  };
+}
+
 /// Optional photo-real layers. Each has a painted fallback, so a missing or
 /// renamed file never breaks the sanctum.
 abstract final class MandirAssets {
@@ -135,9 +187,10 @@ class SanctumWallPainter extends CustomPainter {
 
 /// Slowly turning shafts of Surya light falling from the sanctum skylight.
 class GodRaysPainter extends CustomPainter {
-  GodRaysPainter(this.clock) : super(repaint: clock);
+  GodRaysPainter(this.clock, {this.strength = 1.0}) : super(repaint: clock);
 
   final ValueListenable<double> clock;
+  final double strength;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -149,7 +202,7 @@ class GodRaysPainter extends CustomPainter {
     for (var i = 0; i < rays; i++) {
       final base = math.pi / 2 + (i - (rays - 1) / 2) * 0.13 + drift;
       final width = 0.035 + mandirHash(i, 3) * 0.04;
-      final pulse = 0.55 + 0.45 * math.sin(t * (0.4 + mandirHash(i, 5) * 0.5) + i);
+      final pulse = (0.55 + 0.45 * math.sin(t * (0.4 + mandirHash(i, 5) * 0.5) + i)) * strength;
       final a = base - width;
       final b = base + width;
       final path = Path()
@@ -165,8 +218,8 @@ class GodRaysPainter extends CustomPainter {
             origin,
             length,
             [
-              const Color(0xFFFFD27A).withValues(alpha: 0.20 * pulse),
-              const Color(0xFFFFB347).withValues(alpha: 0.07 * pulse),
+              const Color(0xFFFFD27A).withValues(alpha: (0.20 * pulse).clamp(0.0, 0.35)),
+              const Color(0xFFFFB347).withValues(alpha: (0.07 * pulse).clamp(0.0, 0.16)),
               const Color(0x00FFB347),
             ],
             const [0, 0.55, 1],
@@ -176,12 +229,159 @@ class GodRaysPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(GodRaysPainter oldDelegate) => oldDelegate.clock != clock;
+  bool shouldRepaint(GodRaysPainter oldDelegate) => oldDelegate.clock != clock || oldDelegate.strength != strength;
+}
+
+/// Flickering warm halos over the stone floor diyas in `garbhagriha_sanctum.webp`
+/// and warm bounce light rising along the carved stone pillars.
+class FloorDiyasGlowPainter extends CustomPainter {
+  FloorDiyasGlowPainter(this.clock, {this.boost = 1.0}) : super(repaint: clock);
+
+  final ValueListenable<double> clock;
+  final double boost;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = clock.value;
+    final w = size.width;
+    final h = size.height;
+    final spots = [
+      (Offset(w * 0.10, h * 0.78), 0.0),
+      (Offset(w * 0.90, h * 0.78), 2.1),
+    ];
+    final paint = Paint()..blendMode = BlendMode.plus;
+    for (final (pos, phase) in spots) {
+      final flicker = (0.90 + 0.10 * math.sin(t * 1.3 + phase)) * boost;
+      final radius = w * 0.22;
+      paint.shader = ui.Gradient.radial(
+        pos,
+        radius,
+        [
+          const Color(0xFFFFC107).withValues(alpha: (0.28 * flicker).clamp(0.0, 0.45)),
+          const Color(0xFFFF7043).withValues(alpha: (0.10 * flicker).clamp(0.0, 0.22)),
+          const Color(0x00FF7043),
+        ],
+        const [0.0, 0.45, 1.0],
+      );
+      canvas.drawCircle(pos, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(FloorDiyasGlowPainter oldDelegate) => oldDelegate.clock != clock || oldDelegate.boost != boost;
+}
+
+/// Soft breathing divine aureole behind the deity's head and crown.
+class DivineAuraPainter extends CustomPainter {
+  DivineAuraPainter(this.clock, {this.intensity = 1.0}) : super(repaint: clock);
+
+  final ValueListenable<double> clock;
+  final double intensity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = clock.value;
+    final center = Offset(size.width * 0.5, size.height * 0.34);
+    final r = size.shortestSide * 0.58;
+    final pulse = (0.85 + 0.15 * math.sin(t * 1.8)) * intensity;
+    canvas.drawCircle(
+      center,
+      r,
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = ui.Gradient.radial(
+          center,
+          r,
+          [
+            const Color(0xFFFFF59D).withValues(alpha: (0.26 * pulse).clamp(0.0, 0.45)),
+            const Color(0xFFFFB300).withValues(alpha: (0.14 * pulse).clamp(0.0, 0.28)),
+            const Color(0x00FF8F00),
+          ],
+          const [0.0, 0.42, 1.0],
+        ),
+    );
+  }
+
+  @override
+  bool shouldRepaint(DivineAuraPainter oldDelegate) =>
+      oldDelegate.clock != clock || oldDelegate.intensity != intensity;
+}
+
+/// Soft contact shadow grounding the murti on
+/// top of the photo-real golden Prabhavali lotus pedestal.
+class MurtiSeatShadowPainter extends CustomPainter {
+  const MurtiSeatShadowPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final shadowRect = Rect.fromCenter(center: Offset(w * 0.5, h * 0.62), width: w * 0.92, height: h * 0.44);
+    canvas.drawOval(
+      shadowRect,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.48)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+    );
+  }
+
+  @override
+  bool shouldRepaint(MurtiSeatShadowPainter oldDelegate) => false;
+}
+
+/// Sacred Padma Rangoli painted softly on the sanctum stone floor in front of the Chowki.
+class PadmaRangoliPainter extends CustomPainter {
+  const PadmaRangoliPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final rx = size.width * 0.44;
+    final ry = size.height * 0.42;
+    canvas.drawOval(
+      Rect.fromCenter(center: c, width: rx * 2, height: ry * 2),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..color = const Color(0xFFFFD54F).withValues(alpha: 0.34),
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: c, width: rx * 1.45, height: ry * 1.45),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1
+        ..color = const Color(0xFFFF8A65).withValues(alpha: 0.28),
+    );
+    final petalPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..color = const Color(0xFFFFE082).withValues(alpha: 0.32);
+    for (var i = 0; i < 8; i++) {
+      final a = i * math.pi / 4;
+      final tip = c + Offset(math.cos(a) * rx * 0.92, math.sin(a) * ry * 0.92);
+      final n = Offset(-math.sin(a) * rx * 0.14, math.cos(a) * ry * 0.14);
+      final mid = Offset.lerp(c, tip, 0.55)!;
+      canvas.drawPath(
+        Path()
+          ..moveTo(c.dx, c.dy)
+          ..quadraticBezierTo((mid + n).dx, (mid + n).dy, tip.dx, tip.dy)
+          ..quadraticBezierTo((mid - n).dx, (mid - n).dy, c.dx, c.dy),
+        petalPaint,
+      );
+    }
+    canvas.drawOval(
+      Rect.fromCenter(center: c, width: rx * 0.28, height: ry * 0.28),
+      Paint()..color = const Color(0xFFD84315).withValues(alpha: 0.32),
+    );
+  }
+
+  @override
+  bool shouldRepaint(PadmaRangoliPainter oldDelegate) => false;
 }
 
 /// Golden prana motes rising through the light.
 class PranaDustPainter extends CustomPainter {
-  PranaDustPainter(this.clock, {this.count = 56}) : super(repaint: clock);
+  PranaDustPainter(this.clock, {this.count = 26}) : super(repaint: clock);
 
   final ValueListenable<double> clock;
   final int count;
@@ -196,12 +396,12 @@ class PranaDustPainter extends CustomPainter {
       final life = (t * speed + phase) % 1.0;
       final x = mandirHash(i) * size.width + math.sin(t * 0.7 + phase * 9) * 14;
       final y = size.height * (1.05 - life * 1.1);
-      final r = 0.8 + mandirHash(i, 4) * 1.8;
+      final r = 0.45 + mandirHash(i, 4) * 0.85;
       final twinkle = 0.5 + 0.5 * math.sin(t * 3 + i);
       final fade = math.sin(life * math.pi);
       final a = (0.65 * twinkle * fade).clamp(0.0, 1.0);
       glow.color = const Color(0xFFFFD27A).withValues(alpha: a * 0.25);
-      canvas.drawCircle(Offset(x, y), r * 3.2, glow);
+      canvas.drawCircle(Offset(x, y), r * 1.8, glow);
       glow.color = const Color(0xFFFFF3C4).withValues(alpha: a);
       canvas.drawCircle(Offset(x, y), r, glow);
     }
@@ -381,7 +581,7 @@ class FlamePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final t = clock.value + seed * 1.7;
-    final boost = 1 + 0.65 * (surge?.value ?? 0);
+    final boost = 1 + 0.18 * (surge?.value ?? 0);
     final k = intensity * boost;
     final base = Offset(size.width / 2, size.height * 0.96);
 
@@ -400,19 +600,21 @@ class FlamePainter extends CustomPainter {
       return;
     }
 
-    final flicker = 1 + 0.06 * math.sin(t * 11) + 0.04 * math.sin(t * 23 + 1.3);
+    final flutter = 0.70 * math.sin(t * 4.2) + 0.30 * math.sin(t * 7.1 + 1.1);
+    final flicker = 1 + 0.055 * flutter;
     final h = size.height * 0.78 * k.clamp(0.0, 1.6) * flicker;
-    final w = size.width * 0.32 * (0.6 + 0.4 * k.clamp(0.0, 1.6));
-    final sway = math.sin(t * 6.5) * w * 0.22 + math.sin(t * 13.1) * w * 0.08 + lean.clamp(-1.0, 1.0) * w * 1.4;
+    final w = size.width * 0.32 * (0.6 + 0.4 * k.clamp(0.0, 1.6)) * (1 - 0.04 * flutter);
+    final draft = 0.20 * math.sin(t * 2.6) + 0.07 * math.sin(t * 4.9 + 0.6);
+    final sway = w * (draft + lean.clamp(-1.0, 1.0) * 1.1);
 
-    final halo = base.translate(0, -h * 0.4);
+    final halo = base.translate(sway * 0.18, -h * 0.4);
     canvas.drawCircle(
       halo,
       h * 0.95,
       Paint()
         ..blendMode = BlendMode.plus
         ..shader = ui.Gradient.radial(halo, h * 0.95, [
-          const Color(0xFFFFA726).withValues(alpha: 0.42 * k.clamp(0.0, 1.0)),
+          const Color(0xFFFFA726).withValues(alpha: (0.36 + 0.022 * flutter) * k.clamp(0.0, 1.0)),
           const Color(0x00FF6F00),
         ]),
     );
@@ -432,12 +634,11 @@ class FlamePainter extends CustomPainter {
     canvas.drawPath(
       outer,
       Paint()
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3)
         ..shader = ui.Gradient.linear(
           base,
           base.translate(0, -h),
           const [Color(0xFFFF6F00), Color(0xFFFF9800), Color(0x00FF5722)],
-          const [0, 0.55, 1],
+          const [0, 0.58, 1],
         ),
     );
     canvas.drawPath(
@@ -638,16 +839,21 @@ class GheeStreamPainter extends CustomPainter {
 
 /// Brass dhoop stand with three agarbattis and drifting volumetric smoke.
 class DhoopSmokePainter extends CustomPainter {
-  DhoopSmokePainter(this.clock) : super(repaint: clock);
+  DhoopSmokePainter(this.clock, {this.surge, this.lightRendering = false})
+    : super(repaint: Listenable.merge([clock, ?surge]));
 
   final ValueListenable<double> clock;
+  final Animation<double>? surge;
+  final bool lightRendering;
 
   @override
   void paint(Canvas canvas, Size size) {
     final t = clock.value;
+    final boost = 1.0 + 0.85 * math.sin(math.pi * (surge?.value ?? 0));
     final w = size.width;
     final h = size.height;
-    final holder = Rect.fromLTWH(w * 0.3, h * 0.88, w * 0.4, h * 0.1);
+    final holder = Rect.fromLTWH(w * 0.28, h * 0.88, w * 0.44, h * 0.1);
+    canvas.drawOval(holder.shift(const Offset(0, 2)), Paint()..color = Colors.black.withValues(alpha: 0.35));
     canvas.drawOval(holder, Paint()..shader = Brass.body(holder));
     final sticks = [
       (Offset(w * 0.42, h * 0.9), -0.18),
@@ -658,34 +864,54 @@ class DhoopSmokePainter extends CustomPainter {
       ..strokeWidth = 1.6
       ..strokeCap = StrokeCap.round
       ..color = const Color(0xFF5D2E16);
-    final smoke = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+    final smoke = Paint();
+    if (!lightRendering) smoke.maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
     for (var s = 0; s < sticks.length; s++) {
       final (root, lean) = sticks[s];
       final tip = root + Offset(math.sin(lean) * h * 0.32, -h * 0.32);
       canvas.drawLine(root, tip, stick);
       canvas.drawCircle(
         tip,
-        2.4,
+        2.3 * (0.9 + 0.35 * (boost - 1)),
         Paint()
           ..color = const Color(0xFFFF7043)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + math.sin(t * 4 + s)),
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + math.sin(t * 4 + s) + (boost - 1) * 3),
       );
-      for (var i = 0; i < 12; i++) {
-        final life = (t * 0.18 + i / 12 + s * 0.31) % 1.0;
-        final rise = life * h * 0.62;
+      if (lightRendering) {
+        final bend = math.sin(t * 1.4 + s) * w * .15;
+        final rise = h * .46;
+        final wisp = Path()
+          ..moveTo(tip.dx, tip.dy)
+          ..relativeCubicTo(bend, -rise * .34, -bend, -rise * .62, bend, -rise);
+        canvas.drawPath(
+          wisp,
+          smoke
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.4
+            ..color = const Color(0xFFEDE7DB).withValues(alpha: .18 * boost),
+        );
+        continue;
+      }
+      for (var i = 0; i < 14; i++) {
+        final life = (t * 0.18 + i / 14 + s * 0.31) % 1.0;
+        final rise = life * h * 0.64;
         final curl = math.sin(life * 7 + t * 0.9 + s * 2) * (6 + life * 22);
         final p = tip + Offset(curl, -rise);
-        smoke.color = const Color(0xFFEDE7DB).withValues(alpha: 0.32 * math.sin(life * math.pi));
+        smoke.color = const Color(
+          0xFFEDE7DB,
+        ).withValues(alpha: (0.085 * boost * math.sin(life * math.pi)).clamp(0.0, 0.55));
         canvas.drawCircle(p, 4 + life * 16, smoke);
       }
     }
   }
 
   @override
-  bool shouldRepaint(DhoopSmokePainter oldDelegate) => oldDelegate.clock != clock;
+  bool shouldRepaint(DhoopSmokePainter oldDelegate) =>
+      oldDelegate.clock != clock || oldDelegate.surge != surge || oldDelegate.lightRendering != lightRendering;
 }
 
-/// Rosewood chowki draped in a red, gold-bordered altar cloth.
+/// Perspective-sculpted rosewood & brass Pooja Chowki (`Vedika`) resting on
+/// the Garbhagriha stone floor, leaving the temple floor and base lamps visible.
 class AltarPainter extends CustomPainter {
   const AltarPainter({this.topFraction = 0.26});
 
@@ -697,12 +923,49 @@ class AltarPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     final topH = h * topFraction;
+    const insetX = 0.06;
+    const backInsetX = 0.13;
+    const baseBottom = 0.78;
 
+    // Grounded shadow beneath the chowki on the carved temple floor.
+    canvas.drawOval(
+      Rect.fromLTWH(w * 0.05, h * (baseBottom - 0.06), w * 0.90, h * 0.16),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.58)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+    );
+
+    // Carved wooden legs anchored onto the stone floor.
+    for (final fx in const [0.10, 0.84]) {
+      final leg = RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * fx, h * (baseBottom - 0.14), w * 0.06, h * 0.15),
+        const Radius.circular(4),
+      );
+      canvas.drawRRect(
+        leg,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF5A2D14), Color(0xFF281006)],
+          ).createShader(leg.outerRect),
+      );
+      canvas.drawRRect(
+        leg,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..color = Brass.gold.withValues(alpha: 0.65),
+      );
+    }
+
+    // Chowki top surface: carved warm sandalwood-marble slab with inlaid brass
+    // rim so every puja vessel sits unmistakably above the stone floor.
     final top = Path()
-      ..moveTo(w * 0.08, 0)
-      ..lineTo(w * 0.92, 0)
-      ..lineTo(w, topH)
-      ..lineTo(0, topH)
+      ..moveTo(w * backInsetX, 0)
+      ..lineTo(w * (1 - backInsetX), 0)
+      ..lineTo(w * (1 - insetX), topH)
+      ..lineTo(w * insetX, topH)
       ..close();
     canvas.drawPath(
       top,
@@ -710,37 +973,64 @@ class AltarPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF3E1D0C), Color(0xFF6E3A1A), Color(0xFF5A2D14)],
-          stops: [0, 0.7, 1],
+          colors: [Color(0xFF9F713D), Color(0xFFDDBA84), Color(0xFFC59657)],
+          stops: [0, 0.58, 1],
         ).createShader(Rect.fromLTWH(0, 0, w, topH)),
     );
-    // Lamp glow pooling on the polished rosewood.
+    canvas.drawPath(
+      top,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = Brass.light.withValues(alpha: 0.85),
+    );
+    final innerRim = Path()
+      ..moveTo(w * (backInsetX + 0.03), topH * 0.14)
+      ..lineTo(w * (1 - backInsetX - 0.03), topH * 0.14)
+      ..lineTo(w * (1 - insetX - 0.035), topH * 0.86)
+      ..lineTo(w * (insetX + 0.035), topH * 0.86)
+      ..close();
+    canvas.drawPath(
+      innerRim,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.9
+        ..color = const Color(0xFF5D2E14).withValues(alpha: 0.45),
+    );
+    // Warm diya glow pooling across the raised chowki surface.
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(w * 0.44, topH * 0.55), width: w * 0.6, height: topH * 0.8),
+      Rect.fromCenter(center: Offset(w * 0.42, topH * 0.56), width: w * 0.56, height: topH * 0.82),
       Paint()
         ..blendMode = BlendMode.plus
-        ..shader = ui.Gradient.radial(Offset(w * 0.44, topH * 0.55), w * 0.3, [
-          const Color(0x33FFB74D),
+        ..shader = ui.Gradient.radial(Offset(w * 0.42, topH * 0.56), w * 0.30, [
+          const Color(0x4EFFB74D),
           const Color(0x00FFB74D),
         ]),
     );
 
-    final front = Rect.fromLTWH(0, topH, w, h - topH);
-    canvas.drawRect(
+    // Carved wooden front fascia of the chowki (stops above stone floor).
+    final front = RRect.fromRectAndCorners(
+      Rect.fromLTWH(w * insetX, topH, w * (1 - insetX * 2), h * (baseBottom - 0.04) - topH),
+      bottomLeft: const Radius.circular(10),
+      bottomRight: const Radius.circular(10),
+    );
+    canvas.drawRRect(
       front,
       Paint()
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF4A2410), Color(0xFF1E0C05)],
-        ).createShader(front),
+          colors: [Color(0xFF4F2611), Color(0xFF2B1107)],
+        ).createShader(front.outerRect),
     );
     final carve = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = const Color(0xFFD9A54A).withValues(alpha: 0.35);
+      ..strokeWidth = 1.1
+      ..color = const Color(0xFFD9A54A).withValues(alpha: 0.36);
+    final frontTop = topH + h * 0.04;
+    final frontH = front.height - h * 0.08;
     for (var i = 0; i < 4; i++) {
-      final panel = Rect.fromLTWH(w * (0.03 + i * 0.245), topH + h * 0.08, w * 0.205, h * 0.32);
+      final panel = Rect.fromLTWH(w * (insetX + 0.02 + i * 0.215), frontTop, w * 0.19, frontH);
       canvas.drawRRect(RRect.fromRectAndRadius(panel, const Radius.circular(6)), carve);
       final c = panel.center;
       for (var p = 0; p < 8; p++) {
@@ -756,24 +1046,24 @@ class AltarPainter extends CustomPainter {
       }
     }
 
-    final rail = Rect.fromLTWH(0, topH - 3, w, 6);
-    canvas.drawRect(rail, Paint()..shader = Brass.body(rail, vertical: true));
+    final rail = Rect.fromLTWH(w * insetX, topH - 2.5, w * (1 - insetX * 2), 5);
+    canvas.drawRRect(RRect.fromRectAndRadius(rail, const Radius.circular(2.5)), Paint()..shader = Brass.body(rail, vertical: true));
 
-    // Red runner across the chowki, hanging over the front edge.
-    final hem = topH + h * 0.16;
+    // Embroidered crimson Banarasi Pooja Vastra draped across the center.
+    final hem = topH + h * 0.13;
     final runner = Path()
-      ..moveTo(w * 0.3, h * 0.01)
-      ..lineTo(w * 0.7, h * 0.01)
-      ..lineTo(w * 0.76, topH)
-      ..lineTo(w * 0.76, hem);
+      ..moveTo(w * 0.31, h * 0.01)
+      ..lineTo(w * 0.69, h * 0.01)
+      ..lineTo(w * 0.74, topH)
+      ..lineTo(w * 0.74, hem);
     const scallops = 9;
     for (var i = scallops; i > 0; i--) {
-      final x0 = w * (0.24 + 0.52 * i / scallops);
-      final x1 = w * (0.24 + 0.52 * (i - 1) / scallops);
-      runner.quadraticBezierTo((x0 + x1) / 2, hem + h * 0.06, x1, hem);
+      final x0 = w * (0.26 + 0.48 * i / scallops);
+      final x1 = w * (0.26 + 0.48 * (i - 1) / scallops);
+      runner.quadraticBezierTo((x0 + x1) / 2, hem + h * 0.055, x1, hem);
     }
     runner
-      ..lineTo(w * 0.24, topH)
+      ..lineTo(w * 0.26, topH)
       ..close();
     canvas.drawPath(
       runner,
@@ -789,16 +1079,16 @@ class AltarPainter extends CustomPainter {
       runner,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.4
+        ..strokeWidth = 2.2
         ..color = Brass.gold,
     );
     final zari = Paint()..color = Brass.light.withValues(alpha: 0.9);
     for (var i = 0; i < 12; i++) {
-      canvas.drawCircle(Offset(w * (0.27 + i * 0.46 / 11), topH + h * 0.06), 1.8, zari);
+      canvas.drawCircle(Offset(w * (0.285 + i * 0.43 / 11), topH + h * 0.055), 1.6, zari);
     }
     for (var i = 0; i <= scallops; i++) {
-      final x = w * (0.24 + 0.52 * i / scallops);
-      final tassel = Offset(x, hem + h * 0.035);
+      final x = w * (0.26 + 0.48 * i / scallops);
+      final tassel = Offset(x, hem + h * 0.03);
       canvas.drawLine(
         Offset(x, hem),
         tassel,
@@ -806,7 +1096,7 @@ class AltarPainter extends CustomPainter {
           ..strokeWidth = 1
           ..color = Brass.gold,
       );
-      canvas.drawCircle(tassel, 2.6, Paint()..shader = Brass.dome(tassel, 2.6));
+      canvas.drawCircle(tassel, 2.4, Paint()..shader = Brass.dome(tassel, 2.4));
     }
   }
 
@@ -873,6 +1163,13 @@ class NaivedyaPainter extends CustomPainter {
         canvas.drawLine(Offset(cx, base - mh * 0.95), Offset(cx + r * mw * 0.32, base), ridge);
       }
     }
+    // Fresh green tulsi leaf + kesar pinch on top of the naivedya.
+    final tulsi = Path()
+      ..moveTo(w * 0.5, h * 0.22)
+      ..quadraticBezierTo(w * 0.56, h * 0.28, w * 0.5, h * 0.38)
+      ..quadraticBezierTo(w * 0.44, h * 0.28, w * 0.5, h * 0.22)
+      ..close();
+    canvas.drawPath(tulsi, Paint()..color = const Color(0xFF43A047));
   }
 
   @override
@@ -1162,7 +1459,7 @@ class SparkTrailPainter extends CustomPainter {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  PUSHPANJALI, TILAK, BLESSINGS, SHANKH
+//  PUSHPANJALI, BLESSINGS, SHANKH
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// 35 marigold and rose petals drifting down on sinusoidal air currents.
@@ -1218,7 +1515,8 @@ class PetalRainPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(PetalRainPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(PetalRainPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.count != count || oldDelegate.seconds != seconds;
 }
 
 /// Marigold-and-rose mala that drops onto the murti's shoulders as
@@ -1275,76 +1573,6 @@ class GarlandPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(GarlandPainter oldDelegate) => oldDelegate.progress != progress;
-}
-
-/// Kumkum and chandan tilak with akshata, centred in its box.
-class TilakPainter extends CustomPainter {
-  const TilakPainter(this.progress);
-
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (progress <= 0) return;
-    final c = size.center(Offset.zero);
-    final s = size.shortestSide;
-    final grow = Curves.easeOutBack.transform(progress.clamp(0.0, 1.0));
-    final glow = (1 - progress).clamp(0.0, 1.0);
-
-    canvas.drawCircle(
-      c,
-      s * 0.5,
-      Paint()
-        ..blendMode = BlendMode.plus
-        ..shader = ui.Gradient.radial(c, s * 0.5, [
-          const Color(0xFFFF5252).withValues(alpha: 0.55 * glow + 0.12),
-          const Color(0x00FF5252),
-        ]),
-    );
-    canvas.save();
-    canvas.translate(c.dx, c.dy);
-    canvas.scale(grow);
-    final chandan = Path()
-      ..moveTo(-s * 0.16, -s * 0.34)
-      ..quadraticBezierTo(-s * 0.18, s * 0.26, 0, s * 0.3)
-      ..quadraticBezierTo(s * 0.18, s * 0.26, s * 0.16, -s * 0.34);
-    canvas.drawPath(
-      chandan,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = s * 0.07
-        ..color = const Color(0xFFFFE9B0),
-    );
-    final kumkum = Path()
-      ..moveTo(0, -s * 0.3)
-      ..quadraticBezierTo(s * 0.06, 0, 0, s * 0.18)
-      ..quadraticBezierTo(-s * 0.06, 0, 0, -s * 0.3)
-      ..close();
-    canvas.drawPath(
-      kumkum,
-      Paint()
-        ..color = const Color(0xFFE0001B)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2),
-    );
-    for (var i = 0; i < 7; i++) {
-      final a = mandirHash(i, 41) * math.pi * 2;
-      final d = s * (0.12 + mandirHash(i, 42) * 0.1);
-      final p = Offset(math.cos(a) * d * 0.7, s * 0.24 + math.sin(a) * d * 0.4);
-      canvas.save();
-      canvas.translate(p.dx, p.dy);
-      canvas.rotate(a);
-      canvas.drawOval(
-        Rect.fromCenter(center: Offset.zero, width: s * 0.06, height: s * 0.028),
-        Paint()..color = const Color(0xFFFFFDF2),
-      );
-      canvas.restore();
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(TilakPainter oldDelegate) => oldDelegate.progress != progress;
 }
 
 /// Golden blessing particles rising from the Sinhasan feet.
@@ -1515,9 +1743,27 @@ class ToranPainter extends CustomPainter {
     final t = clock.value;
     final w = size.width;
     final h = size.height;
+    // Sculpted brass & rosewood temple lintel beam anchoring the toran and bells.
     canvas.drawRect(
-      Rect.fromLTWH(0, 0, w, h * 0.16),
-      Paint()..shader = Brass.body(Rect.fromLTWH(0, 0, w, h * 0.16), vertical: true),
+      Rect.fromLTWH(0, h * 0.14, w, h * 0.12),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.45)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    final beam = Rect.fromLTWH(0, 0, w, h * 0.20);
+    canvas.drawRect(
+      beam,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF4A200C), Color(0xFF8A541C), Color(0xFFD9A441)],
+          stops: [0, 0.72, 1],
+        ).createShader(beam),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, h * 0.17, w, h * 0.045),
+      Paint()..shader = Brass.body(Rect.fromLTWH(0, h * 0.17, w, h * 0.045), vertical: true),
     );
     const swags = 5;
     final bead = h * 0.085;
@@ -1528,7 +1774,7 @@ class ToranPainter extends CustomPainter {
         final u = i / 9;
         final x = x0 + (x1 - x0) * u;
         final sag = math.sin(u * math.pi) * h * 0.32;
-        final p = Offset(x + math.sin(t * 1.2 + s) * 1.5, h * 0.16 + sag);
+        final p = Offset(x + math.sin(t * 1.2 + s) * 1.5, h * 0.21 + sag);
         canvas.drawCircle(
           p,
           bead,
@@ -1630,7 +1876,7 @@ class TempleBellPainter extends CustomPainter {
 //  SEVA RAIL ICONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-enum SevaIcon { ghee, aarti, pushpanjali, ghanta, shankh, tilak, charan, naivedya, changeDeity }
+enum SevaIcon { ghee, aarti, pushpanjali, ghanta, shankh, water, milk, incense, charan, naivedya, changeDeity }
 
 /// Gold line-and-fill ritual glyphs for the seva medallions.
 class SevaIconPainter extends CustomPainter {
@@ -1792,29 +2038,28 @@ class SevaIconPainter extends CustomPainter {
             line..strokeWidth = s * 0.045,
           );
         }
-      case SevaIcon.tilak:
-        canvas.drawPath(
-          Path()
-            ..moveTo(s * 0.3, s * 0.14)
-            ..quadraticBezierTo(s * 0.28, s * 0.8, s * 0.5, s * 0.84)
-            ..quadraticBezierTo(s * 0.72, s * 0.8, s * 0.7, s * 0.14),
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeCap = StrokeCap.round
-            ..strokeWidth = s * 0.1
-            ..color = const Color(0xFFFFE9B0),
-        );
+      case SevaIcon.water:
+      case SevaIcon.milk:
         final drop = Path()
-          ..moveTo(s * 0.5, s * 0.2)
-          ..quadraticBezierTo(s * 0.6, s * 0.52, s * 0.5, s * 0.68)
-          ..quadraticBezierTo(s * 0.4, s * 0.52, s * 0.5, s * 0.2)
-          ..close();
+          ..moveTo(s * .5, s * .08)
+          ..cubicTo(s * .43, s * .32, s * .18, s * .49, s * .22, s * .68)
+          ..cubicTo(s * .28, s * .99, s * .76, s * .96, s * .78, s * .68)
+          ..cubicTo(s * .8, s * .52, s * .57, s * .31, s * .5, s * .08);
         canvas.drawPath(
           drop,
-          Paint()
-            ..color = const Color(0xFFFF1744)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 2),
+          Paint()..color = icon == SevaIcon.milk ? const Color(0xFFFFF3D6) : const Color(0xFF91CFDF),
         );
+        canvas.drawArc(
+          Rect.fromLTWH(s * .32, s * .52, s * .22, s * .23),
+          1.7,
+          1.6,
+          false,
+          line..strokeWidth = s * .045,
+        );
+      case SevaIcon.incense:
+        canvas.drawLine(Offset(s * .43, s * .8), Offset(s * .24, s * .22), line);
+        canvas.drawLine(Offset(s * .55, s * .8), Offset(s * .61, s * .13), line);
+        canvas.drawOval(Rect.fromLTWH(s * .18, s * .76, s * .65, s * .16), gold);
       case SevaIcon.charan:
         for (final (dx, dy, mirror) in [(0.32, 0.56, -1.0), (0.66, 0.44, 1.0)]) {
           final c = Offset(s * dx, s * dy);

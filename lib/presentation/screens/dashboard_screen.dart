@@ -38,11 +38,12 @@ import '../widgets/jaap/jaap_dashboard_card.dart';
 import '../widgets/premium_blurred_gate.dart';
 import '../widgets/remote_notices.dart';
 import '../widgets/remove_ads_card.dart';
-import '../widgets/request_deity_sheet.dart';
+import '../widgets/request_deity_section.dart';
 import 'deity_aarti_list_screen.dart';
 import 'horoscope_screen.dart';
 import 'more_screen.dart';
 import 'panchang_screen.dart';
+import 'request_deity_aarti_screen.dart';
 import '../../services/ad_units.dart';
 import '../../services/app_permission_service.dart';
 import '../../services/rewarded_interstitial_ad_service.dart';
@@ -911,6 +912,18 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
                           );
                         },
                       ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                          child: DeityAartiRequestSection(
+                            key: const Key('home-request-deity-section'),
+                            lang: localeCode,
+                            source: 'home_bottom_section',
+                            inputKey: const Key('home-request-name-input'),
+                            submitKey: const Key('home-request-submit'),
+                          ),
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -995,65 +1008,139 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
 
   Widget _buildDeityRequestBanner(String localeCode) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-      child: InkWell(
-        onTap: () {
-          final query = ref.read(searchQueryProvider).trim();
-          _showRequestDeitySheet(context, localeCode, initialText: query);
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-          decoration: BoxDecoration(
-            color: MandirTheme.primarySaffron.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: MandirTheme.primarySaffron.withValues(alpha: 0.35),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.temple_hindu_rounded,
-                size: 20,
-                color: MandirTheme.secondaryMaroon,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      child: Material(
+        key: const Key('home-request-section-card'),
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            final query = ref.read(searchQueryProvider).trim();
+            _openRequestDeityAartiScreen(
+              context,
+              initialText: query,
+              source: 'home_top_section',
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFF4DC), Color(0xFFFFE5BA)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  switch (localeCode) {
-                    'hi' => 'आपकी मनपसंद आरती नहीं मिली? यहाँ बताएं (२४ घंटे में जोड़ेंगे) 🙏',
-                    'mr' => 'आपले आराध्य दैवत सापडले नाही का? येथे सांगा (२४ तासांत जोडू) 🙏',
-                    _ => "Can't find your deity? Request here (added in 24h) 🙏",
-                  },
-                  style: GoogleFonts.mukta(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: MandirTheme.secondaryMaroon,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: MandirTheme.primarySaffron.withValues(alpha: 0.55),
+                width: 1.3,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: MandirTheme.primarySaffron.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
-              ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 13,
-                color: MandirTheme.secondaryMaroon,
-              ),
-            ],
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        MandirTheme.primarySaffron,
+                        MandirTheme.secondaryMaroon,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(
+                    Icons.temple_hindu_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        switch (localeCode) {
+                          'hi' => 'नया देवता या आरती जोड़ें',
+                          'mr' => 'नवीन देव किंवा आरती जोडा',
+                          _ => 'Add Your Deity or Aarti',
+                        },
+                        style: GoogleFonts.mukta(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w700,
+                          color: MandirTheme.secondaryMaroon,
+                          height: 1.15,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        switch (localeCode) {
+                          'hi' => 'नाम भेजें · २४ घंटे में जोड़ देंगे 🙏',
+                          'mr' => 'नाव पाठवा · २४ तासांत जोडून देऊ 🙏',
+                          _ => 'Write name — added within 24 hours 🙏',
+                        },
+                        style: GoogleFonts.mukta(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: MandirTheme.textDark,
+                          height: 1.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: MandirTheme.secondaryMaroon,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    switch (localeCode) {
+                      'hi' => 'नाम लिखें',
+                      'mr' => 'नाव लिहा',
+                      _ => 'Write Name',
+                    },
+                    style: GoogleFonts.mukta(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _showRequestDeitySheet(BuildContext context, String lang, {String initialText = ''}) {
-    showRequestDeitySheet(
-      context,
-      lang: lang,
-      initialText: initialText,
-      source: 'home_screen',
+  void _openRequestDeityAartiScreen(
+    BuildContext context, {
+    String initialText = '',
+    String source = 'home_screen',
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RequestDeityAartiScreen(
+          initialText: initialText,
+          source: source,
+        ),
+      ),
     );
   }
 
@@ -1108,10 +1195,10 @@ class _MandirDashboardScreenState extends ConsumerState<MandirDashboardScreen> {
             ),
             const SizedBox(height: 18),
             ElevatedButton.icon(
-              onPressed: () => _showRequestDeitySheet(
+              onPressed: () => _openRequestDeityAartiScreen(
                 context,
-                localeCode,
                 initialText: query,
+                source: 'home_empty_search',
               ),
               icon: const Icon(Icons.add_task_rounded, size: 20),
               label: Text(

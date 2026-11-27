@@ -16,6 +16,7 @@ import '../providers/nitya_onboarding_providers.dart';
 import '../providers/remote_config_provider.dart';
 import '../widgets/nitya_pin_sheet.dart';
 import '../widgets/remove_ads_card.dart';
+import '../widgets/request_deity_section.dart';
 import 'calendar/calendar_screen.dart';
 import 'deity_aarti_list_screen.dart';
 import 'grahan_screen.dart';
@@ -225,6 +226,31 @@ class MoreScreen extends ConsumerWidget {
                   ),
                 ],
               ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Section: Request Deity or Aarti (24h Promise)
+            Text(
+              switch (lang) {
+                'mr' => 'नवीन देव किंवा आरती जोडा',
+                'hi' => 'नया देवता या आरती जोड़ें',
+                _ => 'Add Deity or Aarti',
+              },
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1E1E1E),
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 12),
+            DeityAartiRequestSection(
+              key: const Key('more-request-deity-section'),
+              lang: lang,
+              source: 'more_tab',
+              inputKey: const Key('more-request-name-input'),
+              submitKey: const Key('more-request-submit'),
             ),
 
             const SizedBox(height: 24),

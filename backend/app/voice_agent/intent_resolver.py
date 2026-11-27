@@ -128,7 +128,7 @@ def _alias_in_query(alias: str, query: str) -> bool:
 FEATURE_SPOKEN_ALIASES = {
     "grahan": ("solar eclipse", "lunar eclipse", "सूर्यग्रहण", "चंद्रग्रहण"),
     "granth": ("holy books", "holy book", "scripture library"),
-    "greetings": ("good morning cards", "cards that say good morning", "शुभकामना", "शुभकामनाएं", "शुभकामनाएँ", "सुप्रभात", "शुभेच्छापत्रे"),
+    "greetings": ("good morning cards", "cards that say good morning", "good night cards", "cards that say good night", "शुभकामना", "शुभकामनाएं", "शुभकामनाएँ", "सुप्रभात", "शुभ रात्री", "शुभ रात्रि", "शुभेच्छापत्रे"),
     "ishta_devta": ("आराध्य दैवत", "उपास्य दैवत", "आराध्य देवता", "personal deity", "isht dev"),
 }
 
@@ -559,7 +559,7 @@ MODEL_ROUTE_CUES = {
     "open_kundali": ("natal", "born", "birth details", "birth time", "janam patri", "जन्मपत्री", "janmapatrika"),
     "open_milan": ("marriage", "matrimony", "wedding match", "compatibility", "shaadi", "विवाह", "लग्नासाठी"),
     "open_ishta_devta": ("personal deity", "tutelary deity", "आराध्य देवता"),
-    "open_greetings": ("greeting cards", "morning cards", "शुभकामना", "शुभेच्छा"),
+    "open_greetings": ("greeting cards", "morning cards", "night cards", "good night", "शुभकामना", "शुभेच्छा", "शुभ रात्री", "शुभ रात्रि"),
     "open_grahan": ("eclipse", "grahan", "ग्रहण"),
     "open_calendar": ("festival", "festivals", "tyoharon", "उत्सव", "सण", "त्योहार"),
     "start_jaap": ("recite", "repeat the mantra", "मंत्र जपा", "नामस्मरण"),

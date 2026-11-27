@@ -9,7 +9,6 @@ import '../../domain/entities/bhakti_deity.dart';
 import '../../domain/logic/akhand_diya.dart';
 import '../../features/mandir/controllers/akhand_diya_controller.dart';
 import '../../features/mandir/screens/real_garbhagriha_screen.dart';
-import '../../features/mandir/widgets/mandir_painters.dart';
 import '../../services/akhand_diya_service.dart';
 import '../../services/audio_service.dart';
 import '../../services/backend_service.dart';
@@ -132,15 +131,6 @@ void openGarbhagriha(BuildContext context, WidgetRef ref, {required String sourc
   final deity = ref.read(jyotDeityProvider);
   final diya = ref.read(akhandDiyaProvider);
   final now = DateTime.now();
-
-  // Pre-cache core mandir images to avoid jank / freezing during transition.
-  try {
-    precacheImage(const AssetImage(MandirAssets.sanctum), context);
-    precacheImage(const AssetImage(MandirAssets.prabhavaliArch), context);
-    precacheImage(const AssetImage(MandirAssets.akhandDiya), context);
-    precacheImage(const AssetImage(MandirAssets.gheeKalash), context);
-    precacheImage(AssetImage(deity.imageAsset), context);
-  } catch (_) {}
 
   BackendService.trackEvent(
     'mandir_tap',

@@ -12,6 +12,9 @@ from app.database import DB_PATH, utc_now_iso
 
 
 REQUIRED_AARTI_FIELDS = ("id", "title", "deity", "youtubeVideoId", "lyrics")
+DEFAULT_AARTI_SORT_PINS: Dict[str, int] = {
+    "vishnu_om_jai_jagdish_hare": -10,
+}
 
 
 def _as_bool(value: Any, default: bool = True) -> bool:
@@ -406,7 +409,7 @@ async def public_catalog_payload() -> Tuple[Dict[str, Any], str]:
     deities_rows = await list_remote_deities(include_disabled=False)
     overrides = await list_sort_overrides()
 
-    aarti_sort: Dict[str, int] = {}
+    aarti_sort: Dict[str, int] = dict(DEFAULT_AARTI_SORT_PINS)
     deity_sort: Dict[str, int] = {}
     for row in aartis_rows:
         aarti_sort[row["id"]] = int(row.get("sortOrder") or 0)

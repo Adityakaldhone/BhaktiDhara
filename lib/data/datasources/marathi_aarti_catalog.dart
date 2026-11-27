@@ -5021,6 +5021,7 @@ final List<AartiItem> kMarathiAartiCatalog = [
     durationText: '5:36',
     accentColorHex: '#0288D1',
     deityEmoji: '🐚',
+    sortOrder: -10,
     aboutMr: 'पं. श्रद्धाराम फिल्लौरीकृत भगवान विष्णूची सर्वत्र गायली जाणारी "ॐ जय जगदीश हरे" आरती.',
     aboutHi: 'पं. श्रद्धाराम फिल्लौरी रचित भगवान विष्णु की सर्वत्र गाई जाने वाली आरती "ॐ जय जगदीश हरे"।',
     about: 'Om Jai Jagdish Hare, the widely sung aarti of Lord Vishnu by Pt. Shardha Ram Phillauri.',
